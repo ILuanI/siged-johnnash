@@ -72,7 +72,7 @@ return new class extends Migration
             }
         }
 
-        if (Schema::hasTable('alumno')) {
+        if (Schema::hasTable('alumno') && DB::getDriverName() === 'mysql') {
             DB::statement("ALTER TABLE alumno MODIFY estado ENUM('ACTIVO','MATRICULADO','RETIRADO','EGRESADO') NOT NULL DEFAULT 'ACTIVO'");
         }
     }
