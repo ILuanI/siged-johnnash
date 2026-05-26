@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Http\Requests\Matriculas;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class StoreMatriculaRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function rules(): array
+    {
+        return [
+            'id_alumno' => ['required', 'integer', Rule::exists('alumno', 'id_alumno')],
+            'id_ciclo' => ['required', 'integer', Rule::exists('ciclo', 'id_ciclo')],
+            'id_periodo' => ['required', 'integer', Rule::exists('periodo_academico', 'id_periodo')],
+            'id_turno' => ['required', 'integer', Rule::exists('turno', 'id_turno')],
+            'id_aula' => ['required', 'integer', Rule::exists('aula', 'id_aula')],
+            'fecha_matricula' => ['nullable', 'date'],
+            'modalidad' => ['nullable', Rule::in(['PRESENCIAL', 'VIRTUAL'])],
+            'tipo_pago' => ['nullable', Rule::in(['CONTADO', 'CREDITO'])],
+            'costo_total' => ['nullable', 'numeric', 'min:0'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'id_alumno.exists' => 'El alumno indicado no está registrado.',
+            'id_ciclo.exists' => 'El ciclo académico indicado no existe.',
+            'id_periodo.exists' => 'El periodo académico indicado no existe.',
+            'id_turno.exists' => 'El turno indicado no existe.',
+            'id_aula.exists' => 'El aula indicada no existe.',
+        ];
+    }
+}
