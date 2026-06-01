@@ -5,9 +5,7 @@ namespace App\Http\Controllers\Api\Matriculas;
 use App\Http\Controllers\Controller;
 use App\Http\Responses\ApiResponse;
 use App\Services\Matriculas\ConsolidadoAlumnoService;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
-use Throwable;
 
 class ConsolidadoAlumnoController extends Controller
 {
@@ -17,17 +15,9 @@ class ConsolidadoAlumnoController extends Controller
 
     public function __invoke(int $id): JsonResponse
     {
-        try {
-            $consolidado = $this->consolidadoAlumnoService->obtener($id);
-
-            return ApiResponse::success(
-                $consolidado,
-                'Consolidado del alumno obtenido correctamente.',
-            );
-        } catch (ModelNotFoundException) {
-            return ApiResponse::error('El alumno solicitado no existe.', 404);
-        } catch (Throwable) {
-            return ApiResponse::error('No se pudo obtener el consolidado del alumno.', 500);
-        }
+        return ApiResponse::success(
+            $this->consolidadoAlumnoService->obtener($id),
+            'Consolidado del alumno obtenido correctamente.',
+        );
     }
 }

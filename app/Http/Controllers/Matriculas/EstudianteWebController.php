@@ -2,14 +2,12 @@
 
 namespace App\Http\Controllers\Matriculas;
 
-use App\Exceptions\BusinessRuleException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Matriculas\StoreAlumnoRequest;
 use App\Models\Alumno;
 use App\Models\Carrera;
 use App\Services\Matriculas\AlumnoRegistroService;
 use App\Services\Matriculas\ConsolidadoAlumnoService;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -40,20 +38,16 @@ class EstudianteWebController extends Controller
             ->get(['id_alumno', 'codigo', 'nombres', 'apellidos', 'dni', 'estado', 'correo', 'telefono']);
 
         $consolidado = null;
-        $alumnoId = $request->integer('alumno');
+        $alumnoId = $request->integer('alumno') ?: null;
 
         if ($alumnoId) {
-            try {
-                $consolidado = $this->consolidadoAlumnoService->obtener($alumnoId);
-            } catch (ModelNotFoundException) {
-                $alumnoId = 0;
-            }
+            $consolidado = $this->consolidadoAlumnoService->obtener($alumnoId);
         }
 
         return Inertia::render('matriculas/estudiantes/index', [
             'estudiantes' => $estudiantes,
             'consolidado' => $consolidado,
-            'alumnoId' => $alumnoId ?: null,
+            'alumnoId' => $alumnoId,
             'filters' => ['q' => $busqueda],
         ]);
     }
@@ -67,14 +61,10 @@ class EstudianteWebController extends Controller
 
     public function store(StoreAlumnoRequest $request): RedirectResponse
     {
-        try {
-            $alumno = $this->alumnoRegistroService->registrar($request->validated());
+        $alumno = $this->alumnoRegistroService->registrar($request->validated());
 
-            return redirect()
-                ->route('matriculas.estudiantes.index', ['alumno' => $alumno->id_alumno])
-                ->with('success', 'Estudiante registrado correctamente.');
-        } catch (BusinessRuleException $exception) {
-            return back()->withInput()->with('error', $exception->getMessage());
-        }
+        return redirect()
+            ->route('matriculas.estudiantes.index', ['alumno' => $alumno->id_alumno])
+            ->with('success', 'Estudiante registrado correctamente.');
     }
 }

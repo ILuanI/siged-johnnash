@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Matriculas;
 
-use App\Exceptions\BusinessRuleException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Matriculas\StoreMatriculaRequest;
 use App\Models\Alumno;
@@ -36,14 +35,10 @@ class MatriculaWebController extends Controller
 
     public function store(StoreMatriculaRequest $request): RedirectResponse
     {
-        try {
-            $matricula = $this->matriculaFormalizacionService->formalizar($request->validated());
+        $matricula = $this->matriculaFormalizacionService->formalizar($request->validated());
 
-            return redirect()
-                ->route('matriculas.estudiantes.index', ['alumno' => $matricula->id_alumno])
-                ->with('success', 'Matrícula formalizada correctamente.');
-        } catch (BusinessRuleException $exception) {
-            return back()->withInput()->with('error', $exception->getMessage());
-        }
+        return redirect()
+            ->route('matriculas.estudiantes.index', ['alumno' => $matricula->id_alumno])
+            ->with('success', 'Matrícula formalizada correctamente.');
     }
 }

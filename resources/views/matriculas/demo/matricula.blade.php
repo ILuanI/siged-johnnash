@@ -17,7 +17,7 @@
 
         <form method="post" action="{{ route('demo.matriculas.matricula.store') }}">
             @csrf
-            <label for="id_alumno">Alumno *</label>
+            <label for="id_alumno">Alumnod *</label>
             <select id="id_alumno" name="id_alumno" required>
                 <option value="">— Seleccionar —</option>
                 @foreach ($alumnos as $alumno)

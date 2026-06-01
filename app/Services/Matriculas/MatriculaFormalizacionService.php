@@ -5,6 +5,8 @@ namespace App\Services\Matriculas;
 use App\Enums\EstadoAlumno;
 use App\Enums\EstadoCiclo;
 use App\Enums\EstadoMatricula;
+use App\Enums\ModalidadMatricula;
+use App\Enums\TipoPagoMatricula;
 use App\Exceptions\BusinessRuleException;
 use App\Models\Alumno;
 use App\Models\Ciclo;
@@ -67,8 +69,8 @@ class MatriculaFormalizacionService
                 'id_turno' => $datos['id_turno'],
                 'id_aula' => $datos['id_aula'],
                 'fecha_matricula' => $datos['fecha_matricula'] ?? now()->toDateString(),
-                'modalidad' => $datos['modalidad'] ?? 'PRESENCIAL',
-                'tipo_pago' => $datos['tipo_pago'] ?? 'CONTADO',
+                'modalidad' => $datos['modalidad'] ?? ModalidadMatricula::Presencial,
+                'tipo_pago' => $datos['tipo_pago'] ?? TipoPagoMatricula::Contado,
                 'costo_total' => $datos['costo_total'] ?? $ciclo->costo_base,
                 'estado' => EstadoMatricula::Vigente,
             ]);
