@@ -21,7 +21,7 @@ class DocenteFactory extends Factory
             'nombres' => fake()->firstName(),
             'apellidos' => fake()->lastName().' '.fake()->lastName(),
             'correo' => fake()->unique()->safeEmail(),
-            'telefono' => fake()->phoneNumber(),
+            'telefono' => fake()->numerify('9########'),
             'dni' => fake()->unique()->numerify('########'),
             'curso_id' => null,
         ];

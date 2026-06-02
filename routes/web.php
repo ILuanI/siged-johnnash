@@ -13,4 +13,3 @@ Route::middleware(['auth', 'verified'])->group(function () {
 require __DIR__.'/settings.php';
 require __DIR__.'/matriculas.php';
 require __DIR__.'/cursos.php';
-require __DIR__.'/demo-matriculas.php';

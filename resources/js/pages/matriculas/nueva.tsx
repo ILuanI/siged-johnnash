@@ -1,8 +1,16 @@
-import { Form, Head, Link } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import type { EstudianteListItem } from '@/types/matriculas';
 
 type PeriodoOption = {
@@ -41,6 +49,23 @@ export default function NuevaMatricula({
     turnos,
     aulas,
 }: PageProps) {
+    const { data, setData, post, processing, errors } = useForm({
+        id_alumno: '',
+        id_periodo: '',
+        id_ciclo: '',
+        id_turno: '',
+        id_aula: '',
+        modalidad: 'PRESENCIAL',
+        tipo_pago: 'CONTADO',
+        costo_total: '',
+        fecha_matricula: new Date().toISOString().split('T')[0],
+    });
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post('/matriculas/nueva');
+    };
+
     return (
         <>
             <Head title="Nueva matrícula" />
@@ -62,169 +87,196 @@ export default function NuevaMatricula({
             </header>
 
             <div className="mx-auto max-w-2xl px-8 py-8">
-                <Form
-                    action="/matriculas/nueva"
-                    method="post"
+                <form
+                    onSubmit={submit}
                     className="space-y-5 rounded-xl border bg-white p-6 shadow-sm"
                 >
-                    {({ processing, errors }) => (
-                        <>
-                            <div>
-                                <Label htmlFor="id_alumno">Alumno *</Label>
-                                <select
-                                    id="id_alumno"
-                                    name="id_alumno"
-                                    required
-                                    className="flex h-9 w-full rounded-md border border-input px-3 text-sm"
-                                >
-                                    <option value="">— Seleccionar —</option>
-                                    {alumnos.map((a) => (
-                                        <option
-                                            key={a.id_alumno}
-                                            value={a.id_alumno}
+                    <div>
+                        <Label htmlFor="id_alumno">Alumno *</Label>
+                        <Select
+                            value={data.id_alumno}
+                            onValueChange={(val) => setData('id_alumno', val)}
+                        >
+                            <SelectTrigger id="id_alumno">
+                                <SelectValue placeholder="— Seleccionar —" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {alumnos.map((a) => (
+                                    <SelectItem
+                                        key={a.id_alumno}
+                                        value={a.id_alumno.toString()}
+                                    >
+                                        {a.codigo} — {a.apellidos},{' '}
+                                        {a.nombres} ({a.estado})
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <InputError message={errors.id_alumno} />
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                            <Label htmlFor="id_periodo">Periodo *</Label>
+                            <Select
+                                value={data.id_periodo}
+                                onValueChange={(val) => setData('id_periodo', val)}
+                            >
+                                <SelectTrigger id="id_periodo">
+                                    <SelectValue placeholder="—" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {periodos.map((p) => (
+                                        <SelectItem
+                                            key={p.id_periodo}
+                                            value={p.id_periodo.toString()}
                                         >
-                                            {a.codigo} — {a.apellidos},{' '}
-                                            {a.nombres} ({a.estado})
-                                        </option>
+                                            {p.nombre} ({p.anio})
+                                        </SelectItem>
                                     ))}
-                                </select>
-                                <InputError message={errors.id_alumno} />
-                            </div>
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.id_periodo} />
+                        </div>
+                        <div>
+                            <Label htmlFor="id_ciclo">Ciclo *</Label>
+                            <Select
+                                value={data.id_ciclo}
+                                onValueChange={(val) => setData('id_ciclo', val)}
+                            >
+                                <SelectTrigger id="id_ciclo">
+                                    <SelectValue placeholder="—" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {ciclos.map((c) => (
+                                        <SelectItem
+                                            key={c.id_ciclo}
+                                            value={c.id_ciclo.toString()}
+                                        >
+                                            {c.nombre} — S/{' '}
+                                            {Number(c.costo_base).toFixed(2)}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.id_ciclo} />
+                        </div>
+                        <div>
+                            <Label htmlFor="id_turno">Turno *</Label>
+                            <Select
+                                value={data.id_turno}
+                                onValueChange={(val) => setData('id_turno', val)}
+                            >
+                                <SelectTrigger id="id_turno">
+                                    <SelectValue placeholder="—" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {turnos.map((t) => (
+                                        <SelectItem
+                                            key={t.id_turno}
+                                            value={t.id_turno.toString()}
+                                        >
+                                            {t.nombre}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.id_turno} />
+                        </div>
+                        <div>
+                            <Label htmlFor="id_aula">Aula *</Label>
+                            <Select
+                                value={data.id_aula}
+                                onValueChange={(val) => setData('id_aula', val)}
+                            >
+                                <SelectTrigger id="id_aula">
+                                    <SelectValue placeholder="—" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {aulas.map((a) => (
+                                        <SelectItem
+                                            key={a.id_aula}
+                                            value={a.id_aula.toString()}
+                                        >
+                                            {a.nombre}
+                                            {a.capacidad ? ` (cap. ${a.capacidad})` : ''}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.id_aula} />
+                        </div>
+                        <div>
+                            <Label htmlFor="modalidad">Modalidad</Label>
+                            <Select
+                                value={data.modalidad}
+                                onValueChange={(val) => setData('modalidad', val)}
+                            >
+                                <SelectTrigger id="modalidad">
+                                    <SelectValue placeholder="Modalidad" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="PRESENCIAL">
+                                        Presencial
+                                    </SelectItem>
+                                    <SelectItem value="VIRTUAL">Virtual</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.modalidad} />
+                        </div>
+                        <div>
+                            <Label htmlFor="tipo_pago">Tipo de pago</Label>
+                            <Select
+                                value={data.tipo_pago}
+                                onValueChange={(val) => setData('tipo_pago', val)}
+                            >
+                                <SelectTrigger id="tipo_pago">
+                                    <SelectValue placeholder="Tipo" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="CONTADO">Contado</SelectItem>
+                                    <SelectItem value="CREDITO">Crédito</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.tipo_pago} />
+                        </div>
+                        <div>
+                            <Label htmlFor="costo_total">Costo total</Label>
+                            <Input
+                                id="costo_total"
+                                type="number"
+                                step="0.01"
+                                placeholder="Opcional"
+                                value={data.costo_total}
+                                onChange={(e) => setData('costo_total', e.target.value)}
+                            />
+                            <InputError message={errors.costo_total} />
+                        </div>
+                        <div>
+                            <Label htmlFor="fecha_matricula">Fecha matrícula</Label>
+                            <Input
+                                id="fecha_matricula"
+                                type="date"
+                                value={data.fecha_matricula}
+                                onChange={(e) => setData('fecha_matricula', e.target.value)}
+                            />
+                            <InputError message={errors.fecha_matricula} />
+                        </div>
+                    </div>
 
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div>
-                                    <Label htmlFor="id_periodo">
-                                        Periodo *
-                                    </Label>
-                                    <select
-                                        id="id_periodo"
-                                        name="id_periodo"
-                                        required
-                                        className="flex h-9 w-full rounded-md border border-input px-3 text-sm"
-                                    >
-                                        {periodos.map((p) => (
-                                            <option
-                                                key={p.id_periodo}
-                                                value={p.id_periodo}
-                                            >
-                                                {p.nombre} ({p.anio})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <Label htmlFor="id_ciclo">Ciclo *</Label>
-                                    <select
-                                        id="id_ciclo"
-                                        name="id_ciclo"
-                                        required
-                                        className="flex h-9 w-full rounded-md border border-input px-3 text-sm"
-                                    >
-                                        {ciclos.map((c) => (
-                                            <option
-                                                key={c.id_ciclo}
-                                                value={c.id_ciclo}
-                                            >
-                                                {c.nombre} — S/{' '}
-                                                {Number(c.costo_base).toFixed(
-                                                    2,
-                                                )}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <Label htmlFor="id_turno">Turno *</Label>
-                                    <select
-                                        id="id_turno"
-                                        name="id_turno"
-                                        required
-                                        className="flex h-9 w-full rounded-md border border-input px-3 text-sm"
-                                    >
-                                        {turnos.map((t) => (
-                                            <option
-                                                key={t.id_turno}
-                                                value={t.id_turno}
-                                            >
-                                                {t.nombre}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <Label htmlFor="id_aula">Aula *</Label>
-                                    <select
-                                        id="id_aula"
-                                        name="id_aula"
-                                        required
-                                        className="flex h-9 w-full rounded-md border border-input px-3 text-sm"
-                                    >
-                                        {aulas.map((a) => (
-                                            <option
-                                                key={a.id_aula}
-                                                value={a.id_aula}
-                                            >
-                                                {a.nombre}
-                                                {a.capacidad
-                                                    ? ` (cap. ${a.capacidad})`
-                                                    : ''}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <Label htmlFor="modalidad">
-                                        Modalidad
-                                    </Label>
-                                    <select
-                                        id="modalidad"
-                                        name="modalidad"
-                                        className="flex h-9 w-full rounded-md border border-input px-3 text-sm"
-                                    >
-                                        <option value="PRESENCIAL">
-                                            Presencial
-                                        </option>
-                                        <option value="VIRTUAL">
-                                            Virtual
-                                        </option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <Label htmlFor="tipo_pago">
-                                        Tipo de pago
-                                    </Label>
-                                    <select
-                                        id="tipo_pago"
-                                        name="tipo_pago"
-                                        className="flex h-9 w-full rounded-md border border-input px-3 text-sm"
-                                    >
-                                        <option value="CONTADO">
-                                            Contado
-                                        </option>
-                                        <option value="CREDITO">
-                                            Crédito
-                                        </option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 pt-2">
-                                <Button
-                                    type="submit"
-                                    disabled={processing}
-                                    className="bg-[#ff7043] hover:bg-[#f4511e]"
-                                >
-                                    Formalizar matrícula
-                                </Button>
-                                <Button type="button" variant="outline" asChild>
-                                    <Link href="/matriculas/estudiantes">
-                                        Cancelar
-                                    </Link>
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </Form>
+                    <div className="flex gap-3 pt-2">
+                        <Button
+                            type="submit"
+                            disabled={processing}
+                            className="bg-[#ff7043] hover:bg-[#f4511e]"
+                        >
+                            Formalizar matrícula
+                        </Button>
+                        <Button type="button" variant="outline" asChild>
+                            <Link href="/matriculas/estudiantes">Cancelar</Link>
+                        </Button>
+                    </div>
+                </form>
             </div>
         </>
     );
