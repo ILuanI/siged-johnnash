@@ -63,6 +63,12 @@ La estructura del proyecto sigue las convenciones de Laravel y un esquema escala
     └── pnpm-workspace.yaml # Soporte para espacios de trabajo de PNPM
 ```
 
+### Módulos funcionales del SIGED
+
+La matriz completa de requerimientos (RI001–RI009), convenciones de carpetas, rutas y estado de implementación está documentada en:
+
+**[docs/MODULOS.md](docs/MODULOS.md)**
+
 ## 🛠️ Tecnologías Usadas
 
 El sistema está construido sobre un stack robusto y extremadamente moderno, configurado con las mejores prácticas del ecosistema:
