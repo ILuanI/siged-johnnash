@@ -52,4 +52,9 @@ class Ciclo extends Model
     {
         return $this->hasMany(Matricula::class, 'id_ciclo', 'id_ciclo');
     }
+
+    public function asignacionesDocentes(): HasMany
+    {
+        return $this->hasMany(AsignacionDocente::class, 'id_ciclo', 'id_ciclo');
+    }
 }

@@ -20,6 +20,8 @@ createInertiaApp({
                 return [AppLayout, SettingsLayout];
             case name.startsWith('matriculas/'):
                 return MatriculasLayout;
+            case name.startsWith('cursos/'):
+                return MatriculasLayout;
             default:
                 return AppLayout;
         }

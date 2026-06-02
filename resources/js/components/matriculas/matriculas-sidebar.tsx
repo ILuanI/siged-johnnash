@@ -1,5 +1,4 @@
 import { Link } from '@inertiajs/react';
-import { logout } from '@/routes';
 import {
     BarChart3,
     BookOpen,
@@ -12,6 +11,7 @@ import {
     Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { logout } from '@/routes';
 
 type NavLink = {
     title: string;
@@ -23,7 +23,7 @@ type NavLink = {
 const navItems: NavLink[] = [
     { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid, disabled: true },
     { title: 'Estudiantes', href: '/matriculas/estudiantes', icon: Users },
-    { title: 'Académico', href: '#', icon: BookOpen, disabled: true },
+    { title: 'Académico', href: '/cursos', icon: BookOpen },
     { title: 'Pagos', href: '#', icon: CreditCard, disabled: true },
     { title: 'Reportes', href: '#', icon: BarChart3, disabled: true },
     { title: 'Ajustes', href: '#', icon: Settings, disabled: true },
