@@ -2,14 +2,7 @@ import React, { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
 import { store, update, destroy } from '@/actions/App/Http/Controllers/DocenteController';
 
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,8 +14,10 @@ import {
     DialogDescription,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Pen, Trash2, Plus } from 'lucide-react';
+import { Pen, Trash2, UserPlus, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { useInitials } from '@/hooks/use-initials';
+import { cn } from '@/lib/utils';
 
 interface Docente {
     id: number;
@@ -45,6 +40,7 @@ interface Props {
 }
 
 export default function DocentesIndex({ docentes }: Props) {
+    const getInitials = useInitials();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingDocente, setEditingDocente] = useState<Docente | null>(null);
 
@@ -114,74 +110,91 @@ export default function DocentesIndex({ docentes }: Props) {
 
     return (
         <>
-            <Head title="Gestión de Docentes" />
+            <Head title="Docentes" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 p-4 md:p-8">
-                <div className="flex items-center justify-between">
+            <header className="border-b bg-white px-8 py-6">
+                <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Docentes</h2>
-                        <p className="text-muted-foreground">
-                            Gestiona el personal docente de la academia.
+                        <h1 className="text-2xl font-bold text-slate-900">
+                            Directorio de Docentes
+                        </h1>
+                        <p className="text-sm text-slate-500">
+                            {docentes.total} docente{docentes.total !== 1 ? 's' : ''} registrado{docentes.total !== 1 ? 's' : ''} en la academia.
                         </p>
                     </div>
-                    <Button onClick={openCreateDialog}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Nuevo Docente
+                    <Button
+                        onClick={openCreateDialog}
+                        className="bg-[#ff7043] hover:bg-[#f4511e]"
+                    >
+                        <UserPlus className="mr-2 size-4" />
+                        Nuevo docente
                     </Button>
                 </div>
+            </header>
 
-                <div className="rounded-md border bg-card text-card-foreground shadow-sm overflow-hidden">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>DNI</TableHead>
-                                <TableHead>Nombres y Apellidos</TableHead>
-                                <TableHead>Correo</TableHead>
-                                <TableHead>Teléfono</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {docentes.data.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                                        No hay docentes registrados.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                docentes.data.map((docente) => (
-                                    <TableRow key={docente.id}>
-                                        <TableCell className="font-medium">{docente.dni}</TableCell>
-                                        <TableCell>
-                                            {docente.nombres} {docente.apellidos}
-                                        </TableCell>
-                                        <TableCell>{docente.correo}</TableCell>
-                                        <TableCell>{docente.telefono || '—'}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => openEditDialog(docente)}
-                                                title="Editar"
-                                            >
-                                                <Pen className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => handleDelete(docente)}
-                                                className="text-destructive focus:text-destructive"
-                                                title="Eliminar"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
+            <div className="flex-1 px-8 py-6">
+                {docentes.data.length === 0 ? (
+                    <div className="rounded-xl border border-dashed bg-white p-12 text-center">
+                        <p className="text-slate-600">
+                            No hay docentes registrados.
+                        </p>
+                        <Button onClick={openCreateDialog} className="mt-4" variant="outline">
+                            Registrar primer docente
+                        </Button>
+                    </div>
+                ) : (
+                    <ul className="space-y-2">
+                        {docentes.data.map((docente) => (
+                            <li key={docente.id}>
+                                <div
+                                    className="flex w-full items-center gap-4 rounded-xl border bg-white p-4 transition hover:border-[#ff7043]/40 hover:shadow-sm"
+                                >
+                                    <Avatar className="size-12">
+                                        <AvatarFallback className="bg-[#1a237e]/10 text-[#1a237e]">
+                                            {getInitials(
+                                                `${docente.nombres} ${docente.apellidos}`,
+                                            )}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate font-semibold text-slate-900">
+                                            {docente.apellidos},{' '}
+                                            {docente.nombres}
+                                        </p>
+                                        <p className="text-sm text-slate-500">
+                                            {docente.correo}
+                                            {docente.telefono
+                                                ? ` · Telf: ${docente.telefono}`
+                                                : ''}
+                                            {docente.dni
+                                                ? ` · DNI ${docente.dni}`
+                                                : ''}
+                                        </p>
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => openEditDialog(docente)}
+                                            title="Editar"
+                                        >
+                                            <Pen className="size-4 text-slate-500" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => handleDelete(docente)}
+                                            className="text-destructive focus:text-destructive"
+                                            title="Eliminar"
+                                        >
+                                            <Trash2 className="size-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -267,7 +280,7 @@ export default function DocentesIndex({ docentes }: Props) {
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={processing}>
+                            <Button type="submit" disabled={processing} className="bg-[#ff7043] hover:bg-[#f4511e]">
                                 {editingDocente ? 'Guardar Cambios' : 'Registrar'}
                             </Button>
                         </DialogFooter>
