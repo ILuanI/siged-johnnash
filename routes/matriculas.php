@@ -17,6 +17,9 @@ Route::middleware(['auth', 'verified', 'permiso'])
         Route::post('estudiantes', [EstudianteWebController::class, 'store'])
             ->name('estudiantes.store');
 
+        Route::post('carreras', [EstudianteWebController::class, 'storeCarrera'])
+            ->name('carreras.store');
+
         Route::get('nueva', [MatriculaWebController::class, 'create'])
             ->name('nueva');
 

@@ -75,6 +75,13 @@ export default function DocentesIndex({ docentes }: Props) {
         if (confirm(`¿Estás seguro de eliminar a ${docente.nombres} ${docente.apellidos}?`)) {
             router.delete(destroy.url({ docente: docente.id }), {
                 onSuccess: () => toast.success('Docente eliminado exitosamente'),
+                onError: (errors) => {
+                    if (errors.error) {
+                        toast.error(errors.error);
+                    } else {
+                        toast.error('Ocurrió un error al intentar eliminar el docente');
+                    }
+                }
             });
         }
     };
@@ -83,21 +90,41 @@ export default function DocentesIndex({ docentes }: Props) {
         e.preventDefault();
 
         if (editingDocente) {
-            router.put(update.url({ docente: editingDocente.id }), data, {
+            put(update.url({ docente: editingDocente.id }), {
                 onSuccess: () => {
                     setIsDialogOpen(false);
                     toast.success('Docente actualizado exitosamente');
                 },
-                onError: (errors) => console.error(errors),
+                onError: (errs) => {
+                    console.error(errs);
+                    const fieldsOrder = ['dni', 'nombres', 'apellidos', 'correo', 'telefono'] as const;
+                    fieldsOrder.forEach((field) => {
+                        if (errs[field]) {
+                            toast.error(errs[field], {
+                                className: 'bg-rose-50 border-rose-200 text-rose-800'
+                            });
+                        }
+                    });
+                },
             });
         } else {
-            router.post(store.url(), data, {
+            post(store.url(), {
                 onSuccess: () => {
                     setIsDialogOpen(false);
                     reset();
                     toast.success('Docente creado exitosamente');
                 },
-                onError: (errors) => console.error(errors),
+                onError: (errs) => {
+                    console.error(errs);
+                    const fieldsOrder = ['dni', 'nombres', 'apellidos', 'correo', 'telefono'] as const;
+                    fieldsOrder.forEach((field) => {
+                        if (errs[field]) {
+                            toast.error(errs[field], {
+                                className: 'bg-rose-50 border-rose-200 text-rose-800'
+                            });
+                        }
+                    });
+                },
             });
         }
     };

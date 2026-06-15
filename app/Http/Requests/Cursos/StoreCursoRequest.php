@@ -34,6 +34,32 @@ class StoreCursoRequest extends FormRequest
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'nombre.required' => 'El nombre del curso es obligatorio.',
+            'nombre.unique' => 'Ya existe un curso registrado con este nombre.',
+            'color.required' => 'El color del curso es obligatorio.',
+            'color.regex' => 'El formato del color debe ser un hexadecimal válido (ej. #FF7043).',
+            'id_docente.required' => 'El docente es obligatorio.',
+            'id_docente.exists' => 'El docente seleccionado no es válido.',
+            'id_ciclo.required' => 'El ciclo académico es obligatorio.',
+            'id_ciclo.exists' => 'El ciclo seleccionado no es válido.',
+            'id_aula.required' => 'El aula es obligatoria.',
+            'id_aula.exists' => 'El aula seleccionada no es válida.',
+            'dias.required' => 'Debe seleccionar al menos un día de clases.',
+            'dias.min' => 'Debe seleccionar al menos un día de clases.',
+            'hora_inicio.required' => 'La hora de inicio es obligatoria.',
+            'hora_inicio.date_format' => 'La hora de inicio debe tener el formato HH:MM.',
+            'hora_fin.required' => 'La hora de fin es obligatoria.',
+            'hora_fin.date_format' => 'La hora de fin debe tener el formato HH:MM.',
+            'hora_fin.after' => 'La hora de fin debe ser posterior a la hora de inicio.',
+        ];
+    }
+
+    /**
      * @return array<int, callable>
      */
     public function after(): array

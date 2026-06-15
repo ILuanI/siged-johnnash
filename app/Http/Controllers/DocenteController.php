@@ -68,8 +68,20 @@ class DocenteController extends Controller
      */
     public function destroy(Docente $docente)
     {
-        $docente->delete();
+        if ($docente->asignaciones()->exists()) {
+            return redirect()->back()->withErrors([
+                'error' => 'No se puede eliminar el docente porque tiene cursos asignados actualmente.',
+            ]);
+        }
 
-        return redirect()->back()->with('success', 'Docente eliminado exitosamente.');
+        try {
+            $docente->delete();
+
+            return redirect()->back()->with('success', 'Docente eliminado exitosamente.');
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors([
+                'error' => 'Ocurrió un error al intentar eliminar el docente.',
+            ]);
+        }
     }
 }

@@ -126,6 +126,28 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
         toast.success('Generando reporte Excel...');
     };
 
+    const handleExportPdf = () => {
+        const queryParams = new URLSearchParams();
+        if (q.trim()) {
+            queryParams.append('q', q);
+        }
+        if (idTurno !== 'all' && idTurno !== '') {
+            queryParams.append('id_turno', idTurno);
+        }
+        if (idArea !== 'all' && idArea !== '') {
+            queryParams.append('id_area', idArea);
+        }
+        if (tardanzasCount) {
+            queryParams.append('tardanzas_count', tardanzasCount);
+        }
+        if (faltasCount) {
+            queryParams.append('faltas_count', faltasCount);
+        }
+
+        window.location.href = `/reportes/pdf?${queryParams.toString()}`;
+        toast.success('Generando reporte PDF...');
+    };
+
     return (
         <>
             <Head title="Reportes BI" />
@@ -140,14 +162,25 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                             Filtra, cruza información académica y de asistencia, y exporta a Excel.
                         </p>
                     </div>
-                    <Button
-                        onClick={handleExport}
-                        disabled={estudiantes.total === 0}
-                        className="bg-[#ff7043] hover:bg-[#f4511e]"
-                    >
-                        <Download className="mr-2 size-4" />
-                        Exportar a Excel (.xlsx)
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            onClick={handleExport}
+                            disabled={estudiantes.total === 0}
+                            className="bg-[#ff7043] hover:bg-[#f4511e]"
+                        >
+                            <Download className="mr-2 size-4" />
+                            Exportar a Excel (.xlsx)
+                        </Button>
+                        <Button
+                            onClick={handleExportPdf}
+                            disabled={estudiantes.total === 0}
+                            variant="outline"
+                            className="border-slate-300 hover:bg-slate-50 text-slate-700"
+                        >
+                            <Download className="mr-2 size-4 text-red-500" />
+                            Exportar a PDF (.pdf)
+                        </Button>
+                    </div>
                 </div>
             </header>
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Cursos;
 
+use App\Enums\EstadoCiclo;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cursos\StoreCursoRequest;
 use App\Http\Requests\Cursos\UpdateCursoRequest;
@@ -10,6 +11,7 @@ use App\Models\Aula;
 use App\Models\Ciclo;
 use App\Models\Curso;
 use App\Models\Docente;
+use App\Models\PeriodoAcademico;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -236,5 +238,54 @@ class CursoController extends Controller
     private function hora(string $hora): string
     {
         return mb_substr($hora, 0, 5);
+    }
+
+    public function storeCiclo(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'nombre' => ['required', 'string', 'max:60', 'unique:ciclo,nombre'],
+            'tipo_ciclo' => ['nullable', 'string', 'max:40'],
+            'fecha_inicio' => ['required', 'date'],
+            'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_inicio'],
+            'costo_base' => ['required', 'numeric', 'min:0'],
+        ], [
+            'nombre.required' => 'El nombre del ciclo es obligatorio.',
+            'nombre.unique' => 'Ya existe un ciclo con este nombre.',
+            'fecha_inicio.required' => 'La fecha de inicio es obligatoria.',
+            'fecha_inicio.date' => 'La fecha de inicio no es válida.',
+            'fecha_fin.required' => 'La fecha de fin es obligatoria.',
+            'fecha_fin.date' => 'La fecha de fin no es válida.',
+            'fecha_fin.after_or_equal' => 'La fecha de fin debe ser posterior o igual a la de inicio.',
+            'costo_base.required' => 'El costo base es obligatorio.',
+            'costo_base.numeric' => 'El costo base debe ser un valor numérico.',
+            'costo_base.min' => 'El costo base no puede ser negativo.',
+        ]);
+
+        $periodo = PeriodoAcademico::where('estado', 'ABIERTO')->first()
+            ?? PeriodoAcademico::orderBy('anio', 'desc')->first();
+
+        $validated['id_periodo'] = $periodo ? $periodo->id_periodo : null;
+        $validated['estado'] = EstadoCiclo::Abierto;
+
+        Ciclo::create($validated);
+
+        return redirect()->back()->with('success', 'Ciclo académico creado correctamente.');
+    }
+
+    public function storeAula(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'nombre' => ['required', 'string', 'max:40', 'unique:aula,nombre'],
+            'capacidad' => ['nullable', 'integer', 'min:1', 'max:1000'],
+        ], [
+            'nombre.required' => 'El nombre del aula es obligatorio.',
+            'nombre.unique' => 'Ya existe un aula con este nombre.',
+            'capacidad.integer' => 'La capacidad debe ser un número entero.',
+            'capacidad.min' => 'La capacidad debe ser al menos 1.',
+        ]);
+
+        Aula::create($validated);
+
+        return redirect()->back()->with('success', 'Aula creada correctamente.');
     }
 }
