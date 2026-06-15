@@ -1,12 +1,12 @@
 import { router } from '@inertiajs/react';
 import { ScanBarcode } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { store as registrarAsistencia } from '@/actions/App/Http/Controllers/Asistencias/LectorAsistenciaController';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 
 export default function LectorAsistencia() {
     const [dni, setDni] = useState('');

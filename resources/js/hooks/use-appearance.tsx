@@ -41,7 +41,7 @@ const isDarkMode = (appearance: Appearance): boolean => {
     return appearance === 'dark' || (appearance === 'system' && prefersDark());
 };
 
-const applyTheme = (appearance: Appearance): void => {
+const applyTheme = (): void => {
     if (typeof document === 'undefined') {
         return;
     }
@@ -67,7 +67,7 @@ const mediaQuery = (): MediaQueryList | null => {
     return window.matchMedia('(prefers-color-scheme: dark)');
 };
 
-const handleSystemThemeChange = (): void => applyTheme(currentAppearance);
+const handleSystemThemeChange = (): void => applyTheme();
 
 export function initializeTheme(): void {
     if (typeof window === 'undefined') {
@@ -80,7 +80,7 @@ export function initializeTheme(): void {
     }
 
     currentAppearance = getStoredAppearance();
-    applyTheme(currentAppearance);
+    applyTheme();
 
     // Set up system theme change listener
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
@@ -106,7 +106,7 @@ export function useAppearance(): UseAppearanceReturn {
         // Store in cookie for SSR...
         setCookie('appearance', mode);
 
-        applyTheme(mode);
+        applyTheme();
         notify();
     };
 

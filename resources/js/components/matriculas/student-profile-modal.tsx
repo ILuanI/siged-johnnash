@@ -1,3 +1,4 @@
+import { router } from '@inertiajs/react';
 import {
     AlertTriangle,
     Brain,
@@ -12,10 +13,10 @@ import {
     User,
     UserX,
 } from 'lucide-react';
-import { router } from '@inertiajs/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { updateCarrera as updateAlumnoCarrera } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +24,6 @@ import {
     DialogContent,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
     Select,
     SelectContent,
@@ -31,14 +31,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useInitials } from '@/hooks/use-initials';
 import {
     calcularEdad,
     estadoBadgeClass,
     formatearFechaLarga,
 } from '@/lib/matriculas';
-import { useInitials } from '@/hooks/use-initials';
-import type { CarreraOption, ConsolidadoAlumno } from '@/types/matriculas';
 import { cn } from '@/lib/utils';
+import type { CarreraOption, ConsolidadoAlumno } from '@/types/matriculas';
 
 type TabId = 'informacion' | 'pagos' | 'notas' | 'asistencia';
 
@@ -75,6 +75,7 @@ export function StudentProfileModal({
     const cambiarCarrera = () => {
         if (!carreraId) {
             toast.error('Selecciona una carrera valida.');
+
             return;
         }
 

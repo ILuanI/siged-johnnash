@@ -22,11 +22,11 @@ import {
 } from '@/components/ui/sidebar';
 import { usePermisos } from '@/hooks/use-permisos';
 import { dashboard } from '@/routes';
+import { index as lectorAsistenciaIndex } from '@/routes/asistencias/lector';
 import { index as desercionIndex } from '@/routes/ia/desercion';
 import { nueva as nuevaMatricula } from '@/routes/matriculas';
 import { index as catalogoAcademicoIndex } from '@/routes/matriculas/catalogo';
 import { index as estudiantesIndex } from '@/routes/matriculas/estudiantes';
-import { index as lectorAsistenciaIndex } from '@/routes/asistencias/lector';
 import type { NavItem } from '@/types';
 
 const mainNavItems: (NavItem & { modulo: string })[] = [

@@ -1,7 +1,6 @@
 import { Head, router } from '@inertiajs/react';
 import { GraduationCap, Search } from 'lucide-react';
 import { useState } from 'react';
-import { index as portalPadresIndex } from '@/routes/portal-padres';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { index as portalPadresIndex } from '@/routes/portal-padres';
 
 type AlumnoPortal = {
     codigo: string;

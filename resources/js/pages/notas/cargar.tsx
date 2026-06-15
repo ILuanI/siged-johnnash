@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
 import { Head, router, Link } from '@inertiajs/react';
+import { ArrowLeft, Upload, CheckCircle2, AlertTriangle, Save, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { ArrowLeft, Upload, CheckCircle2, AlertTriangle, Save, RefreshCw } from 'lucide-react';
 
 interface Ciclo {
     id_ciclo: number;
@@ -41,7 +41,6 @@ export default function NotasCargar({ ciclos }: Props) {
 
     const [loadingPreview, setLoadingPreview] = useState(false);
     const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
-    const [hasAttemptedPreview, setHasAttemptedPreview] = useState(false);
     const [saving, setSaving] = useState(false);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -55,10 +54,13 @@ export default function NotasCargar({ ciclos }: Props) {
 
         if (!idCiclo) {
             toast.error('Por favor seleccione un ciclo académico.');
+
             return;
         }
+
         if (!archivo) {
             toast.error('Por favor cargue un archivo de notas.');
+
             return;
         }
 
@@ -84,12 +86,12 @@ export default function NotasCargar({ ciclos }: Props) {
 
             if (!response.ok) {
                 const errData = await response.json();
+
                 throw new Error(errData.message || 'Error al procesar el archivo.');
             }
 
             const resData = await response.json();
             setPreviewRows(resData.rows || []);
-            setHasAttemptedPreview(true);
             toast.success('Archivo procesado para pre-visualización.');
         } catch (error: any) {
             console.error(error);
@@ -104,6 +106,7 @@ export default function NotasCargar({ ciclos }: Props) {
 
         if (validRows.length === 0) {
             toast.error('No hay estudiantes válidos para registrar en la base de datos.');
+
             return;
         }
 
@@ -347,7 +350,6 @@ export default function NotasCargar({ ciclos }: Props) {
                                         variant="outline"
                                         onClick={() => {
                                             setPreviewRows([]);
-                                            setHasAttemptedPreview(false);
                                         }}
                                         disabled={saving}
                                     >

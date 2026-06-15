@@ -1,9 +1,9 @@
-import React from 'react';
 import { Head, Link } from '@inertiajs/react';
+import { Upload, Calendar, Search } from 'lucide-react';
+import React from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Upload, Calendar, Search } from 'lucide-react';
 
 interface ExamenMetrica {
     id_area: number;

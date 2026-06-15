@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Search, UserPlus } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import type { FormEvent} from 'react';
+import { useState } from 'react';
 import {
     create as estudiantesCreate,
     index as estudiantesIndex,
@@ -10,14 +11,14 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { estadoBadgeClass } from '@/lib/matriculas';
 import { useInitials } from '@/hooks/use-initials';
+import { estadoBadgeClass } from '@/lib/matriculas';
+import { cn } from '@/lib/utils';
 import type {
     CarreraOption,
     ConsolidadoAlumno,
     EstudianteListItem,
 } from '@/types/matriculas';
-import { cn } from '@/lib/utils';
 
 type PageProps = {
     estudiantes: EstudianteListItem[];

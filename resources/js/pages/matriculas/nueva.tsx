@@ -1,7 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
-import { store as storeMatricula } from '@/actions/App/Http/Controllers/Matriculas/MatriculaWebController';
 import { index as estudiantesIndex } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
+import { store as storeMatricula } from '@/actions/App/Http/Controllers/Matriculas/MatriculaWebController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { usePermisos, type PermisoModulo, type PermisosMap } from '@/hooks/use-permisos';
+import { usePermisos   } from '@/hooks/use-permisos';
+import type {PermisoModulo, PermisosMap} from '@/hooks/use-permisos';
 import { confirmAction } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
 

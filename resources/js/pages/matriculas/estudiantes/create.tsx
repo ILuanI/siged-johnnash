@@ -1,14 +1,15 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { ArrowLeft, Plus, Settings2 } from 'lucide-react';
 import { useState } from 'react';
-import {
-    index as estudiantesIndex,
-    store as storeEstudiante,
-} from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
+import { toast } from 'sonner';
 import {
     index as catalogoIndex,
     storeCarrera,
 } from '@/actions/App/Http/Controllers/Matriculas/CatalogoAcademicoController';
+import {
+    index as estudiantesIndex,
+    store as storeEstudiante,
+} from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,7 +29,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { toast } from 'sonner';
 import type { CarreraOption } from '@/types/matriculas';
 
 type Area = {

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { CSSProperties, FormEvent } from 'react';
+import { toast } from 'sonner';
 import { destroy, index, store, update } from '@/actions/App/Http/Controllers/Cursos/CursoController';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +28,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { confirmAction } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
 type HorarioItem = {
     id_horario: number;
@@ -120,7 +120,9 @@ function toMinutes(value: string): number {
 }
 
 function computeEventLayout(dayEvents: EventoHorario[]) {
-    if (dayEvents.length === 0) return [];
+    if (dayEvents.length === 0) {
+return [];
+}
 
     const parsedEvents = dayEvents.map(ev => ({
         ...ev,
@@ -135,8 +137,10 @@ function computeEventLayout(dayEvents: EventoHorario[]) {
     const columns: typeof parsedEvents[] = [];
     parsedEvents.forEach(ev => {
         let placed = false;
+
         for (let i = 0; i < columns.length; i++) {
             const lastEv = columns[i][columns[i].length - 1];
+
             if (ev.startMin >= lastEv.endMin) {
                 columns[i].push(ev);
                 ev.colIndex = i;
@@ -144,6 +148,7 @@ function computeEventLayout(dayEvents: EventoHorario[]) {
                 break;
             }
         }
+
         if (!placed) {
             columns.push([ev]);
             ev.colIndex = columns.length - 1;
@@ -153,10 +158,12 @@ function computeEventLayout(dayEvents: EventoHorario[]) {
     const groups: (typeof parsedEvents)[] = [];
     parsedEvents.forEach(ev => {
         let joinedGroupIndex = -1;
+
         for (let i = 0; i < groups.length; i++) {
             const overlaps = groups[i].some(groupEv => 
                 ev.startMin < groupEv.endMin && ev.endMin > groupEv.startMin
             );
+
             if (overlaps) {
                 joinedGroupIndex = i;
                 break;
@@ -171,13 +178,16 @@ function computeEventLayout(dayEvents: EventoHorario[]) {
     });
 
     let changed = true;
+
     while (changed) {
         changed = false;
+
         for (let i = 0; i < groups.length; i++) {
             for (let j = i + 1; j < groups.length; j++) {
                 const overlaps = groups[i].some(evI => 
                     groups[j].some(evJ => evI.startMin < evJ.endMin && evI.endMin > evJ.startMin)
                 );
+
                 if (overlaps) {
                     groups[i].push(...groups[j]);
                     groups.splice(j, 1);
@@ -185,7 +195,10 @@ function computeEventLayout(dayEvents: EventoHorario[]) {
                     break;
                 }
             }
-            if (changed) break;
+
+            if (changed) {
+break;
+}
         }
     }
 
@@ -249,7 +262,6 @@ export default function CursosIndex({
         setData,
         post,
         put,
-        processing,
         errors,
         reset,
         clearErrors,

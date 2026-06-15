@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
+import { Search, GraduationCap, Calendar, Award, TrendingUp, User, BookOpen } from 'lucide-react';
+import React, { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Search, GraduationCap, Calendar, Award, TrendingUp, User, BookOpen } from 'lucide-react';
 
 interface AlumnoInfo {
     nombres: string;
@@ -47,6 +47,7 @@ export default function NotasConsulta({ alumno, resultados, filters, mensaje }: 
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
+
         if (dni.length !== 8 || isNaN(Number(dni))) {
             return;
         }

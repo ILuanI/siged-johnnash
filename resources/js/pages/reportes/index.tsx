@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
 import { Head, router } from '@inertiajs/react';
+import { Search, Download, RefreshCw, X, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Search, Download, RefreshCw, X, User } from 'lucide-react';
-import { toast } from 'sonner';
 
 interface AlumnoReportRow {
     id_alumno: number;
@@ -63,15 +63,19 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
         if (q.trim()) {
             params.q = q;
         }
+
         if (idTurno !== 'all' && idTurno !== '') {
             params.id_turno = idTurno;
         }
+
         if (idArea !== 'all' && idArea !== '') {
             params.id_area = idArea;
         }
+
         if (tardanzasCount) {
             params.tardanzas_count = tardanzasCount;
         }
+
         if (faltasCount) {
             params.faltas_count = faltasCount;
         }
@@ -106,18 +110,23 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
 
     const handleExport = () => {
         const queryParams = new URLSearchParams();
+
         if (q.trim()) {
             queryParams.append('q', q);
         }
+
         if (idTurno !== 'all' && idTurno !== '') {
             queryParams.append('id_turno', idTurno);
         }
+
         if (idArea !== 'all' && idArea !== '') {
             queryParams.append('id_area', idArea);
         }
+
         if (tardanzasCount) {
             queryParams.append('tardanzas_count', tardanzasCount);
         }
+
         if (faltasCount) {
             queryParams.append('faltas_count', faltasCount);
         }
@@ -128,18 +137,23 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
 
     const handleExportPdf = () => {
         const queryParams = new URLSearchParams();
+
         if (q.trim()) {
             queryParams.append('q', q);
         }
+
         if (idTurno !== 'all' && idTurno !== '') {
             queryParams.append('id_turno', idTurno);
         }
+
         if (idArea !== 'all' && idArea !== '') {
             queryParams.append('id_area', idArea);
         }
+
         if (tardanzasCount) {
             queryParams.append('tardanzas_count', tardanzasCount);
         }
+
         if (faltasCount) {
             queryParams.append('faltas_count', faltasCount);
         }
@@ -422,6 +436,7 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                                     </Button>
                                     {Array.from({ length: estudiantes.last_page }).map((_, i) => {
                                         const page = i + 1;
+
                                         // Simple page collapse logic
                                         if (
                                             page === 1 ||
@@ -440,12 +455,14 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                                                 </Button>
                                             );
                                         }
+
                                         if (
                                             page === 2 ||
                                             page === estudiantes.last_page - 1
                                         ) {
                                             return <span key={page} className="px-2 py-1 text-slate-400 text-sm">...</span>;
                                         }
+
                                         return null;
                                     })}
                                     <Button

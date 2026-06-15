@@ -1,23 +1,10 @@
-import React, { useState, useEffect } from 'react';
 import { Head, router } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useInitials } from '@/hooks/use-initials';
-import SemaforoPagos from '@/components/SemaforoPagos';
 import {
     Search,
     Users,
-    Calendar,
     TrendingUp,
     CreditCard,
     X,
-    User,
     Phone,
     BookOpen,
     Award,
@@ -25,7 +12,16 @@ import {
     Clock,
     DollarSign
 } from 'lucide-react';
-import { toast } from 'sonner';
+import React, { useState, useEffect } from 'react';
+import SemaforoPagos from '@/components/SemaforoPagos';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useInitials } from '@/hooks/use-initials';
 import { dashboard } from '@/routes';
 
 interface ExamenResultado {
@@ -149,6 +145,7 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
     const [cycleId, setCycleId] = useState<string>(selectedCycleId?.toString() || '');
     const [searchQuery, setSearchQuery] = useState(filters.q || '');
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const canShowSuggestions = showSuggestions && searchQuery.trim().length >= 2 && studentList.length > 0;
 
     // Apply cycle filter instantly
     const handleCycleChange = (value: string) => {
@@ -164,23 +161,24 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
 
     // Handle search autocomplete
     useEffect(() => {
-        if (searchQuery.trim().length >= 2) {
-            const delayDebounce = setTimeout(() => {
-                router.get(dashboard.url(), {
-                    id_ciclo: cycleId,
-                    q: searchQuery,
-                    alumno: filters.alumno
-                }, {
-                    preserveState: true,
-                    replace: true,
-                    onSuccess: () => setShowSuggestions(true)
-                });
-            }, 300);
-            return () => clearTimeout(delayDebounce);
-        } else {
-            setShowSuggestions(false);
+        if (searchQuery.trim().length < 2) {
+            return;
         }
-    }, [searchQuery]);
+
+        const delayDebounce = setTimeout(() => {
+            router.get(dashboard.url(), {
+                id_ciclo: cycleId,
+                q: searchQuery,
+                alumno: filters.alumno
+            }, {
+                preserveState: true,
+                replace: true,
+                onSuccess: () => setShowSuggestions(true)
+            });
+        }, 300);
+
+        return () => clearTimeout(delayDebounce);
+    }, [cycleId, filters.alumno, searchQuery]);
 
     const selectStudent = (alumnoId: number) => {
         setShowSuggestions(false);
@@ -295,6 +293,7 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
                             value={searchQuery}
                             onChange={(e) => {
                                 setSearchQuery(e.target.value);
+
                                 if (e.target.value === '') {
                                     setShowSuggestions(false);
                                 }
@@ -313,7 +312,7 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
                     </div>
 
                     {/* Dropdown Suggestions */}
-                    {showSuggestions && studentList.length > 0 && (
+                    {canShowSuggestions && (
                         <div className="absolute left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden max-h-60 overflow-y-auto">
                             {studentList.map((item) => (
                                 <button

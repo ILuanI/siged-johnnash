@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
 import { Head, useForm, router } from '@inertiajs/react';
+import { Pen, Trash2, UserPlus } from 'lucide-react';
+import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { store, update, destroy } from '@/actions/App/Http/Controllers/DocenteController';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
     Dialog,
     DialogContent,
@@ -14,11 +14,10 @@ import {
     DialogDescription,
     DialogFooter,
 } from '@/components/ui/dialog';
-import { Pen, Trash2, UserPlus, Search } from 'lucide-react';
-import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useInitials } from '@/hooks/use-initials';
 import { confirmAction } from '@/lib/confirm';
-import { cn } from '@/lib/utils';
 
 interface Docente {
     id: number;
