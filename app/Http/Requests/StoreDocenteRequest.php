@@ -30,4 +30,25 @@ class StoreDocenteRequest extends FormRequest
             'dni' => ['required', 'string', 'size:8', 'unique:docentes,dni'],
         ];
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'dni.required' => 'El DNI es obligatorio.',
+            'dni.size' => 'El DNI debe tener exactamente 8 dígitos.',
+            'dni.unique' => 'Ya existe un docente registrado con este DNI.',
+            'nombres.required' => 'El nombre es obligatorio.',
+            'nombres.max' => 'El nombre no puede tener más de 255 caracteres.',
+            'apellidos.required' => 'El apellido es obligatorio.',
+            'apellidos.max' => 'El apellido no puede tener más de 255 caracteres.',
+            'correo.required' => 'El correo electrónico es obligatorio.',
+            'correo.email' => 'El correo electrónico debe ser una dirección válida.',
+            'correo.unique' => 'Ya existe un docente registrado con este correo electrónico.',
+            'telefono.size' => 'El teléfono debe tener exactamente 9 dígitos.',
+            'telefono.regex' => 'El teléfono debe empezar con 9 y tener 9 dígitos.',
+        ];
+    }
 }

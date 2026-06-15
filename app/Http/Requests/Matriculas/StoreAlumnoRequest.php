@@ -52,10 +52,19 @@ class StoreAlumnoRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'codigo.unique' => 'El código de alumno ya existe.',
+            'nombres.required' => 'El nombre del alumno es obligatorio.',
+            'apellidos.required' => 'El apellido del alumno es obligatorio.',
             'dni.unique' => 'Ya existe un alumno registrado con este DNI.',
             'dni.digits' => 'El DNI debe tener exactamente 8 dígitos.',
-            'nombres.required' => 'Los nombres del alumno son obligatorios.',
-            'apellidos.required' => 'Los apellidos del alumno son obligatorios.',
+            'fecha_nac.date' => 'La fecha de nacimiento no es una fecha válida.',
+            'fecha_nac.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
+            'sexo.in' => 'El género seleccionado no es válido.',
+            'correo.email' => 'El correo electrónico del alumno debe ser una dirección válida.',
+            'id_carrera.exists' => 'La carrera seleccionada no es válida.',
+            'apoderado.nombres.required_with' => 'El nombre del apoderado es obligatorio si se ingresan sus datos.',
+            'apoderado.dni.digits' => 'El DNI del apoderado debe tener exactamente 8 dígitos.',
+            'apoderado.correo.email' => 'El correo electrónico del apoderado debe ser una dirección válida.',
         ];
     }
 }

@@ -71,7 +71,7 @@ class Alumno extends Model
     public function matriculaVigente(): HasOne
     {
         return $this->hasOne(Matricula::class, 'id_alumno', 'id_alumno')
-            ->where('estado', EstadoMatricula::Vigente)
+            ->where('matricula.estado', EstadoMatricula::Vigente)
             ->latestOfMany('fecha_matricula');
     }
 

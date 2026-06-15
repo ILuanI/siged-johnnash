@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Alumno;
 use App\Models\Area;
 use App\Models\Turno;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -52,9 +53,9 @@ class ReportesController extends Controller
 
         // Count attendance states and average notes
         $query->withCount([
-            'asistencias as total_asistencias' => fn ($q) => $q->where('estado', 'ASISTIO'),
-            'asistencias as total_tardanzas' => fn ($q) => $q->where('estado', 'TARDANZA'),
-            'asistencias as total_faltas' => fn ($q) => $q->where('estado', 'FALTO'),
+            'asistencias as total_asistencias' => fn ($q) => $q->where('asistencia.estado', 'ASISTIO'),
+            'asistencias as total_tardanzas' => fn ($q) => $q->where('asistencia.estado', 'TARDANZA'),
+            'asistencias as total_faltas' => fn ($q) => $q->where('asistencia.estado', 'FALTO'),
             'asistencias as total_clases',
         ]);
 
@@ -137,5 +138,27 @@ class ReportesController extends Controller
         $mapped = $this->mapAlumnosForReport($alumnos);
 
         return Excel::download(new AlumnosReportExport($mapped), 'reporte_alumnos.xlsx');
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $alumnos = $this->queryAlumnos($request)->get();
+        $mapped = $this->mapAlumnosForReport($alumnos);
+
+        $pdf = Pdf::loadView('reports.alumnos_pdf', [
+            'alumnos' => $mapped,
+            'filters' => [
+                'q' => $request->string('q')->trim()->toString(),
+                'turno' => $request->filled('id_turno') ? Turno::find($request->integer('id_turno'))?->nombre : 'Todos',
+                'area' => $request->filled('id_area') ? Area::find($request->integer('id_area'))?->nombre : 'Todas',
+                'tardanzas_count' => $request->string('tardanzas_count')->toString(),
+                'faltas_count' => $request->string('faltas_count')->toString(),
+            ],
+            'fecha' => now()->format('d/m/Y H:i'),
+        ]);
+
+        $pdf->setPaper('a4', 'landscape');
+
+        return $pdf->download('reporte_alumnos.pdf');
     }
 }

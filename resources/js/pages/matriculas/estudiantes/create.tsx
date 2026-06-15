@@ -1,5 +1,6 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,13 +12,29 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import type { CarreraOption } from '@/types/matriculas';
+
+interface Area {
+    id_area: number;
+    nombre: string;
+    codigo: string;
+}
 
 type PageProps = {
     carreras: CarreraOption[];
+    areas: Area[];
 };
 
-export default function EstudianteCreate({ carreras }: PageProps) {
+export default function EstudianteCreate({ carreras, areas }: PageProps) {
     const { data, setData, post, processing, errors } = useForm({
         nombres: '',
         apellidos: '',
@@ -38,9 +55,80 @@ export default function EstudianteCreate({ carreras }: PageProps) {
         },
     });
 
+    const [isCarreraDialogOpen, setIsCarreraDialogOpen] = useState(false);
+    const [carreraNombre, setCarreraNombre] = useState('');
+    const [carreraAreaId, setCarreraAreaId] = useState('');
+    const [carreraPuntajeMin, setCarreraPuntajeMin] = useState('');
+    const [carreraPuntajeMax, setCarreraPuntajeMax] = useState('');
+    const [carreraErrors, setCarreraErrors] = useState<any>({});
+    const [carreraLoading, setCarreraLoading] = useState(false);
+
+    const handleCreateCarrera = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCarreraLoading(true);
+        setCarreraErrors({});
+
+        router.post('/matriculas/carreras', {
+            nombre: carreraNombre,
+            id_area: carreraAreaId,
+            puntaje_min: carreraPuntajeMin || null,
+            puntaje_max: carreraPuntajeMax || null,
+        }, {
+            onSuccess: () => {
+                setIsCarreraDialogOpen(false);
+                setCarreraNombre('');
+                setCarreraAreaId('');
+                setCarreraPuntajeMin('');
+                setCarreraPuntajeMax('');
+                toast.success('Carrera creada exitosamente');
+            },
+            onError: (errs) => {
+                setCarreraErrors(errs);
+                const fieldsOrder = ['nombre', 'id_area', 'puntaje_min', 'puntaje_max'] as const;
+                fieldsOrder.forEach((field) => {
+                    if (errs[field]) {
+                        toast.error(errs[field], {
+                            className: 'bg-rose-50 border-rose-200 text-rose-800'
+                        });
+                    }
+                });
+            },
+            onFinish: () => setCarreraLoading(false),
+            preserveState: true,
+        });
+    };
+
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/matriculas/estudiantes');
+        post('/matriculas/estudiantes', {
+            onError: (errs) => {
+                console.error(errs);
+                const fieldsOrder = [
+                    'nombres',
+                    'apellidos',
+                    'dni',
+                    'fecha_nac',
+                    'sexo',
+                    'id_carrera',
+                    'telefono',
+                    'correo',
+                    'direccion',
+                    'colegio_proc',
+                    'apoderado.nombres',
+                    'apoderado.dni',
+                    'apoderado.parentesco',
+                    'apoderado.telefono',
+                    'apoderado.correo'
+                ] as const;
+                fieldsOrder.forEach((field) => {
+                    if (errs[field]) {
+                        toast.error(errs[field], {
+                            className: 'bg-rose-50 border-rose-200 text-rose-800'
+                        });
+                    }
+                });
+            }
+        });
     };
 
     return (
@@ -128,7 +216,18 @@ export default function EstudianteCreate({ carreras }: PageProps) {
                             <InputError message={errors.sexo} />
                         </div>
                         <div>
-                            <Label htmlFor="id_carrera">Carrera</Label>
+                            <div className="flex items-center justify-between mb-1">
+                                <Label htmlFor="id_carrera" className="mb-0">Carrera</Label>
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    onClick={() => setIsCarreraDialogOpen(true)}
+                                    className="h-auto p-0 text-xs text-[#ff7043] hover:text-[#f4511e] flex items-center"
+                                >
+                                    <Plus className="mr-1 size-3" />
+                                    Nueva carrera
+                                </Button>
+                            </div>
                             <Select
                                 value={data.id_carrera}
                                 onValueChange={(val) => setData('id_carrera', val)}
@@ -272,6 +371,89 @@ export default function EstudianteCreate({ carreras }: PageProps) {
                     </div>
                 </form>
             </div>
+
+            <Dialog open={isCarreraDialogOpen} onOpenChange={setIsCarreraDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Nueva Carrera</DialogTitle>
+                        <DialogDescription>
+                            Registra una nueva carrera profesional para asociarla a los estudiantes.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleCreateCarrera}>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="carrera_nombre">Nombre de la Carrera *</Label>
+                                <Input
+                                    id="carrera_nombre"
+                                    value={carreraNombre}
+                                    onChange={(e) => setCarreraNombre(e.target.value)}
+                                    placeholder="Ej. Medicina Humana, Ingeniería Civil..."
+                                    required
+                                />
+                                {carreraErrors.nombre && <p className="text-sm text-destructive">{carreraErrors.nombre}</p>}
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="carrera_area">Área de Conocimiento *</Label>
+                                <Select
+                                    value={carreraAreaId}
+                                    onValueChange={setCarreraAreaId}
+                                >
+                                    <SelectTrigger id="carrera_area">
+                                        <SelectValue placeholder="Selecciona un área" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {areas && areas.map((a) => (
+                                            <SelectItem key={a.id_area} value={a.id_area.toString()}>
+                                                Área {a.codigo} - {a.nombre}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {carreraErrors.id_area && <p className="text-sm text-destructive">{carreraErrors.id_area}</p>}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="puntaje_min">Puntaje Mín. (Opcional)</Label>
+                                    <Input
+                                        id="puntaje_min"
+                                        type="number"
+                                        step="0.001"
+                                        min="0"
+                                        max="20"
+                                        value={carreraPuntajeMin}
+                                        onChange={(e) => setCarreraPuntajeMin(e.target.value)}
+                                        placeholder="0.000"
+                                    />
+                                    {carreraErrors.puntaje_min && <p className="text-sm text-destructive">{carreraErrors.puntaje_min}</p>}
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="puntaje_max">Puntaje Máx. (Opcional)</Label>
+                                    <Input
+                                        id="puntaje_max"
+                                        type="number"
+                                        step="0.001"
+                                        min="0"
+                                        max="20"
+                                        value={carreraPuntajeMax}
+                                        onChange={(e) => setCarreraPuntajeMax(e.target.value)}
+                                        placeholder="20.000"
+                                    />
+                                    {carreraErrors.puntaje_max && <p className="text-sm text-destructive">{carreraErrors.puntaje_max}</p>}
+                                </div>
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsCarreraDialogOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={carreraLoading} className="bg-[#ff7043] hover:bg-[#f4511e]">
+                                {carreraLoading ? 'Creando...' : 'Crear Carrera'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </>
     );
 }

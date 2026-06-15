@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -25,6 +26,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 type HorarioItem = {
     id_horario: number;
@@ -116,14 +118,102 @@ function toMinutes(value: string): number {
     return hours * 60 + minutes;
 }
 
-function eventStyle(evento: EventoHorario): CSSProperties {
+function computeEventLayout(dayEvents: EventoHorario[]) {
+    if (dayEvents.length === 0) return [];
+
+    const parsedEvents = dayEvents.map(ev => ({
+        ...ev,
+        startMin: toMinutes(ev.hora_inicio),
+        endMin: toMinutes(ev.hora_fin),
+        colIndex: 0,
+        colCount: 1,
+    }));
+
+    parsedEvents.sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+
+    const columns: typeof parsedEvents[] = [];
+    parsedEvents.forEach(ev => {
+        let placed = false;
+        for (let i = 0; i < columns.length; i++) {
+            const lastEv = columns[i][columns[i].length - 1];
+            if (ev.startMin >= lastEv.endMin) {
+                columns[i].push(ev);
+                ev.colIndex = i;
+                placed = true;
+                break;
+            }
+        }
+        if (!placed) {
+            columns.push([ev]);
+            ev.colIndex = columns.length - 1;
+        }
+    });
+
+    const groups: (typeof parsedEvents)[] = [];
+    parsedEvents.forEach(ev => {
+        let joinedGroupIndex = -1;
+        for (let i = 0; i < groups.length; i++) {
+            const overlaps = groups[i].some(groupEv => 
+                ev.startMin < groupEv.endMin && ev.endMin > groupEv.startMin
+            );
+            if (overlaps) {
+                joinedGroupIndex = i;
+                break;
+            }
+        }
+
+        if (joinedGroupIndex !== -1) {
+            groups[joinedGroupIndex].push(ev);
+        } else {
+            groups.push([ev]);
+        }
+    });
+
+    let changed = true;
+    while (changed) {
+        changed = false;
+        for (let i = 0; i < groups.length; i++) {
+            for (let j = i + 1; j < groups.length; j++) {
+                const overlaps = groups[i].some(evI => 
+                    groups[j].some(evJ => evI.startMin < evJ.endMin && evI.endMin > evJ.startMin)
+                );
+                if (overlaps) {
+                    groups[i].push(...groups[j]);
+                    groups.splice(j, 1);
+                    changed = true;
+                    break;
+                }
+            }
+            if (changed) break;
+        }
+    }
+
+    groups.forEach(group => {
+        const colCount = Math.max(...group.map(ev => ev.colIndex)) + 1;
+        group.forEach(ev => {
+            ev.colCount = colCount;
+        });
+    });
+
+    return parsedEvents;
+}
+
+function eventStyle(evento: EventoHorario & { colIndex?: number; colCount?: number }): CSSProperties {
     const top = ((toMinutes(evento.hora_inicio) - inicioDia) / (finDia - inicioDia)) * 100;
     const height = ((toMinutes(evento.hora_fin) - toMinutes(evento.hora_inicio)) / (finDia - inicioDia)) * 100;
+
+    const colIndex = evento.colIndex ?? 0;
+    const colCount = evento.colCount ?? 1;
+
+    const widthPct = 96 / colCount;
+    const leftPct = 2 + (colIndex * widthPct);
 
     return {
         top: `${Math.max(top, 0)}%`,
         height: `calc(${Math.max(height, 9)}% - 4px)`,
         backgroundColor: evento.color,
+        left: `${leftPct}%`,
+        width: `${widthPct - 2}%`,
     };
 }
 
@@ -164,10 +254,96 @@ export default function CursosIndex({
         clearErrors,
     } = useForm<CursoForm>(emptyForm(cicloSeleccionadoId));
 
+    // Ciclo Dialog
+    const [isCicloDialogOpen, setIsCicloDialogOpen] = useState(false);
+    const [cicloNombre, setCicloNombre] = useState('');
+    const [cicloTipo, setCicloTipo] = useState('');
+    const [cicloFechaInicio, setCicloFechaInicio] = useState('');
+    const [cicloFechaFin, setCicloFechaFin] = useState('');
+    const [cicloCostoBase, setCicloCostoBase] = useState('0');
+    const [cicloErrors, setCicloErrors] = useState<any>({});
+    const [cicloLoading, setCicloLoading] = useState(false);
+
+    const handleCreateCiclo = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCicloLoading(true);
+        setCicloErrors({});
+
+        router.post('/cursos/ciclos', {
+            nombre: cicloNombre,
+            tipo_ciclo: cicloTipo || null,
+            fecha_inicio: cicloFechaInicio,
+            fecha_fin: cicloFechaFin,
+            costo_base: parseFloat(cicloCostoBase) || 0,
+        }, {
+            onSuccess: () => {
+                setIsCicloDialogOpen(false);
+                setCicloNombre('');
+                setCicloTipo('');
+                setCicloFechaInicio('');
+                setCicloFechaFin('');
+                setCicloCostoBase('0');
+                toast.success('Ciclo académico creado exitosamente');
+            },
+            onError: (errs) => {
+                setCicloErrors(errs);
+                const fieldsOrder = ['nombre', 'tipo_ciclo', 'fecha_inicio', 'fecha_fin', 'costo_base'] as const;
+                fieldsOrder.forEach((field) => {
+                    if (errs[field]) {
+                        toast.error(errs[field], {
+                            className: 'bg-rose-50 border-rose-200 text-rose-800'
+                        });
+                    }
+                });
+            },
+            onFinish: () => setCicloLoading(false),
+            preserveState: true,
+        });
+    };
+
+    // Aula Dialog
+    const [isAulaDialogOpen, setIsAulaDialogOpen] = useState(false);
+    const [aulaNombre, setAulaNombre] = useState('');
+    const [aulaCapacidad, setAulaCapacidad] = useState('');
+    const [aulaErrors, setAulaErrors] = useState<any>({});
+    const [aulaLoading, setAulaLoading] = useState(false);
+
+    const handleCreateAula = (e: React.FormEvent) => {
+        e.preventDefault();
+        setAulaLoading(true);
+        setAulaErrors({});
+
+        router.post('/cursos/aulas', {
+            nombre: aulaNombre,
+            capacidad: parseInt(aulaCapacidad) || null,
+        }, {
+            onSuccess: () => {
+                setIsAulaDialogOpen(false);
+                setAulaNombre('');
+                setAulaCapacidad('');
+                toast.success('Aula creada exitosamente');
+            },
+            onError: (errs) => {
+                setAulaErrors(errs);
+                const fieldsOrder = ['nombre', 'capacidad'] as const;
+                fieldsOrder.forEach((field) => {
+                    if (errs[field]) {
+                        toast.error(errs[field], {
+                            className: 'bg-rose-50 border-rose-200 text-rose-800'
+                        });
+                    }
+                });
+            },
+            onFinish: () => setAulaLoading(false),
+            preserveState: true,
+        });
+    };
+
     const cicloSeleccionado = ciclos.find((ciclo) => ciclo.id_ciclo === cicloSeleccionadoId);
     const eventosPorDia = useMemo(() => {
-        return calendarioDias.reduce<Record<string, EventoHorario[]>>((carry, dia) => {
-            carry[dia] = eventos.filter((evento) => evento.dia_semana === dia);
+        return calendarioDias.reduce<Record<string, Array<EventoHorario & { colIndex?: number; colCount?: number }>>>((carry, dia) => {
+            const dayEvents = eventos.filter((evento) => evento.dia_semana === dia);
+            carry[dia] = computeEventLayout(dayEvents);
 
             return carry;
         }, {});
@@ -222,6 +398,27 @@ export default function CursosIndex({
         const options = {
             preserveScroll: true,
             onSuccess: closeModal,
+            onError: (errs: any) => {
+                console.error(errs);
+                const fieldsOrder = [
+                    'nombre',
+                    'area_conoc',
+                    'id_ciclo',
+                    'id_docente',
+                    'id_aula',
+                    'color',
+                    'dias',
+                    'hora_inicio',
+                    'hora_fin'
+                ] as const;
+                fieldsOrder.forEach((field) => {
+                    if (errs[field]) {
+                        toast.error(errs[field], {
+                            className: 'bg-rose-50 border-rose-200 text-rose-800'
+                        });
+                    }
+                });
+            }
         };
 
         if (editingCurso) {
@@ -266,17 +463,29 @@ export default function CursosIndex({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
-                        <select
-                            value={cicloSeleccionadoId ?? ''}
-                            onChange={(event) => handleCicloChange(event.target.value)}
-                            className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm"
-                        >
-                            {ciclos.map((ciclo) => (
-                                <option key={ciclo.id_ciclo} value={ciclo.id_ciclo}>
-                                    {ciclo.nombre}
-                                </option>
-                            ))}
-                        </select>
+                        <div className="flex items-center gap-1">
+                            <select
+                                value={cicloSeleccionadoId ?? ''}
+                                onChange={(event) => handleCicloChange(event.target.value)}
+                                className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm"
+                            >
+                                {ciclos.map((ciclo) => (
+                                    <option key={ciclo.id_ciclo} value={ciclo.id_ciclo}>
+                                        {ciclo.nombre}
+                                    </option>
+                                ))}
+                            </select>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setIsCicloDialogOpen(true)}
+                                title="Nuevo Ciclo Académico"
+                                className="h-9 px-2 text-slate-600 hover:text-[#ff7043]"
+                            >
+                                <Plus className="size-4" />
+                            </Button>
+                        </div>
                         <Button type="button" variant="outline" size="icon" title="Semana anterior">
                             <ChevronLeft className="size-4" />
                         </Button>
@@ -287,7 +496,7 @@ export default function CursosIndex({
                             type="button"
                             onClick={openCreateModal}
                             className="bg-[#ff7043] text-white hover:bg-[#f4511e]"
-                            disabled={ciclos.length === 0 || docentes.length === 0 || aulas.length === 0}
+                            disabled={docentes.length === 0}
                         >
                             <Plus className="size-4" />
                             Nuevo Curso
@@ -451,7 +660,18 @@ export default function CursosIndex({
                             </div>
 
                             <div>
-                                <Label htmlFor="id_ciclo">Ciclo</Label>
+                                <div className="flex items-center justify-between mb-1">
+                                    <Label htmlFor="id_ciclo" className="mb-0">Ciclo</Label>
+                                    <Button
+                                        type="button"
+                                        variant="link"
+                                        onClick={() => setIsCicloDialogOpen(true)}
+                                        className="h-auto p-0 text-xs text-[#ff7043] hover:text-[#f4511e] flex items-center"
+                                    >
+                                        <Plus className="mr-1 size-3" />
+                                        Nuevo
+                                    </Button>
+                                </div>
                                 <select
                                     id="id_ciclo"
                                     value={data.id_ciclo}
@@ -489,7 +709,18 @@ export default function CursosIndex({
                             </div>
 
                             <div>
-                                <Label htmlFor="id_aula">Aula</Label>
+                                <div className="flex items-center justify-between mb-1">
+                                    <Label htmlFor="id_aula" className="mb-0">Aula</Label>
+                                    <Button
+                                        type="button"
+                                        variant="link"
+                                        onClick={() => setIsAulaDialogOpen(true)}
+                                        className="h-auto p-0 text-xs text-[#ff7043] hover:text-[#f4511e] flex items-center"
+                                    >
+                                        <Plus className="mr-1 size-3" />
+                                        Nueva
+                                    </Button>
+                                </div>
                                 <select
                                     id="id_aula"
                                     value={data.id_aula}
@@ -510,7 +741,7 @@ export default function CursosIndex({
 
                             <div>
                                 <Label>Color</Label>
-                                <div className="mt-2 flex flex-wrap gap-2">
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
                                     {colores.map((color) => (
                                         <button
                                             key={color}
@@ -524,6 +755,18 @@ export default function CursosIndex({
                                             title={color}
                                         />
                                     ))}
+                                    {/* Color Picker Personalizado */}
+                                    <div className="relative flex items-center gap-1.5 ml-1">
+                                        <input
+                                            type="color"
+                                            id="custom_color"
+                                            value={colores.includes(data.color) ? '#000000' : data.color}
+                                            onChange={(e) => setData('color', e.target.value)}
+                                            className="size-8 cursor-pointer rounded-full border border-slate-200 p-0 shadow-sm overflow-hidden"
+                                            style={{ appearance: 'none', WebkitAppearance: 'none' }}
+                                        />
+                                        <span className="text-[11px] text-slate-500">Personalizado</span>
+                                    </div>
                                 </div>
                                 <InputError message={errors.color} />
                             </div>
@@ -574,12 +817,133 @@ export default function CursosIndex({
                             </div>
                         </div>
 
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog para Nuevo Ciclo */}
+            <Dialog open={isCicloDialogOpen} onOpenChange={setIsCicloDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-[#0b145f]">Nuevo Ciclo Académico</DialogTitle>
+                        <DialogDescription>
+                            Crea un nuevo ciclo de clases. Se asociará automáticamente al periodo académico vigente.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleCreateCiclo}>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="ciclo_nombre">Nombre del Ciclo *</Label>
+                                <Input
+                                    id="ciclo_nombre"
+                                    value={cicloNombre}
+                                    onChange={(e) => setCicloNombre(e.target.value)}
+                                    placeholder="Ej. Anual Vallejo 2026-I, Repaso Nash..."
+                                    required
+                                />
+                                {cicloErrors.nombre && <p className="text-sm text-destructive">{cicloErrors.nombre}</p>}
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="ciclo_tipo">Tipo de Ciclo (Opcional)</Label>
+                                <Input
+                                    id="ciclo_tipo"
+                                    value={cicloTipo}
+                                    onChange={(e) => setCicloTipo(e.target.value)}
+                                    placeholder="Ej. Anual, Semestral, Intensivo..."
+                                />
+                                {cicloErrors.tipo_ciclo && <p className="text-sm text-destructive">{cicloErrors.tipo_ciclo}</p>}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="ciclo_inicio">Fecha Inicio *</Label>
+                                    <Input
+                                        id="ciclo_inicio"
+                                        type="date"
+                                        value={cicloFechaInicio}
+                                        onChange={(e) => setCicloFechaInicio(e.target.value)}
+                                        required
+                                    />
+                                    {cicloErrors.fecha_inicio && <p className="text-sm text-destructive">{cicloErrors.fecha_inicio}</p>}
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="ciclo_fin">Fecha Fin *</Label>
+                                    <Input
+                                        id="ciclo_fin"
+                                        type="date"
+                                        value={cicloFechaFin}
+                                        onChange={(e) => setCicloFechaFin(e.target.value)}
+                                        required
+                                    />
+                                    {cicloErrors.fecha_fin && <p className="text-sm text-destructive">{cicloErrors.fecha_fin}</p>}
+                                </div>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="ciclo_costo">Costo Base (S/.) *</Label>
+                                <Input
+                                    id="ciclo_costo"
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={cicloCostoBase}
+                                    onChange={(e) => setCicloCostoBase(e.target.value)}
+                                    required
+                                />
+                                {cicloErrors.costo_base && <p className="text-sm text-destructive">{cicloErrors.costo_base}</p>}
+                            </div>
+                        </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={closeModal}>
+                            <Button type="button" variant="outline" onClick={() => setIsCicloDialogOpen(false)}>
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={processing} className="bg-[#ff7043] text-white hover:bg-[#f4511e]">
-                                Guardar Curso
+                            <Button type="submit" disabled={cicloLoading} className="bg-[#ff7043] text-white hover:bg-[#f4511e]">
+                                {cicloLoading ? 'Creando...' : 'Crear Ciclo'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog para Nueva Aula */}
+            <Dialog open={isAulaDialogOpen} onOpenChange={setIsAulaDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="text-[#0b145f]">Nueva Aula</DialogTitle>
+                        <DialogDescription>
+                            Registra un aula física o virtual para asignarla a los horarios de clases.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleCreateAula}>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="aula_nombre">Nombre del Aula *</Label>
+                                <Input
+                                    id="aula_nombre"
+                                    value={aulaNombre}
+                                    onChange={(e) => setAulaNombre(e.target.value)}
+                                    placeholder="Ej. Aula 102, Salón B, Virtual..."
+                                    required
+                                />
+                                {aulaErrors.nombre && <p className="text-sm text-destructive">{aulaErrors.nombre}</p>}
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="aula_capacidad">Capacidad de Alumnos (Opcional)</Label>
+                                <Input
+                                    id="aula_capacidad"
+                                    type="number"
+                                    min="1"
+                                    value={aulaCapacidad}
+                                    onChange={(e) => setAulaCapacidad(e.target.value)}
+                                    placeholder="Ej. 40"
+                                />
+                                {aulaErrors.capacidad && <p className="text-sm text-destructive">{aulaErrors.capacidad}</p>}
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setIsAulaDialogOpen(false)}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={aulaLoading} className="bg-[#ff7043] text-white hover:bg-[#f4511e]">
+                                {aulaLoading ? 'Creando...' : 'Crear Aula'}
                             </Button>
                         </DialogFooter>
                     </form>
