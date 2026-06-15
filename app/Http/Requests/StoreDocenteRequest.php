@@ -28,7 +28,6 @@ class StoreDocenteRequest extends FormRequest
             'correo' => ['required', 'string', 'email', 'max:255', 'unique:docentes,correo'],
             'telefono' => ['nullable', 'string', 'size:9', 'regex:/^9\d{8}$/'],
             'dni' => ['required', 'string', 'size:8', 'unique:docentes,dni'],
-            'curso_id' => ['nullable', 'integer'],
         ];
     }
 }

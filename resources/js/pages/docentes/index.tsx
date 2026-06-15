@@ -26,7 +26,6 @@ interface Docente {
     correo: string;
     telefono: string | null;
     dni: string;
-    curso_id: number | null;
 }
 
 interface Props {
@@ -50,7 +49,6 @@ export default function DocentesIndex({ docentes }: Props) {
         correo: '',
         telefono: '',
         dni: '',
-        curso_id: '' as string | number,
     });
 
     const openCreateDialog = () => {
@@ -68,7 +66,6 @@ export default function DocentesIndex({ docentes }: Props) {
             correo: docente.correo,
             telefono: docente.telefono || '',
             dni: docente.dni,
-            curso_id: docente.curso_id || '',
         });
         clearErrors();
         setIsDialogOpen(true);
@@ -85,11 +82,8 @@ export default function DocentesIndex({ docentes }: Props) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Transform empty string to null for curso_id
-        const payload = { ...data, curso_id: data.curso_id === '' ? null : Number(data.curso_id) };
-
         if (editingDocente) {
-            router.put(update.url({ docente: editingDocente.id }), payload, {
+            router.put(update.url({ docente: editingDocente.id }), data, {
                 onSuccess: () => {
                     setIsDialogOpen(false);
                     toast.success('Docente actualizado exitosamente');
@@ -97,7 +91,7 @@ export default function DocentesIndex({ docentes }: Props) {
                 onError: (errors) => console.error(errors),
             });
         } else {
-            router.post(store.url(), payload, {
+            router.post(store.url(), data, {
                 onSuccess: () => {
                     setIsDialogOpen(false);
                     reset();
@@ -260,20 +254,6 @@ export default function DocentesIndex({ docentes }: Props) {
                                     placeholder="Número de contacto"
                                 />
                                 {errors.telefono && <p className="text-sm text-destructive">{errors.telefono}</p>}
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="curso_id">Curso (Opcional)</Label>
-                                <Input
-                                    id="curso_id"
-                                    value={data.curso_id}
-                                    onChange={(e) => setData('curso_id', e.target.value)}
-                                    placeholder="ID del curso (temporal)"
-                                    disabled
-                                    title="Los cursos aún no están implementados en el sistema"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    Asignación de cursos deshabilitada temporalmente.
-                                </p>
                             </div>
                         </div>
                         <DialogFooter>
