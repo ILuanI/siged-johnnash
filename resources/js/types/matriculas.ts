@@ -6,6 +6,7 @@ export type EstudianteListItem = {
     dni: string | null;
     estado: string;
     telefono: string | null;
+    cuotas?: { estado: string; fecha_vencimiento: string }[];
 };
 
 export type ConsolidadoAlumno = {

@@ -32,3 +32,4 @@ require __DIR__.'/asistencias.php';
 require __DIR__.'/notas.php';
 require __DIR__.'/reportes.php';
 require __DIR__.'/ia.php';
+require __DIR__.'/tesoreria.php';

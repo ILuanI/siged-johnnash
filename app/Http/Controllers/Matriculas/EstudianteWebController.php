@@ -42,6 +42,9 @@ class EstudianteWebController extends Controller
             })
             ->orderBy('apellidos')
             ->orderBy('nombres')
+            ->with(['matriculas' => function ($q) {
+                $q->latest('fecha_matricula')->with(['comprobantePago.cuotas']);
+            }])
             ->get(['id_alumno', 'codigo', 'nombres', 'apellidos', 'dni', 'estado', 'telefono']);
 
         $consolidado = null;

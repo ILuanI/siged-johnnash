@@ -2,6 +2,7 @@
 
 namespace App\Services\Tesoreria;
 
+use App\Enums\EstadoCuota;
 use App\Enums\TipoPagoMatricula;
 use App\Models\ComprobantePago;
 use App\Models\Matricula;
@@ -51,7 +52,7 @@ class PlanPagoMatriculaService
                     'numero_cuota' => $indice + 1,
                     'monto' => $monto,
                     'fecha_vencimiento' => $fechaPrimeraCuota->addDays($diasEntreCuotas * $indice)->toDateString(),
-                    'estado' => 'PENDIENTE',
+                    'estado' => EstadoCuota::Pendiente,
                 ]);
             }
 

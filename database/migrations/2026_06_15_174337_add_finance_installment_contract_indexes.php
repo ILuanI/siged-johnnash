@@ -8,11 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('cuota') && Schema::hasColumn('cuota', 'fecha_venc') && ! Schema::hasColumn('cuota', 'fecha_vencimiento')) {
-            Schema::table('cuota', function (Blueprint $table): void {
-                $table->renameColumn('fecha_venc', 'fecha_vencimiento');
-            });
-        }
 
         if (Schema::hasTable('comprobante_pago')) {
             Schema::table('comprobante_pago', function (Blueprint $table): void {
@@ -53,10 +48,6 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('cuota') && Schema::hasColumn('cuota', 'fecha_vencimiento') && ! Schema::hasColumn('cuota', 'fecha_venc')) {
-            Schema::table('cuota', function (Blueprint $table): void {
-                $table->renameColumn('fecha_vencimiento', 'fecha_venc');
-            });
-        }
+
     }
 };

@@ -35,6 +35,15 @@ class AlumnoResource extends JsonResource
             'id_carrera' => $this->id_carrera,
             'id_apoderado' => $this->id_apoderado,
             'creado_en' => $this->creado_en?->toIso8601String(),
+            'cuotas' => $this->whenLoaded('matriculas', function () {
+                $lastMatricula = $this->matriculas->first();
+                if (!$lastMatricula || !$lastMatricula->comprobantePago) return [];
+                
+                return $lastMatricula->comprobantePago->cuotas->map(fn($cuota) => [
+                    'estado' => $cuota->estado instanceof \App\Enums\EstadoCuota ? $cuota->estado->value : $cuota->estado,
+                    'fecha_vencimiento' => $cuota->fecha_vencimiento instanceof \Carbon\CarbonInterface ? $cuota->fecha_vencimiento->toDateString() : $cuota->fecha_vencimiento,
+                ])->toArray();
+            }),
         ];
     }
 }

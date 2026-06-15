@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EstadoCuota;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -30,6 +31,7 @@ class Cuota extends Model
         return [
             'monto' => 'decimal:2',
             'fecha_vencimiento' => 'date',
+            'estado' => EstadoCuota::class,
         ];
     }
 

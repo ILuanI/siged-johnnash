@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             DocenteSeeder::class,
             CursosCatalogoSeeder::class,
             CredencialesTestSeeder::class,
+            MockBiDataSeeder::class,
         ]);
     }
 }

@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SemaforoPagos } from '@/components/pagos/SemaforoPagos';
 import { useInitials } from '@/hooks/use-initials';
 import { estadoBadgeClass } from '@/lib/matriculas';
 import { cn } from '@/lib/utils';
@@ -146,14 +147,19 @@ export default function EstudiantesIndex({
                                                 : ''}
                                         </p>
                                     </div>
-                                    <Badge
-                                        className={cn(
-                                            'shrink-0 rounded-full text-xs uppercase',
-                                            estadoBadgeClass(estudiante.estado),
+                                    <div className="flex flex-col items-end gap-2">
+                                        <Badge
+                                            className={cn(
+                                                'shrink-0 rounded-full text-xs uppercase',
+                                                estadoBadgeClass(estudiante.estado),
+                                            )}
+                                        >
+                                            {estudiante.estado}
+                                        </Badge>
+                                        {estudiante.cuotas && estudiante.cuotas.length > 0 && (
+                                            <SemaforoPagos cuotas={estudiante.cuotas as any} />
                                         )}
-                                    >
-                                        {estudiante.estado}
-                                    </Badge>
+                                    </div>
                                 </button>
                             </li>
                         ))}

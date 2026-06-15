@@ -16,7 +16,7 @@ return new class extends Migration
             $table->unsignedInteger('id_comprobante');
             $table->unsignedTinyInteger('numero_cuota');
             $table->decimal('monto', 8, 2);
-            $table->date('fecha_venc');
+            $table->date('fecha_vencimiento');
             $table->enum('estado', ['PENDIENTE', 'PAGADA', 'VENCIDA'])->default('PENDIENTE');
             $table->timestamps();
 

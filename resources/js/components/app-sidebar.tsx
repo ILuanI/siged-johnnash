@@ -27,6 +27,7 @@ import { index as desercionIndex } from '@/routes/ia/desercion';
 import { nueva as nuevaMatricula } from '@/routes/matriculas';
 import { index as catalogoAcademicoIndex } from '@/routes/matriculas/catalogo';
 import { index as estudiantesIndex } from '@/routes/matriculas/estudiantes';
+import { index as tesoreriaIndex } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import type { NavItem } from '@/types';
 
 const mainNavItems: (NavItem & { modulo: string })[] = [
@@ -39,7 +40,7 @@ const mainNavItems: (NavItem & { modulo: string })[] = [
     { title: 'Usuarios', href: '/usuarios', icon: Users, modulo: 'usuarios' },
     { title: 'Roles', href: '/roles', icon: ShieldCheck, modulo: 'roles' },
     { title: 'Notas', href: '/notas', icon: BookOpen, modulo: 'academico' },
-    { title: 'Pagos', href: '#', icon: CreditCard, modulo: 'pagos' },
+    { title: 'Pagos', href: tesoreriaIndex(), icon: CreditCard, modulo: 'pagos' },
     { title: 'Reportes', href: '/reportes', icon: BarChart3, modulo: 'reportes' },
     { title: 'IA Deserción', href: desercionIndex(), icon: Brain, modulo: 'ia' },
     { title: 'Ajustes', href: '#', icon: Settings, modulo: 'ajustes' },
