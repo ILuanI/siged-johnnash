@@ -12,6 +12,7 @@ import {
 } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
 import {
     Dialog,
     DialogContent,
@@ -222,47 +223,42 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                                     Nueva carrera
                                 </Button>
                             </div>
-                            <Select value={data.id_carrera} onValueChange={(val) => setData('id_carrera', val)}>
-                                <SelectTrigger id="id_carrera">
-                                    <SelectValue placeholder="Sin carrera" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {carreras.length > 0 ? (
-                                        carreras.map((carrera) => (
-                                            <SelectItem key={carrera.id_carrera} value={carrera.id_carrera.toString()}>
-                                                {carrera.nombre}
-                                                {carrera.area ? ` (Área ${carrera.area.codigo})` : ''}
-                                            </SelectItem>
-                                        ))
-                                    ) : (
-                                        <SelectItem value="sin-carreras" disabled>
-                                            Sin carreras registradas
-                                        </SelectItem>
-                                    )}
-                                </SelectContent>
-                            </Select>
+                            <Combobox
+                                id="id_carrera"
+                                value={data.id_carrera}
+                                onChange={(val) => setData('id_carrera', val)}
+                                placeholder="Sin carrera"
+                                searchPlaceholder="Buscar carrera…"
+                                emptyText="Sin carreras registradas."
+                                createLabel="Nueva carrera"
+                                onCreate={(query) => {
+                                    setCarreraNombre(query);
+                                    setIsCarreraDialogOpen(true);
+                                }}
+                                options={carreras.map((carrera) => ({
+                                    value: carrera.id_carrera.toString(),
+                                    label: carrera.area
+                                        ? `${carrera.nombre} (Área ${carrera.area.codigo})`
+                                        : carrera.nombre,
+                                    keywords: carrera.area?.nombre ?? '',
+                                }))}
+                            />
                             <InputError message={errors.id_carrera} />
                         </div>
                         <div>
                             <Label htmlFor="colegio_procedencia_id">Colegio de procedencia</Label>
-                            <Select
+                            <Combobox
+                                id="colegio_procedencia_id"
                                 value={data.colegio_procedencia_id}
-                                onValueChange={(val) => setData('colegio_procedencia_id', val)}
-                            >
-                                <SelectTrigger id="colegio_procedencia_id">
-                                    <SelectValue placeholder="Sin colegio registrado" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {colegios.map((colegio) => (
-                                        <SelectItem
-                                            key={colegio.id_colegio_procedencia}
-                                            value={colegio.id_colegio_procedencia.toString()}
-                                        >
-                                            {colegio.nombre}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                onChange={(val) => setData('colegio_procedencia_id', val)}
+                                placeholder="Sin colegio registrado"
+                                searchPlaceholder="Buscar colegio…"
+                                emptyText="Sin colegios. Agrégalos en Configuración."
+                                options={colegios.map((colegio) => ({
+                                    value: colegio.id_colegio_procedencia.toString(),
+                                    label: colegio.nombre,
+                                }))}
+                            />
                             <InputError message={errors.colegio_procedencia_id} />
                         </div>
                     </div>

@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/sidebar';
 import { usePermisos } from '@/hooks/use-permisos';
 import { dashboard } from '@/routes';
+import { index as ajustesIndex } from '@/routes/ajustes';
 import { index as lectorAsistenciaIndex } from '@/routes/asistencias/lector';
 import { index as desercionIndex } from '@/routes/ia/desercion';
 import { nueva as nuevaMatricula } from '@/routes/matriculas';
@@ -43,7 +44,7 @@ const mainNavItems: (NavItem & { modulo: string })[] = [
     { title: 'Pagos', href: tesoreriaIndex(), icon: CreditCard, modulo: 'pagos' },
     { title: 'Reportes', href: '/reportes', icon: BarChart3, modulo: 'reportes' },
     { title: 'IA Deserción', href: desercionIndex(), icon: Brain, modulo: 'ia' },
-    { title: 'Ajustes', href: '#', icon: Settings, modulo: 'ajustes' },
+    { title: 'Ajustes', href: ajustesIndex(), icon: Settings, modulo: 'ajustes' },
 ];
 
 export function AppSidebar() {
