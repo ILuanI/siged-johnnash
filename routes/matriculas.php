@@ -4,7 +4,7 @@ use App\Http\Controllers\Matriculas\EstudianteWebController;
 use App\Http\Controllers\Matriculas\MatriculaWebController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'permiso'])
     ->prefix('matriculas')
     ->name('matriculas.')
     ->group(function (): void {

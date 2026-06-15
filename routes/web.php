@@ -1,17 +1,28 @@
 <?php
 
 use App\Http\Controllers\DocenteController;
+use App\Http\Controllers\RolController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Matriculas\EstudianteWebController;
 
-Route::inertia('/', 'welcome')->name('home');
+Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
 
-Route::middleware(['auth', 'verified'])->group(function () {
+    return redirect()->route('login');
+})->name('home');
+
+Route::middleware(['auth', 'verified', 'permiso'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
     Route::resource('docentes', DocenteController::class)->except(['create', 'show', 'edit']);
+    Route::resource('usuarios', UserController::class)
+        ->except(['create', 'show', 'edit'])
+        ->parameters(['usuarios' => 'user']);
+    Route::resource('roles', RolController::class)
+        ->except(['create', 'show', 'edit'])
+        ->parameters(['roles' => 'rol']);
 });
-
-Route::get('/matriculas/estudiantes', [EstudianteWebController::class, 'index'])->name('matriculas.estudiantes.index');
 
 require __DIR__.'/settings.php';
 require __DIR__.'/matriculas.php';
