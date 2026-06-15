@@ -7,6 +7,7 @@ import {
     LayoutGrid,
     Plus,
     Settings,
+    ShieldCheck,
     Users,
 } from 'lucide-react';
 import { NavMain } from '@/components/nav-main';
@@ -17,22 +18,29 @@ import {
     SidebarFooter,
     SidebarHeader,
 } from '@/components/ui/sidebar';
+import { usePermisos } from '@/hooks/use-permisos';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
-    { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
-    { title: 'Docentes', href: '/docentes', icon: Users },
-    { title: 'Estudiantes', href: '/matriculas/estudiantes', icon: GraduationCap },
-    { title: 'Cursos', href: '/cursos', icon: BookOpen },
-    { title: 'Usuarios', href: '#', icon: Users },
-    { title: 'Notas', href: '/notas', icon: BookOpen },
-    { title: 'Pagos', href: '#', icon: CreditCard },
-    { title: 'Reportes', href: '/reportes', icon: BarChart3 },
-    { title: 'Ajustes', href: '#', icon: Settings },
+const mainNavItems: (NavItem & { modulo: string })[] = [
+    { title: 'Dashboard', href: dashboard(), icon: LayoutGrid, modulo: 'dashboard' },
+    { title: 'Docentes', href: '/docentes', icon: Users, modulo: 'docentes' },
+    { title: 'Estudiantes', href: '/matriculas/estudiantes', icon: GraduationCap, modulo: 'estudiantes' },
+    { title: 'Cursos', href: '/cursos', icon: BookOpen, modulo: 'cursos' },
+    { title: 'Usuarios', href: '/usuarios', icon: Users, modulo: 'usuarios' },
+    { title: 'Roles', href: '/roles', icon: ShieldCheck, modulo: 'roles' },
+    { title: 'Notas', href: '/notas', icon: BookOpen, modulo: 'academico' },
+    { title: 'Pagos', href: '#', icon: CreditCard, modulo: 'pagos' },
+    { title: 'Reportes', href: '/reportes', icon: BarChart3, modulo: 'reportes' },
+    { title: 'Ajustes', href: '#', icon: Settings, modulo: 'ajustes' },
 ];
 
 export function AppSidebar() {
+    const { puede } = usePermisos();
+
+    const visibleNavItems = mainNavItems.filter((item) => puede(item.modulo, 'ver'));
+    const puedeMatricular = puede('estudiantes', 'editar');
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader className="border-b border-sidebar-border px-5 py-6">
@@ -52,26 +60,30 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <div className="px-4 py-5 group-data-[collapsible=icon]:hidden">
-                    <Link
-                        href="/matriculas/nueva"
-                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#ff7043] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#f4511e]"
-                    >
-                        <Plus className="size-4 shrink-0" />
-                        Nueva Matrícula
-                    </Link>
-                </div>
-                <div className="px-4 py-5 hidden group-data-[collapsible=icon]:flex justify-center">
-                    <Link
-                        href="/matriculas/nueva"
-                        className="flex size-10 items-center justify-center rounded-lg bg-[#ff7043] text-white shadow-md hover:bg-[#f4511e] transition"
-                        title="Nueva Matrícula"
-                    >
-                        <Plus className="size-5 shrink-0" />
-                    </Link>
-                </div>
+                {puedeMatricular && (
+                    <>
+                        <div className="px-4 py-5 group-data-[collapsible=icon]:hidden">
+                            <Link
+                                href="/matriculas/nueva"
+                                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#ff7043] px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-[#f4511e]"
+                            >
+                                <Plus className="size-4 shrink-0" />
+                                Nueva Matrícula
+                            </Link>
+                        </div>
+                        <div className="px-4 py-5 hidden group-data-[collapsible=icon]:flex justify-center">
+                            <Link
+                                href="/matriculas/nueva"
+                                className="flex size-10 items-center justify-center rounded-lg bg-[#ff7043] text-white shadow-md hover:bg-[#f4511e] transition"
+                                title="Nueva Matrícula"
+                            >
+                                <Plus className="size-5 shrink-0" />
+                            </Link>
+                        </div>
+                    </>
+                )}
 
-                <NavMain items={mainNavItems} />
+                <NavMain items={visibleNavItems} />
             </SidebarContent>
 
             <SidebarFooter>

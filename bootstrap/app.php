@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\BusinessRuleException;
+use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Responses\ApiResponse;
@@ -20,6 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
+
+        $middleware->alias([
+            'permiso' => EnsureUserHasPermission::class,
+        ]);
 
         $middleware->web(append: [
             HandleAppearance::class,

@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Rol;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -29,6 +30,10 @@ class UserFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'estado' => 'ACTIVO',
+            'id_rol' => fn () => Rol::query()->where('nombre', 'Administrador')->value('id_rol')
+                ?? Rol::query()->value('id_rol')
+                ?? Rol::factory(),
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
             'two_factor_recovery_codes' => null,
@@ -55,6 +60,16 @@ class UserFactory extends Factory
             'two_factor_secret' => encrypt('secret'),
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Indicate that the user cannot sign in.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'estado' => 'INACTIVO',
         ]);
     }
 }
