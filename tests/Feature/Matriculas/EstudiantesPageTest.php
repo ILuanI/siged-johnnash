@@ -83,6 +83,20 @@ test('nueva matricula exposes plain arrays to inertia json requests', function (
         ->assertJsonPath('component', 'matriculas/nueva')
         ->assertJsonPath('props.alumnos.0.nombres', 'Mateo')
         ->assertJsonPath('props.periodos.0.id_periodo', $periodo->id_periodo);
+
+    $props = $response->json('props');
+
+    expect($props['alumnos'])->toBeArray()
+        ->and($props['alumnos'])->not->toHaveKey('data')
+        ->and(array_is_list($props['alumnos']))->toBeTrue()
+        ->and($props['periodos'])->toBeArray()
+        ->and(array_is_list($props['periodos']))->toBeTrue()
+        ->and($props['ciclos'])->toBeArray()
+        ->and(array_is_list($props['ciclos']))->toBeTrue()
+        ->and($props['turnos'])->toBeArray()
+        ->and(array_is_list($props['turnos']))->toBeTrue()
+        ->and($props['aulas'])->toBeArray()
+        ->and(array_is_list($props['aulas']))->toBeTrue();
 });
 
 test('create estudiante exposes catalog props as plain arrays to inertia json requests', function () {

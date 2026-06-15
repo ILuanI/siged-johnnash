@@ -36,12 +36,14 @@ type AulaOption = {
     capacidad: number | null;
 };
 
+type ArrayProp<T> = T[] | { data?: T[] } | Record<string, T> | null | undefined;
+
 type PageProps = {
-    alumnos: EstudianteListItem[];
-    periodos: PeriodoOption[];
-    ciclos: CicloOption[];
-    turnos: TurnoOption[];
-    aulas: AulaOption[];
+    alumnos: ArrayProp<EstudianteListItem>;
+    periodos: ArrayProp<PeriodoOption>;
+    ciclos: ArrayProp<CicloOption>;
+    turnos: ArrayProp<TurnoOption>;
+    aulas: ArrayProp<AulaOption>;
 };
 
 export default function NuevaMatricula({
@@ -51,6 +53,12 @@ export default function NuevaMatricula({
     turnos,
     aulas,
 }: PageProps) {
+    const alumnosList = asArray(alumnos);
+    const periodosList = asArray(periodos);
+    const ciclosList = asArray(ciclos);
+    const turnosList = asArray(turnos);
+    const aulasList = asArray(aulas);
+
     const { data, setData, post, processing, errors } = useForm({
         id_alumno: '',
         id_periodo: '',
@@ -83,24 +91,44 @@ export default function NuevaMatricula({
                     <ArrowLeft className="size-4" />
                     Volver al directorio
                 </Link>
-                <h1 className="text-2xl font-bold text-slate-900">Nueva matrícula</h1>
-                <p className="text-sm text-slate-500">Periodo, ciclo, aula y plan de pago.</p>
+                <h1 className="text-2xl font-bold text-slate-900">
+                    Nueva matrícula
+                </h1>
+                <p className="text-sm text-slate-500">
+                    Periodo, ciclo, aula y plan de pago.
+                </p>
             </header>
 
             <div className="mx-auto max-w-2xl px-8 py-8">
-                <form onSubmit={submit} className="space-y-5 rounded-xl border bg-white p-6 shadow-sm">
+                <form
+                    onSubmit={submit}
+                    className="space-y-5 rounded-xl border bg-white p-6 shadow-sm"
+                >
                     <div>
                         <Label htmlFor="id_alumno">Alumno *</Label>
-                        <Select value={data.id_alumno} onValueChange={(val) => setData('id_alumno', val)}>
+                        <Select
+                            value={data.id_alumno}
+                            onValueChange={(val) => setData('id_alumno', val)}
+                        >
                             <SelectTrigger id="id_alumno">
                                 <SelectValue placeholder="Seleccionar" />
                             </SelectTrigger>
                             <SelectContent>
-                                {alumnos.map((alumno) => (
-                                    <SelectItem key={alumno.id_alumno} value={alumno.id_alumno.toString()}>
-                                        {alumno.codigo} - {alumno.apellidos}, {alumno.nombres} ({alumno.estado})
+                                {alumnosList.length > 0 ? (
+                                    alumnosList.map((alumno) => (
+                                        <SelectItem
+                                            key={alumno.id_alumno}
+                                            value={alumno.id_alumno.toString()}
+                                        >
+                                            {alumno.codigo} - {alumno.apellidos}
+                                            , {alumno.nombres} ({alumno.estado})
+                                        </SelectItem>
+                                    ))
+                                ) : (
+                                    <SelectItem value="sin-alumnos" disabled>
+                                        No hay alumnos registrados
                                     </SelectItem>
-                                ))}
+                                )}
                             </SelectContent>
                         </Select>
                         <InputError message={errors.id_alumno} />
@@ -109,13 +137,21 @@ export default function NuevaMatricula({
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                             <Label htmlFor="id_periodo">Periodo *</Label>
-                            <Select value={data.id_periodo} onValueChange={(val) => setData('id_periodo', val)}>
+                            <Select
+                                value={data.id_periodo}
+                                onValueChange={(val) =>
+                                    setData('id_periodo', val)
+                                }
+                            >
                                 <SelectTrigger id="id_periodo">
                                     <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {periodos.map((periodo) => (
-                                        <SelectItem key={periodo.id_periodo} value={periodo.id_periodo.toString()}>
+                                    {periodosList.map((periodo) => (
+                                        <SelectItem
+                                            key={periodo.id_periodo}
+                                            value={periodo.id_periodo.toString()}
+                                        >
                                             {periodo.nombre} ({periodo.anio})
                                         </SelectItem>
                                     ))}
@@ -125,14 +161,25 @@ export default function NuevaMatricula({
                         </div>
                         <div>
                             <Label htmlFor="id_ciclo">Ciclo *</Label>
-                            <Select value={data.id_ciclo} onValueChange={(val) => setData('id_ciclo', val)}>
+                            <Select
+                                value={data.id_ciclo}
+                                onValueChange={(val) =>
+                                    setData('id_ciclo', val)
+                                }
+                            >
                                 <SelectTrigger id="id_ciclo">
                                     <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {ciclos.map((ciclo) => (
-                                        <SelectItem key={ciclo.id_ciclo} value={ciclo.id_ciclo.toString()}>
-                                            {ciclo.nombre} - S/ {Number(ciclo.costo_base).toFixed(2)}
+                                    {ciclosList.map((ciclo) => (
+                                        <SelectItem
+                                            key={ciclo.id_ciclo}
+                                            value={ciclo.id_ciclo.toString()}
+                                        >
+                                            {ciclo.nombre} - S/{' '}
+                                            {Number(ciclo.costo_base).toFixed(
+                                                2,
+                                            )}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -141,13 +188,21 @@ export default function NuevaMatricula({
                         </div>
                         <div>
                             <Label htmlFor="id_turno">Turno *</Label>
-                            <Select value={data.id_turno} onValueChange={(val) => setData('id_turno', val)}>
+                            <Select
+                                value={data.id_turno}
+                                onValueChange={(val) =>
+                                    setData('id_turno', val)
+                                }
+                            >
                                 <SelectTrigger id="id_turno">
                                     <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {turnos.map((turno) => (
-                                        <SelectItem key={turno.id_turno} value={turno.id_turno.toString()}>
+                                    {turnosList.map((turno) => (
+                                        <SelectItem
+                                            key={turno.id_turno}
+                                            value={turno.id_turno.toString()}
+                                        >
                                             {turno.nombre}
                                         </SelectItem>
                                     ))}
@@ -157,15 +212,23 @@ export default function NuevaMatricula({
                         </div>
                         <div>
                             <Label htmlFor="id_aula">Aula *</Label>
-                            <Select value={data.id_aula} onValueChange={(val) => setData('id_aula', val)}>
+                            <Select
+                                value={data.id_aula}
+                                onValueChange={(val) => setData('id_aula', val)}
+                            >
                                 <SelectTrigger id="id_aula">
                                     <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {aulas.map((aula) => (
-                                        <SelectItem key={aula.id_aula} value={aula.id_aula.toString()}>
+                                    {aulasList.map((aula) => (
+                                        <SelectItem
+                                            key={aula.id_aula}
+                                            value={aula.id_aula.toString()}
+                                        >
                                             {aula.nombre}
-                                            {aula.capacidad ? ` (cap. ${aula.capacidad})` : ''}
+                                            {aula.capacidad
+                                                ? ` (cap. ${aula.capacidad})`
+                                                : ''}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -174,26 +237,44 @@ export default function NuevaMatricula({
                         </div>
                         <div>
                             <Label htmlFor="modalidad">Modalidad</Label>
-                            <Select value={data.modalidad} onValueChange={(val) => setData('modalidad', val)}>
+                            <Select
+                                value={data.modalidad}
+                                onValueChange={(val) =>
+                                    setData('modalidad', val)
+                                }
+                            >
                                 <SelectTrigger id="modalidad">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="PRESENCIAL">Presencial</SelectItem>
-                                    <SelectItem value="VIRTUAL">Virtual</SelectItem>
+                                    <SelectItem value="PRESENCIAL">
+                                        Presencial
+                                    </SelectItem>
+                                    <SelectItem value="VIRTUAL">
+                                        Virtual
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                             <InputError message={errors.modalidad} />
                         </div>
                         <div>
                             <Label htmlFor="tipo_pago">Tipo de pago</Label>
-                            <Select value={data.tipo_pago} onValueChange={(val) => setData('tipo_pago', val)}>
+                            <Select
+                                value={data.tipo_pago}
+                                onValueChange={(val) =>
+                                    setData('tipo_pago', val)
+                                }
+                            >
                                 <SelectTrigger id="tipo_pago">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="CONTADO">Contado</SelectItem>
-                                    <SelectItem value="CREDITO">Crédito</SelectItem>
+                                    <SelectItem value="CONTADO">
+                                        Contado
+                                    </SelectItem>
+                                    <SelectItem value="CREDITO">
+                                        Crédito
+                                    </SelectItem>
                                 </SelectContent>
                             </Select>
                             <InputError message={errors.tipo_pago} />
@@ -206,17 +287,23 @@ export default function NuevaMatricula({
                                 step="0.01"
                                 placeholder="Usa el costo del ciclo si queda vacío"
                                 value={data.costo_total}
-                                onChange={(e) => setData('costo_total', e.target.value)}
+                                onChange={(e) =>
+                                    setData('costo_total', e.target.value)
+                                }
                             />
                             <InputError message={errors.costo_total} />
                         </div>
                         <div>
-                            <Label htmlFor="fecha_matricula">Fecha matrícula</Label>
+                            <Label htmlFor="fecha_matricula">
+                                Fecha matrícula
+                            </Label>
                             <Input
                                 id="fecha_matricula"
                                 type="date"
                                 value={data.fecha_matricula}
-                                onChange={(e) => setData('fecha_matricula', e.target.value)}
+                                onChange={(e) =>
+                                    setData('fecha_matricula', e.target.value)
+                                }
                             />
                             <InputError message={errors.fecha_matricula} />
                         </div>
@@ -232,37 +319,61 @@ export default function NuevaMatricula({
                                     min="2"
                                     max="12"
                                     value={data.numero_cuotas}
-                                    onChange={(e) => setData('numero_cuotas', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('numero_cuotas', e.target.value)
+                                    }
                                 />
                                 <InputError message={errors.numero_cuotas} />
                             </div>
                             <div>
-                                <Label htmlFor="fecha_primera_cuota">Primer vencimiento</Label>
+                                <Label htmlFor="fecha_primera_cuota">
+                                    Primer vencimiento
+                                </Label>
                                 <Input
                                     id="fecha_primera_cuota"
                                     type="date"
                                     value={data.fecha_primera_cuota}
-                                    onChange={(e) => setData('fecha_primera_cuota', e.target.value)}
+                                    onChange={(e) =>
+                                        setData(
+                                            'fecha_primera_cuota',
+                                            e.target.value,
+                                        )
+                                    }
                                 />
-                                <InputError message={errors.fecha_primera_cuota} />
+                                <InputError
+                                    message={errors.fecha_primera_cuota}
+                                />
                             </div>
                             <div>
-                                <Label htmlFor="dias_entre_cuotas">Días entre cuotas</Label>
+                                <Label htmlFor="dias_entre_cuotas">
+                                    Días entre cuotas
+                                </Label>
                                 <Input
                                     id="dias_entre_cuotas"
                                     type="number"
                                     min="1"
                                     max="365"
                                     value={data.dias_entre_cuotas}
-                                    onChange={(e) => setData('dias_entre_cuotas', e.target.value)}
+                                    onChange={(e) =>
+                                        setData(
+                                            'dias_entre_cuotas',
+                                            e.target.value,
+                                        )
+                                    }
                                 />
-                                <InputError message={errors.dias_entre_cuotas} />
+                                <InputError
+                                    message={errors.dias_entre_cuotas}
+                                />
                             </div>
                         </div>
                     )}
 
                     <div className="flex gap-3 pt-2">
-                        <Button type="submit" disabled={processing} className="bg-[#ff7043] hover:bg-[#f4511e]">
+                        <Button
+                            type="submit"
+                            disabled={processing}
+                            className="bg-[#ff7043] hover:bg-[#f4511e]"
+                        >
                             Formalizar matrícula
                         </Button>
                         <Button type="button" variant="outline" asChild>
@@ -273,4 +384,20 @@ export default function NuevaMatricula({
             </div>
         </>
     );
+}
+
+function asArray<T>(value: ArrayProp<T>): T[] {
+    if (Array.isArray(value)) {
+        return value;
+    }
+
+    if (value && typeof value === 'object' && Array.isArray(value.data)) {
+        return value.data;
+    }
+
+    if (value && typeof value === 'object') {
+        return Object.values(value);
+    }
+
+    return [];
 }

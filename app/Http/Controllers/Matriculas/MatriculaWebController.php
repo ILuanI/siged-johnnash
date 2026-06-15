@@ -29,13 +29,15 @@ class MatriculaWebController extends Controller
             ->get(['id_alumno', 'codigo', 'nombres', 'apellidos', 'dni', 'estado', 'telefono']);
 
         return Inertia::render('matriculas/nueva', [
-            'alumnos' => AlumnoResource::collection($alumnos)->resolve(),
+            'alumnos' => array_values(AlumnoResource::collection($alumnos)->resolve(request())),
             'periodos' => PeriodoAcademico::query()->where('estado', 'ABIERTO')->orderBy('nombre')->get()
                 ->map(fn (PeriodoAcademico $periodo): array => [
                     'id_periodo' => $periodo->id_periodo,
                     'nombre' => $periodo->nombre,
                     'anio' => $periodo->anio,
-                ]),
+                ])
+                ->values()
+                ->all(),
             'ciclos' => Ciclo::query()->with('periodo')->orderBy('nombre')->get()
                 ->map(fn (Ciclo $ciclo): array => [
                     'id_ciclo' => $ciclo->id_ciclo,
@@ -43,18 +45,24 @@ class MatriculaWebController extends Controller
                     'costo_base' => $ciclo->costo_base,
                     'id_periodo' => $ciclo->id_periodo,
                     'periodo' => $ciclo->periodo ? ['nombre' => $ciclo->periodo->nombre] : null,
-                ]),
+                ])
+                ->values()
+                ->all(),
             'turnos' => Turno::query()->orderBy('nombre')->get()
                 ->map(fn (Turno $turno): array => [
                     'id_turno' => $turno->id_turno,
                     'nombre' => $turno->nombre,
-                ]),
+                ])
+                ->values()
+                ->all(),
             'aulas' => Aula::query()->orderBy('nombre')->get()
                 ->map(fn (Aula $aula): array => [
                     'id_aula' => $aula->id_aula,
                     'nombre' => $aula->nombre,
                     'capacidad' => $aula->capacidad,
-                ]),
+                ])
+                ->values()
+                ->all(),
         ]);
     }
 
