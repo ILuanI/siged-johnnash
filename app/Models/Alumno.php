@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Alumno extends Model
@@ -72,5 +73,29 @@ class Alumno extends Model
         return $this->hasOne(Matricula::class, 'id_alumno', 'id_alumno')
             ->where('estado', EstadoMatricula::Vigente)
             ->latestOfMany('fecha_matricula');
+    }
+
+    public function asistencias(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Asistencia::class,
+            Matricula::class,
+            'id_alumno',
+            'id_matricula',
+            'id_alumno',
+            'id_matricula'
+        );
+    }
+
+    public function resultadosExamen(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            ResultadoExamen::class,
+            Matricula::class,
+            'id_alumno',
+            'id_matricula',
+            'id_alumno',
+            'id_matricula'
+        );
     }
 }

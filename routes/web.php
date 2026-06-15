@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Bi\DashboardBiController;
 use App\Http\Controllers\DocenteController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\UserController;
@@ -14,7 +15,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified', 'permiso'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardBiController::class, 'index'])->name('dashboard');
     Route::resource('docentes', DocenteController::class)->except(['create', 'show', 'edit']);
     Route::resource('usuarios', UserController::class)
         ->except(['create', 'show', 'edit'])
@@ -27,3 +28,5 @@ Route::middleware(['auth', 'verified', 'permiso'])->group(function () {
 require __DIR__.'/settings.php';
 require __DIR__.'/matriculas.php';
 require __DIR__.'/cursos.php';
+require __DIR__.'/notas.php';
+require __DIR__.'/reportes.php';

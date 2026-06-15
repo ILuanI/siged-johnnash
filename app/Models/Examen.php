@@ -40,4 +40,9 @@ class Examen extends Model
     {
         return $this->hasMany(ResultadoExamen::class, 'id_examen', 'id_examen');
     }
+
+    public function metricas(): HasMany
+    {
+        return $this->hasMany(ExamenMetrica::class, 'id_examen', 'id_examen');
+    }
 }

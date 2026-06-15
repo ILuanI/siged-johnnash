@@ -9,6 +9,8 @@ use Database\Factories\MatriculaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Matricula extends Model
 {
@@ -71,5 +73,20 @@ class Matricula extends Model
     public function aula(): BelongsTo
     {
         return $this->belongsTo(Aula::class, 'id_aula', 'id_aula');
+    }
+
+    public function asistencias(): HasMany
+    {
+        return $this->hasMany(Asistencia::class, 'id_matricula', 'id_matricula');
+    }
+
+    public function resultadosExamen(): HasMany
+    {
+        return $this->hasMany(ResultadoExamen::class, 'id_matricula', 'id_matricula');
+    }
+
+    public function comprobantePago(): HasOne
+    {
+        return $this->hasOne(ComprobantePago::class, 'id_matricula', 'id_matricula');
     }
 }

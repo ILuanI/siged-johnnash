@@ -29,9 +29,9 @@ const mainNavItems: (NavItem & { modulo: string })[] = [
     { title: 'Cursos', href: '/cursos', icon: BookOpen, modulo: 'cursos' },
     { title: 'Usuarios', href: '/usuarios', icon: Users, modulo: 'usuarios' },
     { title: 'Roles', href: '/roles', icon: ShieldCheck, modulo: 'roles' },
-    { title: 'Académico', href: '#', icon: BookOpen, modulo: 'academico' },
+    { title: 'Notas', href: '/notas', icon: BookOpen, modulo: 'academico' },
     { title: 'Pagos', href: '#', icon: CreditCard, modulo: 'pagos' },
-    { title: 'Reportes', href: '#', icon: BarChart3, modulo: 'reportes' },
+    { title: 'Reportes', href: '/reportes', icon: BarChart3, modulo: 'reportes' },
     { title: 'Ajustes', href: '#', icon: Settings, modulo: 'ajustes' },
 ];
 
