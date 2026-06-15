@@ -7,6 +7,7 @@ use App\Models\Area;
 use App\Models\Aula;
 use App\Models\Carrera;
 use App\Models\Ciclo;
+use App\Models\ColegioProcedencia;
 use App\Models\PeriodoAcademico;
 use App\Models\Turno;
 use Illuminate\Database\Seeder;
@@ -15,15 +16,38 @@ class MatriculasCatalogoSeeder extends Seeder
 {
     public function run(): void
     {
-        $area = Area::query()->firstOrCreate(
-            ['codigo' => 'A'],
-            ['nombre' => 'Ciencias'],
-        );
+        $areas = [
+            'A' => [
+                'nombre' => 'Ciencias Medicas',
+                'carreras' => ['Medicina Humana', 'Enfermeria', 'Obstetricia', 'Odontologia'],
+            ],
+            'B' => [
+                'nombre' => 'Ingenierias',
+                'carreras' => ['Ingenieria de Sistemas', 'Ingenieria Civil', 'Ingenieria Industrial', 'Arquitectura'],
+            ],
+            'C' => [
+                'nombre' => 'Finanzas',
+                'carreras' => ['Administracion', 'Contabilidad', 'Economia', 'Negocios Internacionales'],
+            ],
+            'D' => [
+                'nombre' => 'Letras',
+                'carreras' => ['Derecho', 'Educacion', 'Comunicacion', 'Psicologia'],
+            ],
+        ];
 
-        Carrera::query()->firstOrCreate(
-            ['id_area' => $area->id_area, 'nombre' => 'Medicina'],
-            ['puntaje_min' => 10, 'puntaje_max' => 20],
-        );
+        foreach ($areas as $codigo => $areaData) {
+            $area = Area::query()->updateOrCreate(
+                ['codigo' => $codigo],
+                ['nombre' => $areaData['nombre']],
+            );
+
+            foreach ($areaData['carreras'] as $carrera) {
+                Carrera::query()->firstOrCreate(
+                    ['id_area' => $area->id_area, 'nombre' => $carrera],
+                    ['puntaje_min' => 10, 'puntaje_max' => 20],
+                );
+            }
+        }
 
         $periodo = PeriodoAcademico::query()->firstOrCreate(
             ['nombre' => 'Periodo 2026-I'],
@@ -47,5 +71,9 @@ class MatriculasCatalogoSeeder extends Seeder
 
         Aula::query()->firstOrCreate(['nombre' => 'Aula 101'], ['capacidad' => 30]);
         Aula::query()->firstOrCreate(['nombre' => 'Aula 102'], ['capacidad' => 25]);
+
+        foreach (['Colegio Nacional', 'Colegio Particular', 'Otro'] as $colegio) {
+            ColegioProcedencia::query()->firstOrCreate(['nombre' => $colegio]);
+        }
     }
 }

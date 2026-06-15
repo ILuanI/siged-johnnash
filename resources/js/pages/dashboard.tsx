@@ -9,18 +9,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useInitials } from '@/hooks/use-initials';
+import SemaforoPagos from '@/components/SemaforoPagos';
 import {
     Search,
     Users,
     Calendar,
     TrendingUp,
     CreditCard,
-    CheckCircle2,
-    AlertTriangle,
     X,
     User,
     Phone,
-    Mail,
     BookOpen,
     Award,
     Activity,
@@ -28,6 +26,7 @@ import {
     DollarSign
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { dashboard } from '@/routes';
 
 interface ExamenResultado {
     id_resultado: number;
@@ -53,7 +52,7 @@ interface CuotaRow {
     id_cuota: number;
     numero_cuota: number;
     monto: number;
-    fecha_venc: string;
+    fecha_vencimiento: string;
     estado: string;
 }
 
@@ -76,9 +75,10 @@ interface ConsolidadoData {
         fecha_nac: string | null;
         sexo: string | null;
         telefono: string | null;
-        correo: string | null;
-        direccion: string | null;
-        colegio_procedencia: string | null;
+        colegio_procedencia: {
+            id_colegio_procedencia: number;
+            nombre: string;
+        } | null;
         estado: string;
         carrera: {
             nombre: string;
@@ -89,10 +89,7 @@ interface ConsolidadoData {
         } | null;
         apoderado: {
             nombres: string;
-            dni: string | null;
             telefono: string | null;
-            parentesco: string | null;
-            correo: string | null;
         } | null;
     };
     matricula_actual: {
@@ -156,7 +153,7 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
     // Apply cycle filter instantly
     const handleCycleChange = (value: string) => {
         setCycleId(value);
-        router.get('/dashboard', {
+        router.get(dashboard.url(), {
             id_ciclo: value,
             q: searchQuery,
             alumno: filters.alumno
@@ -169,7 +166,7 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
     useEffect(() => {
         if (searchQuery.trim().length >= 2) {
             const delayDebounce = setTimeout(() => {
-                router.get('/dashboard', {
+                router.get(dashboard.url(), {
                     id_ciclo: cycleId,
                     q: searchQuery,
                     alumno: filters.alumno
@@ -187,7 +184,7 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
 
     const selectStudent = (alumnoId: number) => {
         setShowSuggestions(false);
-        router.get('/dashboard', {
+        router.get(dashboard.url(), {
             id_ciclo: cycleId,
             q: searchQuery,
             alumno: alumnoId
@@ -196,7 +193,7 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
 
     const clearStudent = () => {
         setSearchQuery('');
-        router.get('/dashboard', {
+        router.get(dashboard.url(), {
             id_ciclo: cycleId,
         });
     };
@@ -403,9 +400,9 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
                                                 <Phone className="size-4 text-slate-400 shrink-0" />
                                                 <span>{consolidado.perfil.telefono || 'Sin teléfono'}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-slate-700 truncate" title={consolidado.perfil.correo || ''}>
-                                                <Mail className="size-4 text-slate-400 shrink-0" />
-                                                <span>{consolidado.perfil.correo || 'Sin correo'}</span>
+                                            <div className="flex items-center gap-2 text-slate-700">
+                                                <BookOpen className="size-4 text-slate-400 shrink-0" />
+                                                <span>{consolidado.perfil.colegio_procedencia?.nombre || 'Sin colegio registrado'}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -414,17 +411,13 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
                                     {consolidado.perfil.apoderado ? (
                                         <div className="border-t border-slate-100 pt-3">
                                             <span className="text-xs text-[#ff7043] font-bold block mb-1 uppercase tracking-wider">
-                                                Apoderado ({consolidado.perfil.apoderado.parentesco})
+                                                Apoderado
                                             </span>
                                             <p className="font-semibold text-slate-800 mb-2">{consolidado.perfil.apoderado.nombres}</p>
                                             <div className="space-y-1.5">
                                                 <div className="flex items-center gap-2 text-slate-700">
                                                     <Phone className="size-4 text-slate-400 shrink-0" />
                                                     <span>{consolidado.perfil.apoderado.telefono || 'Sin teléfono'}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-slate-700 truncate" title={consolidado.perfil.apoderado.correo || ''}>
-                                                    <Mail className="size-4 text-slate-400 shrink-0" />
-                                                    <span>{consolidado.perfil.apoderado.correo || 'Sin correo'}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -450,22 +443,7 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
                                         <CardDescription>Detalle de cuotas y saldo pendiente.</CardDescription>
                                     </div>
                                     
-                                    {/* Financial Status Indicator */}
-                                    <Badge
-                                        className={
-                                            consolidado.finanzas.estado_pago === 'PAGADO'
-                                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-emerald-200 text-sm font-bold px-3 py-1'
-                                                : consolidado.finanzas.estado_pago === 'AL_DIA'
-                                                ? 'bg-blue-50 text-blue-700 hover:bg-blue-50 border-blue-200 text-sm font-bold px-3 py-1'
-                                                : 'bg-rose-50 text-rose-700 hover:bg-rose-50 border-rose-200 text-sm font-bold px-3 py-1'
-                                        }
-                                        variant="outline"
-                                    >
-                                        {consolidado.finanzas.estado_pago === 'PAGADO' && 'Pagado'}
-                                        {consolidado.finanzas.estado_pago === 'AL_DIA' && 'Al Día'}
-                                        {consolidado.finanzas.estado_pago === 'DEUDOR' && 'Deuda Vencida'}
-                                        {consolidado.finanzas.estado_pago === 'PENDIENTE' && 'Saldo Pendiente'}
-                                    </Badge>
+                                    <SemaforoPagos cuotas={consolidado.finanzas.cuotas} />
                                 </CardHeader>
                                 <CardContent className="pt-4 space-y-4">
                                     <div className="grid grid-cols-3 gap-4 text-center bg-slate-50 p-4 rounded-xl border border-slate-100">
@@ -505,7 +483,7 @@ export default function DashboardBi({ kpis, studentList, consolidado, ciclos, se
                                                             <TableCell className="py-2">
                                                                 <span className="flex items-center gap-1.5 text-xs text-slate-500">
                                                                     <Clock className="size-3.5" />
-                                                                    {new Date(cuota.fecha_venc).toLocaleDateString()}
+                                                                    {new Date(`${cuota.fecha_vencimiento}T00:00:00`).toLocaleDateString()}
                                                                 </span>
                                                             </TableCell>
                                                             <TableCell className="py-2 text-right">
@@ -724,7 +702,7 @@ DashboardBi.layout = {
     breadcrumbs: [
         {
             title: 'Dashboard',
-            href: '/dashboard',
+            href: dashboard.url(),
         },
     ],
 };

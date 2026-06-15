@@ -23,7 +23,6 @@ use App\Models\ResultadoExamen;
 use App\Models\Turno;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class MockBiDataSeeder extends Seeder
 {
@@ -155,23 +154,18 @@ class MockBiDataSeeder extends Seeder
 
         foreach ($studentsData as $idx => $s) {
             $apoderado = Apoderado::create([
-                'nombres' => "Apoderado de " . $s['nombres'],
-                'dni' => '0887766' . $idx,
-                'telefono' => '99988877' . $idx,
-                'parentesco' => 'Padre/Madre',
-                'correo' => 'apoderado' . $idx . '@example.com',
+                'nombres' => 'Apoderado de '.$s['nombres'],
+                'telefono' => '99988877'.$idx,
             ]);
 
             $alumno = Alumno::create([
-                'codigo' => $s['codigo'],
+                'codigo' => $s['dni'],
                 'nombres' => $s['nombres'],
                 'apellidos' => $s['apellidos'],
                 'dni' => $s['dni'],
                 'fecha_nac' => '2008-04-12',
                 'sexo' => 'M',
-                'telefono' => '98765432' . $idx,
-                'correo' => strtolower(str_replace(' ', '', $s['nombres'])) . '@example.com',
-                'direccion' => 'Av. Universitaria 1234, Lima',
+                'telefono' => '98765432'.$idx,
                 'id_carrera' => $s['carrera']->id_carrera,
                 'id_apoderado' => $apoderado->id_apoderado,
                 'estado' => 'MATRICULADO',
@@ -194,7 +188,7 @@ class MockBiDataSeeder extends Seeder
             $saldo = $s['pagado_completo'] ? 0.0 : ($s['tipo_pago'] === 'CREDITO' ? $s['costo'] / 2 : $s['costo']);
             $comprobante = ComprobantePago::create([
                 'id_matricula' => $matricula->id_matricula,
-                'numero' => 'B001-0000' . $idx,
+                'numero' => 'B001-0000'.$idx,
                 'tipo' => 'BOLETA',
                 'fecha_emision' => Carbon::now()->toDateString(),
                 'costo_total' => $s['costo'],
@@ -207,7 +201,7 @@ class MockBiDataSeeder extends Seeder
                     'id_comprobante' => $comprobante->id_comprobante,
                     'numero_cuota' => 1,
                     'monto' => $s['costo'] / 2,
-                    'fecha_venc' => Carbon::now()->subWeeks(2)->toDateString(),
+                    'fecha_vencimiento' => Carbon::now()->subWeeks(2)->toDateString(),
                     'estado' => 'PAGADA',
                 ]);
                 Pago::create([
@@ -222,7 +216,7 @@ class MockBiDataSeeder extends Seeder
                     'id_comprobante' => $comprobante->id_comprobante,
                     'numero_cuota' => 2,
                     'monto' => $s['costo'] / 2,
-                    'fecha_venc' => Carbon::now()->addWeeks(2)->toDateString(),
+                    'fecha_vencimiento' => Carbon::now()->addWeeks(2)->toDateString(),
                     'estado' => $cuota2Estado,
                 ]);
                 if ($s['pagado_completo']) {
@@ -238,7 +232,7 @@ class MockBiDataSeeder extends Seeder
                     'id_comprobante' => $comprobante->id_comprobante,
                     'numero_cuota' => 1,
                     'monto' => $s['costo'],
-                    'fecha_venc' => Carbon::now()->subWeeks(3)->toDateString(),
+                    'fecha_vencimiento' => Carbon::now()->subWeeks(3)->toDateString(),
                     'estado' => $s['pagado_completo'] ? 'PAGADA' : 'PENDIENTE',
                 ]);
 
@@ -286,7 +280,7 @@ class MockBiDataSeeder extends Seeder
                 'tipo' => 'SIMULACRO',
                 'numero' => $examNum,
                 'fecha' => Carbon::now()->subWeeks(4 - $examNum)->toDateString(),
-                'descripcion' => 'Simulacro General N°' . $examNum,
+                'descripcion' => 'Simulacro General N°'.$examNum,
             ]);
 
             // Save results for all 4 matriculas

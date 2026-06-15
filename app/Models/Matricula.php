@@ -89,4 +89,9 @@ class Matricula extends Model
     {
         return $this->hasOne(ComprobantePago::class, 'id_matricula', 'id_matricula');
     }
+
+    public function prediccionDesercion(): HasOne
+    {
+        return $this->hasOne(PrediccionDesercion::class, 'id_matricula', 'id_matricula');
+    }
 }

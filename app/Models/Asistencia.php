@@ -16,12 +16,22 @@ class Asistencia extends Model
 
     public $incrementing = true;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'tipo_alumno',
+        'dni',
+        'nombres_convenio',
+        'id_matricula',
+        'id_asignacion',
+        'fecha',
+        'estado',
+        'registrado_en',
+    ];
 
     protected function casts(): array
     {
         return [
             'fecha' => 'date',
+            'registrado_en' => 'datetime',
         ];
     }
 

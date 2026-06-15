@@ -19,9 +19,9 @@ test('devuelve el consolidado del alumno con matrícula vigente', function () {
         ->assertJsonPath('success', true)
         ->assertJsonPath('data.perfil.id_alumno', $alumno->id_alumno)
         ->assertJsonPath('data.matricula_actual.id_matricula', $matricula->id_matricula)
-        ->assertJsonPath('data.asistencia._meta.disponible', false)
-        ->assertJsonPath('data.notas._meta.disponible', false)
-        ->assertJsonPath('data.finanzas._meta.disponible', false);
+        ->assertJsonPath('data.asistencia._meta.disponible', true)
+        ->assertJsonPath('data.notas._meta.disponible', true)
+        ->assertJsonPath('data.finanzas._meta.disponible', true);
 });
 
 test('devuelve 404 cuando el alumno no existe', function () {

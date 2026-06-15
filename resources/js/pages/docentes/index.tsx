@@ -17,6 +17,7 @@ import {
 import { Pen, Trash2, UserPlus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { useInitials } from '@/hooks/use-initials';
+import { confirmAction } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
 
 interface Docente {
@@ -71,19 +72,27 @@ export default function DocentesIndex({ docentes }: Props) {
         setIsDialogOpen(true);
     };
 
-    const handleDelete = (docente: Docente) => {
-        if (confirm(`¿Estás seguro de eliminar a ${docente.nombres} ${docente.apellidos}?`)) {
-            router.delete(destroy.url({ docente: docente.id }), {
-                onSuccess: () => toast.success('Docente eliminado exitosamente'),
-                onError: (errors) => {
-                    if (errors.error) {
-                        toast.error(errors.error);
-                    } else {
-                        toast.error('Ocurrió un error al intentar eliminar el docente');
-                    }
-                }
-            });
+    const handleDelete = async (docente: Docente) => {
+        const confirmed = await confirmAction({
+            title: `Eliminar docente ${docente.nombres} ${docente.apellidos}`,
+            text: 'Esta acción no se puede deshacer.',
+            confirmButtonText: 'Eliminar',
+        });
+
+        if (! confirmed) {
+            return;
         }
+
+        router.delete(destroy.url({ docente: docente.id }), {
+            onSuccess: () => toast.success('Docente eliminado exitosamente'),
+            onError: (errors) => {
+                if (errors.error) {
+                    toast.error(errors.error);
+                } else {
+                    toast.error('Ocurrió un error al intentar eliminar el docente');
+                }
+            }
+        });
     };
 
     const handleSubmit = (e: React.FormEvent) => {

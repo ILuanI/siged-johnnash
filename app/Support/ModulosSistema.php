@@ -14,11 +14,13 @@ class ModulosSistema
             'docentes' => 'Docentes',
             'estudiantes' => 'Estudiantes',
             'cursos' => 'Cursos',
+            'asistencias' => 'Asistencias',
             'usuarios' => 'Usuarios',
             'roles' => 'Roles',
             'academico' => 'Académico',
             'pagos' => 'Pagos',
             'reportes' => 'Reportes',
+            'ia' => 'IA Deserción',
             'ajustes' => 'Ajustes',
         ];
     }

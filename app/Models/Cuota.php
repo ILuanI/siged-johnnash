@@ -17,13 +17,19 @@ class Cuota extends Model
 
     public $incrementing = true;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'id_comprobante',
+        'numero_cuota',
+        'monto',
+        'fecha_vencimiento',
+        'estado',
+    ];
 
     protected function casts(): array
     {
         return [
-            'monto' => 'float',
-            'fecha_venc' => 'date',
+            'monto' => 'decimal:2',
+            'fecha_vencimiento' => 'date',
         ];
     }
 

@@ -17,6 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePermisos, type PermisoModulo, type PermisosMap } from '@/hooks/use-permisos';
+import { confirmAction } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
 
 interface Rol {
@@ -102,19 +103,27 @@ export default function RolesIndex({ roles, modulos }: Props) {
         setIsDialogOpen(true);
     };
 
-    const handleDelete = (rol: Rol) => {
-        if (confirm(`¿Eliminar el rol ${rol.nombre}?`)) {
-            router.delete(destroy.url({ rol: rol.id_rol }), {
-                preserveScroll: true,
-            });
+    const handleDelete = async (rol: Rol) => {
+        const confirmed = await confirmAction({
+            title: `Eliminar rol ${rol.nombre}`,
+            text: 'Los usuarios con este rol podrían perder permisos asociados.',
+            confirmButtonText: 'Eliminar',
+        });
+
+        if (! confirmed) {
+            return;
         }
+
+        router.delete(destroy.url({ rol: rol.id_rol.toString() }), {
+            preserveScroll: true,
+        });
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         if (editingRol) {
-            router.put(update.url({ rol: editingRol.id_rol }), data, {
+            router.put(update.url({ rol: editingRol.id_rol.toString() }), data, {
                 preserveScroll: true,
                 onSuccess: () => setIsDialogOpen(false),
             });

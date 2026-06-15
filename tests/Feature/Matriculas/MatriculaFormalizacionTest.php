@@ -44,6 +44,15 @@ test('formaliza una matrícula y cambia el estado del alumno a matriculado', fun
         'id_alumno' => $alumno->id_alumno,
         'id_ciclo' => $ciclo->id_ciclo,
     ]);
+    $this->assertDatabaseHas('comprobante_pago', [
+        'id_matricula' => $response->json('data.id_matricula'),
+        'saldo_pendiente' => '1500',
+    ]);
+    $this->assertDatabaseHas('cuota', [
+        'numero_cuota' => 1,
+        'monto' => '1500',
+        'estado' => 'PENDIENTE',
+    ]);
 });
 
 test('rechaza matrícula duplicada en el mismo ciclo', function () {

@@ -24,7 +24,9 @@ class RolSeeder extends Seeder
                     'docentes' => ['puede_ver' => true, 'puede_editar' => true],
                     'estudiantes' => ['puede_ver' => true, 'puede_editar' => true],
                     'cursos' => ['puede_ver' => true, 'puede_editar' => true],
+                    'asistencias' => ['puede_ver' => true, 'puede_editar' => true],
                     'reportes' => ['puede_ver' => true],
+                    'ia' => ['puede_ver' => true],
                 ]),
             ],
             [
@@ -42,6 +44,7 @@ class RolSeeder extends Seeder
                     'dashboard' => ['puede_ver' => true],
                     'docentes' => ['puede_ver' => true],
                     'cursos' => ['puede_ver' => true, 'puede_editar' => true],
+                    'asistencias' => ['puede_ver' => true, 'puede_editar' => true],
                 ]),
             ],
             [
@@ -50,6 +53,7 @@ class RolSeeder extends Seeder
                 'permisos' => $this->permisos([
                     'dashboard' => ['puede_ver' => true],
                     'estudiantes' => ['puede_ver' => true, 'puede_editar' => true],
+                    'asistencias' => ['puede_ver' => true],
                 ]),
             ],
         ];

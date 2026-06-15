@@ -5,7 +5,6 @@ export type EstudianteListItem = {
     apellidos: string;
     dni: string | null;
     estado: string;
-    correo: string | null;
     telefono: string | null;
 };
 
@@ -20,9 +19,10 @@ export type ConsolidadoAlumno = {
         fecha_nac: string | null;
         sexo: string | null;
         telefono: string | null;
-        correo: string | null;
-        direccion: string | null;
-        colegio_procedencia: string | null;
+        colegio_procedencia: {
+            id_colegio_procedencia: number;
+            nombre: string;
+        } | null;
         estado: string | null;
         carrera: {
             id_carrera: number;
@@ -32,10 +32,7 @@ export type ConsolidadoAlumno = {
         apoderado: {
             id_apoderado: number;
             nombres: string;
-            dni: string | null;
             telefono: string | null;
-            parentesco: string | null;
-            correo: string | null;
         } | null;
     };
     matricula_actual: {
@@ -56,6 +53,15 @@ export type ConsolidadoAlumno = {
         turno: { id_turno: number; nombre: string };
         aula: { id_aula: number; nombre: string; capacidad: number | null };
     } | null;
+    riesgo_desercion: {
+        riesgo_pct: number;
+        nivel_riesgo: 'BAJO' | 'MEDIO' | 'ALTO';
+        prioritario: boolean;
+        tasa_asistencia: number | null;
+        promedio_examenes: number | null;
+        cuotas_vencidas: number | null;
+        fecha_calculo: string | null;
+    } | null;
     asistencia: {
         resumen: unknown;
         detalle: unknown[];
@@ -68,6 +74,9 @@ export type ConsolidadoAlumno = {
     };
     finanzas: {
         saldo_pendiente: unknown;
+        costo_total: unknown;
+        tipo_pago: string | null;
+        estado_pago: string;
         cuotas: unknown[];
         pagos: unknown[];
         _meta: { modulo: string; disponible: boolean; mensaje: string };
@@ -78,5 +87,18 @@ export type CarreraOption = {
     id_carrera: number;
     nombre: string;
     id_area: number;
+    puntaje_min?: number | null;
+    puntaje_max?: number | null;
     area?: { codigo: string; nombre: string } | null;
+};
+
+export type AreaOption = {
+    id_area: number;
+    nombre: string;
+    codigo: string;
+};
+
+export type AreaCatalogo = AreaOption & {
+    carreras_count?: number;
+    carreras: CarreraOption[];
 };

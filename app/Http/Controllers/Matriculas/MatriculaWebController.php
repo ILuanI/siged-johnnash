@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Matriculas;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Matriculas\StoreMatriculaRequest;
+use App\Http\Resources\Matriculas\AlumnoResource;
 use App\Models\Alumno;
 use App\Models\Aula;
 use App\Models\Ciclo;
@@ -22,14 +23,38 @@ class MatriculaWebController extends Controller
 
     public function create(): Response
     {
+        $alumnos = Alumno::query()
+            ->orderBy('apellidos')
+            ->orderBy('nombres')
+            ->get(['id_alumno', 'codigo', 'nombres', 'apellidos', 'dni', 'estado', 'telefono']);
+
         return Inertia::render('matriculas/nueva', [
-            'alumnos' => Alumno::query()->orderBy('apellidos')->orderBy('nombres')->get([
-                'id_alumno', 'codigo', 'nombres', 'apellidos', 'estado',
-            ]),
-            'periodos' => PeriodoAcademico::query()->where('estado', 'ABIERTO')->orderBy('nombre')->get(),
-            'ciclos' => Ciclo::query()->with('periodo')->orderBy('nombre')->get(),
-            'turnos' => Turno::query()->orderBy('nombre')->get(),
-            'aulas' => Aula::query()->orderBy('nombre')->get(),
+            'alumnos' => AlumnoResource::collection($alumnos)->resolve(),
+            'periodos' => PeriodoAcademico::query()->where('estado', 'ABIERTO')->orderBy('nombre')->get()
+                ->map(fn (PeriodoAcademico $periodo): array => [
+                    'id_periodo' => $periodo->id_periodo,
+                    'nombre' => $periodo->nombre,
+                    'anio' => $periodo->anio,
+                ]),
+            'ciclos' => Ciclo::query()->with('periodo')->orderBy('nombre')->get()
+                ->map(fn (Ciclo $ciclo): array => [
+                    'id_ciclo' => $ciclo->id_ciclo,
+                    'nombre' => $ciclo->nombre,
+                    'costo_base' => $ciclo->costo_base,
+                    'id_periodo' => $ciclo->id_periodo,
+                    'periodo' => $ciclo->periodo ? ['nombre' => $ciclo->periodo->nombre] : null,
+                ]),
+            'turnos' => Turno::query()->orderBy('nombre')->get()
+                ->map(fn (Turno $turno): array => [
+                    'id_turno' => $turno->id_turno,
+                    'nombre' => $turno->nombre,
+                ]),
+            'aulas' => Aula::query()->orderBy('nombre')->get()
+                ->map(fn (Aula $aula): array => [
+                    'id_aula' => $aula->id_aula,
+                    'nombre' => $aula->nombre,
+                    'capacidad' => $aula->capacidad,
+                ]),
         ]);
     }
 

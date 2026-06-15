@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/select';
 import { useInitials } from '@/hooks/use-initials';
 import { usePermisos } from '@/hooks/use-permisos';
+import { confirmAction } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
 
 type EstadoUsuario = 'ACTIVO' | 'INACTIVO';
@@ -91,12 +92,20 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
         setIsDialogOpen(true);
     };
 
-    const handleDelete = (usuario: Usuario) => {
-        if (confirm(`¿Eliminar el usuario ${usuario.name}?`)) {
-            router.delete(destroy.url({ user: usuario.id }), {
-                preserveScroll: true,
-            });
+    const handleDelete = async (usuario: Usuario) => {
+        const confirmed = await confirmAction({
+            title: `Eliminar usuario ${usuario.name}`,
+            text: 'Esta acción no se puede deshacer.',
+            confirmButtonText: 'Eliminar',
+        });
+
+        if (! confirmed) {
+            return;
         }
+
+        router.delete(destroy.url({ user: usuario.id }), {
+            preserveScroll: true,
+        });
     };
 
     const handleSubmit = (e: React.FormEvent) => {

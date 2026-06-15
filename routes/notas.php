@@ -1,11 +1,11 @@
 <?php
 
 use App\Http\Controllers\Academico\ExamenController;
-use App\Http\Controllers\Public\ConsultaNotasController;
+use App\Http\Controllers\Public\PortalPadresController;
 use Illuminate\Support\Facades\Route;
 
-// Ruta pública para padres
-Route::get('/consulta-notas', [ConsultaNotasController::class, 'index'])->name('notas.consulta');
+Route::get('/portal-padres', [PortalPadresController::class, 'index'])->name('portal-padres.index');
+Route::get('/consulta-notas', [PortalPadresController::class, 'index'])->name('notas.consulta');
 
 // Rutas protegidas para secretarias / administración
 Route::middleware(['auth', 'verified'])->group(function () {

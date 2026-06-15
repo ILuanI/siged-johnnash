@@ -12,10 +12,15 @@ use App\Models\Alumno;
 use App\Models\Ciclo;
 use App\Models\Matricula;
 use App\Models\PeriodoAcademico;
+use App\Services\Tesoreria\PlanPagoMatriculaService;
 use Illuminate\Support\Facades\DB;
 
 class MatriculaFormalizacionService
 {
+    public function __construct(
+        private readonly PlanPagoMatriculaService $planPagoMatriculaService,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $datos
      */
@@ -76,8 +81,9 @@ class MatriculaFormalizacionService
             ]);
 
             $alumno->update(['estado' => EstadoAlumno::Matriculado]);
+            $this->planPagoMatriculaService->generar($matricula, $datos);
 
-            return $matricula->load(['ciclo', 'periodo', 'turno', 'aula', 'alumno']);
+            return $matricula->load(['ciclo', 'periodo', 'turno', 'aula', 'alumno', 'comprobantePago.cuotas']);
         });
     }
 }

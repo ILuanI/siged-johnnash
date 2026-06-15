@@ -11,16 +11,15 @@ test('registra un alumno nuevo con código autogenerado', function () {
         'nombres' => 'Juan Carlos',
         'apellidos' => 'Pérez López',
         'dni' => '72345678',
-        'correo' => 'juan@example.com',
     ]);
 
     $response
         ->assertCreated()
         ->assertJsonPath('success', true)
         ->assertJsonPath('data.nombres', 'Juan Carlos')
-        ->assertJsonPath('data.estado', EstadoAlumno::Activo->value);
+        ->assertJsonPath('data.estado', EstadoAlumno::Activo->value)
+        ->assertJsonPath('data.codigo', '72345678');
 
-    expect($response->json('data.codigo'))->toStartWith('JOB-');
     $this->assertDatabaseHas('alumno', ['dni' => '72345678']);
 });
 

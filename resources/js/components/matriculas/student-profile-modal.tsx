@@ -1,15 +1,21 @@
 import {
+    AlertTriangle,
+    Brain,
     Cake,
     CreditCard,
+    GraduationCap,
     IdCard,
-    Mail,
-    MapPin,
     Pencil,
+    Save,
+    School,
     Smartphone,
     User,
     UserX,
 } from 'lucide-react';
+import { router } from '@inertiajs/react';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { updateCarrera as updateAlumnoCarrera } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,12 +25,19 @@ import {
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     calcularEdad,
     estadoBadgeClass,
     formatearFechaLarga,
 } from '@/lib/matriculas';
 import { useInitials } from '@/hooks/use-initials';
-import type { ConsolidadoAlumno } from '@/types/matriculas';
+import type { CarreraOption, ConsolidadoAlumno } from '@/types/matriculas';
 import { cn } from '@/lib/utils';
 
 type TabId = 'informacion' | 'pagos' | 'notas' | 'asistencia';
@@ -39,17 +52,45 @@ const tabs: { id: TabId; label: string }[] = [
 export function StudentProfileModal({
     open,
     consolidado,
+    carreras,
     onClose,
 }: {
     open: boolean;
     consolidado: ConsolidadoAlumno;
+    carreras: CarreraOption[];
     onClose: () => void;
 }) {
     const [tab, setTab] = useState<TabId>('informacion');
+    const [carreraId, setCarreraId] = useState(
+        consolidado.perfil.carrera?.id_carrera.toString() ?? '',
+    );
+    const [actualizandoCarrera, setActualizandoCarrera] = useState(false);
     const getInitials = useInitials();
     const { perfil, matricula_actual } = consolidado;
     const edad = calcularEdad(perfil.fecha_nac);
     const apoderado = perfil.apoderado;
+    const riesgo = consolidado.riesgo_desercion;
+    const carreraActualId = perfil.carrera?.id_carrera.toString() ?? '';
+
+    const cambiarCarrera = () => {
+        if (!carreraId) {
+            toast.error('Selecciona una carrera valida.');
+            return;
+        }
+
+        setActualizandoCarrera(true);
+        router.patch(
+            updateAlumnoCarrera.url(perfil.id_alumno),
+            { id_carrera: carreraId },
+            {
+                preserveScroll: true,
+                onError: (errors) => {
+                    Object.values(errors).forEach((message) => toast.error(message));
+                },
+                onFinish: () => setActualizandoCarrera(false),
+            },
+        );
+    };
 
     return (
         <Dialog open={open} onOpenChange={(isOpen) => ! isOpen && onClose()}>
@@ -114,9 +155,9 @@ export function StudentProfileModal({
                                     }
                                 />
                                 <InfoRow
-                                    icon={MapPin}
-                                    label="Dirección residencial"
-                                    value={perfil.direccion ?? '—'}
+                                    icon={School}
+                                    label="Colegio de procedencia"
+                                    value={perfil.colegio_procedencia?.nombre ?? '—'}
                                 />
                             </section>
 
@@ -125,6 +166,18 @@ export function StudentProfileModal({
                                     Datos académicos
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4 text-sm">
+                                    <AcademicCell
+                                        label="Carrera"
+                                        value={perfil.carrera?.nombre ?? 'Sin carrera'}
+                                    />
+                                    <AcademicCell
+                                        label="Área"
+                                        value={
+                                            perfil.carrera?.area
+                                                ? `Área ${perfil.carrera.area.codigo} · ${perfil.carrera.area.nombre}`
+                                                : '—'
+                                        }
+                                    />
                                     <AcademicCell
                                         label="Sede"
                                         value="Sede Central — Lince"
@@ -151,6 +204,74 @@ export function StudentProfileModal({
                                         }
                                     />
                                 </div>
+                                <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-[1fr_auto]">
+                                    <Select value={carreraId} onValueChange={setCarreraId}>
+                                        <SelectTrigger aria-label="Cambiar carrera">
+                                            <GraduationCap className="size-4 text-slate-400" />
+                                            <SelectValue placeholder="Cambiar carrera del alumno" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {carreras.map((carrera) => (
+                                                <SelectItem key={carrera.id_carrera} value={carrera.id_carrera.toString()}>
+                                                    {carrera.nombre}
+                                                    {carrera.area ? ` · Área ${carrera.area.codigo}` : ''}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={cambiarCarrera}
+                                        disabled={actualizandoCarrera || ! carreraId || carreraId === carreraActualId}
+                                    >
+                                        <Save className="size-4" />
+                                        Guardar
+                                    </Button>
+                                </div>
+                            </section>
+
+                            <section className="rounded-xl border bg-white p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <Brain className="size-5 text-slate-500" />
+                                        <h3 className="text-sm font-semibold text-slate-800">
+                                            Riesgo IA de deserción
+                                        </h3>
+                                    </div>
+                                    {riesgo ? (
+                                        <Badge className={cn('rounded-full', riesgoBadgeClass(riesgo.nivel_riesgo))}>
+                                            {riesgo.riesgo_pct.toFixed(1)}%
+                                        </Badge>
+                                    ) : (
+                                        <Badge variant="outline">Sin datos</Badge>
+                                    )}
+                                </div>
+                                {riesgo ? (
+                                    <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+                                        <AcademicCell
+                                            label="Nivel"
+                                            value={riesgo.nivel_riesgo}
+                                        />
+                                        <AcademicCell
+                                            label="Asistencia"
+                                            value={
+                                                riesgo.tasa_asistencia !== null
+                                                    ? `${riesgo.tasa_asistencia.toFixed(1)}%`
+                                                    : 'Sin historial'
+                                            }
+                                        />
+                                        <AcademicCell
+                                            label="Cuotas vencidas"
+                                            value={(riesgo.cuotas_vencidas ?? 0).toString()}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
+                                        <AlertTriangle className="size-4" />
+                                        El perfil se calculará cuando exista matrícula vigente.
+                                    </div>
+                                )}
                             </section>
 
                             <section className="rounded-xl border bg-white p-4">
@@ -162,11 +283,7 @@ export function StudentProfileModal({
                                         <User className="size-4 shrink-0 text-slate-500" />
                                         <span>
                                             <span className="font-medium uppercase text-slate-500">
-                                                Apoderado
-                                                {apoderado.parentesco
-                                                    ? ` (${apoderado.parentesco})`
-                                                    : ''}
-                                                :
+                                                Apoderado:
                                             </span>{' '}
                                             {apoderado.nombres}
                                         </span>
@@ -179,16 +296,6 @@ export function StudentProfileModal({
                                         value={
                                             apoderado?.telefono ??
                                             perfil.telefono ??
-                                            '—'
-                                        }
-                                        compact
-                                    />
-                                    <InfoRow
-                                        icon={Mail}
-                                        label="Correo electrónico"
-                                        value={
-                                            apoderado?.correo ??
-                                            perfil.correo ??
                                             '—'
                                         }
                                         compact
@@ -240,6 +347,14 @@ export function StudentProfileModal({
             </DialogContent>
         </Dialog>
     );
+}
+
+function riesgoBadgeClass(nivel: 'BAJO' | 'MEDIO' | 'ALTO') {
+    return {
+        BAJO: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100',
+        MEDIO: 'bg-amber-100 text-amber-700 hover:bg-amber-100',
+        ALTO: 'bg-red-100 text-red-700 hover:bg-red-100',
+    }[nivel];
 }
 
 function InfoRow({

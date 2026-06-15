@@ -33,9 +33,7 @@ class Alumno extends Model
         'fecha_nac',
         'sexo',
         'telefono',
-        'correo',
-        'direccion',
-        'colegio_proc',
+        'colegio_procedencia_id',
         'id_carrera',
         'id_apoderado',
         'estado',
@@ -61,6 +59,11 @@ class Alumno extends Model
     public function apoderado(): BelongsTo
     {
         return $this->belongsTo(Apoderado::class, 'id_apoderado', 'id_apoderado');
+    }
+
+    public function colegioProcedencia(): BelongsTo
+    {
+        return $this->belongsTo(ColegioProcedencia::class, 'colegio_procedencia_id', 'id_colegio_procedencia');
     }
 
     public function matriculas(): HasMany

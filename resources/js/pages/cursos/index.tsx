@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { confirmAction } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -422,7 +423,7 @@ export default function CursosIndex({
         };
 
         if (editingCurso) {
-            put(update.url(editingCurso.id_curso), options);
+            put(update.url(editingCurso.id_curso.toString()), options);
 
             return;
         }
@@ -430,12 +431,18 @@ export default function CursosIndex({
         post(store.url(), options);
     };
 
-    const handleDelete = (curso: CursoItem) => {
-        if (! confirm(`Eliminar el curso ${curso.nombre}?`)) {
+    const handleDelete = async (curso: CursoItem) => {
+        const confirmed = await confirmAction({
+            title: `Eliminar curso ${curso.nombre}`,
+            text: 'Se eliminará la configuración asociada al curso.',
+            confirmButtonText: 'Eliminar',
+        });
+
+        if (! confirmed) {
             return;
         }
 
-        router.delete(destroy.url(curso.id_curso), { preserveScroll: true });
+        router.delete(destroy.url(curso.id_curso.toString()), { preserveScroll: true });
     };
 
     const handleCicloChange = (idCiclo: string) => {

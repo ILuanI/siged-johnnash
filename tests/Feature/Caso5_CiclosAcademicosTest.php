@@ -1,8 +1,23 @@
 <?php
 
+use App\Enums\EstadoCiclo;
 use App\Models\Ciclo;
 use App\Models\PeriodoAcademico;
-use App\Enums\EstadoCiclo;
+use App\Models\Rol;
+use App\Models\User;
+use Database\Seeders\RolSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+function usuarioAdminCiclos(): User
+{
+    test()->seed(RolSeeder::class);
+
+    return User::factory()->create([
+        'id_rol' => Rol::query()->where('nombre', 'Administrador')->value('id_rol'),
+    ]);
+}
 
 describe('Caso 5: Gestión de Ciclos Académicos', function () {
     test('se puede crear ciclo académico con datos válidos', function () {
@@ -13,13 +28,13 @@ describe('Caso 5: Gestión de Ciclos Académicos', function () {
             'id_periodo' => $periodo->id_periodo,
             'fecha_inicio' => '2024-06-10',
             'fecha_fin' => '2024-08-31',
-            'estado' => EstadoCiclo::Activo,
-            'descripcion' => 'Ciclo académico de inicio de año',
+            'costo_base' => 1200,
+            'estado' => EstadoCiclo::Abierto,
         ]);
 
-        expect($ciclo)->toHaveProperty('id_ciclo')
+        expect($ciclo->id_ciclo)->not->toBeNull()
             ->and($ciclo->nombre)->toBe('Primer Ciclo 2024')
-            ->and($ciclo->estado)->toBe(EstadoCiclo::Activo);
+            ->and($ciclo->estado)->toBe(EstadoCiclo::Abierto);
 
         $this->assertDatabaseHas('ciclo', [
             'id_ciclo' => $ciclo->id_ciclo,
@@ -28,122 +43,74 @@ describe('Caso 5: Gestión de Ciclos Académicos', function () {
     });
 
     test('nombre del ciclo no puede estar vacío', function () {
-        $periodo = PeriodoAcademico::factory()->create();
+        $user = usuarioAdminCiclos();
+        PeriodoAcademico::factory()->create();
 
-        try {
-            Ciclo::create([
-                'nombre' => '', // Vacío
-                'id_periodo' => $periodo->id_periodo,
+        $this->actingAs($user)
+            ->from(route('cursos.index'))
+            ->post(route('cursos.ciclos.store'), [
+                'nombre' => '',
                 'fecha_inicio' => '2024-06-10',
                 'fecha_fin' => '2024-08-31',
-                'estado' => EstadoCiclo::Activo,
-            ]);
-
-            $this->fail('Debería fallar con nombre vacío');
-        } catch (\Exception $e) {
-            expect($e)->toBeInstanceOf(\Exception::class);
-        }
-    });
-
-    test('período académico debe existir', function () {
-        try {
-            Ciclo::create([
-                'nombre' => 'Primer Ciclo 2024',
-                'id_periodo' => 999, // ID que no existe
-                'fecha_inicio' => '2024-06-10',
-                'fecha_fin' => '2024-08-31',
-                'estado' => EstadoCiclo::Activo,
-            ]);
-
-            $this->fail('Debería fallar con período inválido');
-        } catch (\Exception $e) {
-            expect($e)->toBeInstanceOf(\Exception::class);
-        }
+                'costo_base' => 1200,
+            ])
+            ->assertRedirect(route('cursos.index'))
+            ->assertSessionHasErrors('nombre');
     });
 
     test('fecha inicio debe ser antes que fecha fin', function () {
-        $periodo = PeriodoAcademico::factory()->create();
+        $user = usuarioAdminCiclos();
+        PeriodoAcademico::factory()->create();
 
-        try {
-            Ciclo::create([
+        $this->actingAs($user)
+            ->from(route('cursos.index'))
+            ->post(route('cursos.ciclos.store'), [
                 'nombre' => 'Primer Ciclo 2024',
-                'id_periodo' => $periodo->id_periodo,
-                'fecha_inicio' => '2024-08-31', // Después de fecha fin
+                'fecha_inicio' => '2024-08-31',
                 'fecha_fin' => '2024-06-10',
-                'estado' => EstadoCiclo::Activo,
-            ]);
-
-            // Si se permitió, la validación no existe aún, pero la documentamos
-            $this->assertTrue(true, 'Validación de fechas no implementada - RECOMENDACIÓN: Agregar validación');
-        } catch (\Exception $e) {
-            expect($e)->toBeInstanceOf(\Exception::class);
-        }
+                'costo_base' => 1200,
+            ])
+            ->assertRedirect(route('cursos.index'))
+            ->assertSessionHasErrors('fecha_fin');
     });
 
-    test('no se pueden crear ciclos duplicados para el mismo período', function () {
-        $periodo = PeriodoAcademico::factory()->create();
+    test('no se pueden crear ciclos duplicados por nombre', function () {
+        $user = usuarioAdminCiclos();
+        PeriodoAcademico::factory()->create();
+        Ciclo::factory()->create(['nombre' => 'Primer Ciclo 2024']);
 
-        // Primer ciclo
-        Ciclo::create([
-            'nombre' => 'Primer Ciclo 2024',
-            'id_periodo' => $periodo->id_periodo,
-            'fecha_inicio' => '2024-06-10',
-            'fecha_fin' => '2024-08-31',
-            'estado' => EstadoCiclo::Activo,
-        ]);
-
-        try {
-            // Intentar crear otro con el mismo período
-            Ciclo::create([
-                'nombre' => 'Duplicado Ciclo 2024',
-                'id_periodo' => $periodo->id_periodo,
+        $this->actingAs($user)
+            ->from(route('cursos.index'))
+            ->post(route('cursos.ciclos.store'), [
+                'nombre' => 'Primer Ciclo 2024',
                 'fecha_inicio' => '2024-06-10',
                 'fecha_fin' => '2024-08-31',
-                'estado' => EstadoCiclo::Activo,
-            ]);
-
-            $this->fail('Debería fallar con período duplicado');
-        } catch (\Exception $e) {
-            expect($e)->toBeInstanceOf(\Exception::class);
-        }
+                'costo_base' => 1200,
+            ])
+            ->assertRedirect(route('cursos.index'))
+            ->assertSessionHasErrors('nombre');
     });
 
     test('se puede actualizar ciclo académico correctamente', function () {
-        $periodo = PeriodoAcademico::factory()->create();
-        
-        $ciclo = Ciclo::create([
-            'nombre' => 'Primer Ciclo 2024',
-            'id_periodo' => $periodo->id_periodo,
-            'fecha_inicio' => '2024-06-10',
-            'fecha_fin' => '2024-08-31',
-            'estado' => EstadoCiclo::Activo,
-            'descripcion' => 'Descripción original',
-        ]);
+        $ciclo = Ciclo::factory()->create(['estado' => EstadoCiclo::Abierto]);
 
         $ciclo->update([
-            'descripcion' => 'Descripción actualizada',
-            'estado' => EstadoCiclo::Activo,
+            'tipo_ciclo' => 'Intensivo',
+            'estado' => EstadoCiclo::EnCurso,
         ]);
 
         $this->assertDatabaseHas('ciclo', [
             'id_ciclo' => $ciclo->id_ciclo,
-            'descripcion' => 'Descripción actualizada',
+            'tipo_ciclo' => 'Intensivo',
+            'estado' => EstadoCiclo::EnCurso->value,
         ]);
 
-        expect($ciclo->fresh()->descripcion)->toBe('Descripción actualizada');
+        expect($ciclo->fresh()->estado)->toBe(EstadoCiclo::EnCurso);
     });
 
     test('estado del ciclo debe ser válido', function () {
-        $periodo = PeriodoAcademico::factory()->create();
+        $ciclo = Ciclo::factory()->create(['estado' => EstadoCiclo::Abierto]);
 
-        $ciclo = Ciclo::create([
-            'nombre' => 'Primer Ciclo 2024',
-            'id_periodo' => $periodo->id_periodo,
-            'fecha_inicio' => '2024-06-10',
-            'fecha_fin' => '2024-08-31',
-            'estado' => EstadoCiclo::Activo,
-        ]);
-
-        expect($ciclo->estado)->toBeInstanceOf(\App\Enums\EstadoCiclo::class);
+        expect($ciclo->estado)->toBeInstanceOf(EstadoCiclo::class);
     });
 });

@@ -1,6 +1,10 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Search, UserPlus } from 'lucide-react';
 import { FormEvent, useState } from 'react';
+import {
+    create as estudiantesCreate,
+    index as estudiantesIndex,
+} from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
 import { StudentProfileModal } from '@/components/matriculas/student-profile-modal';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { estadoBadgeClass } from '@/lib/matriculas';
 import { useInitials } from '@/hooks/use-initials';
 import type {
+    CarreraOption,
     ConsolidadoAlumno,
     EstudianteListItem,
 } from '@/types/matriculas';
@@ -18,6 +23,7 @@ type PageProps = {
     estudiantes: EstudianteListItem[];
     consolidado: ConsolidadoAlumno | null;
     alumnoId: number | null;
+    carreras: CarreraOption[];
     filters: { q: string };
 };
 
@@ -25,6 +31,7 @@ export default function EstudiantesIndex({
     estudiantes,
     consolidado,
     alumnoId,
+    carreras,
     filters,
 }: PageProps) {
     const getInitials = useInitials();
@@ -32,7 +39,7 @@ export default function EstudiantesIndex({
 
     const abrirPerfil = (id: number) => {
         router.get(
-            '/matriculas/estudiantes',
+            estudiantesIndex.url(),
             { alumno: id, q: filters.q || undefined },
             { preserveState: true, preserveScroll: true },
         );
@@ -40,7 +47,7 @@ export default function EstudiantesIndex({
 
     const cerrarPerfil = () => {
         router.get(
-            '/matriculas/estudiantes',
+            estudiantesIndex.url(),
             { q: filters.q || undefined },
             { preserveState: true, preserveScroll: true },
         );
@@ -48,7 +55,7 @@ export default function EstudiantesIndex({
 
     const buscar = (e: FormEvent) => {
         e.preventDefault();
-        router.get('/matriculas/estudiantes', { q: busqueda || undefined });
+        router.get(estudiantesIndex.url(), { q: busqueda || undefined });
     };
 
     return (
@@ -71,10 +78,10 @@ export default function EstudiantesIndex({
                         asChild
                         className="bg-[#ff7043] hover:bg-[#f4511e]"
                     >
-                        <a href="/matriculas/estudiantes/nuevo">
+                        <Link href={estudiantesCreate.url()}>
                             <UserPlus className="size-4" />
                             Nuevo estudiante
-                        </a>
+                        </Link>
                     </Button>
                 </div>
 
@@ -99,9 +106,9 @@ export default function EstudiantesIndex({
                             No hay estudiantes que coincidan con la búsqueda.
                         </p>
                         <Button asChild className="mt-4" variant="outline">
-                            <a href="/matriculas/estudiantes/nuevo">
+                            <Link href={estudiantesCreate.url()}>
                                 Registrar primer estudiante
-                            </a>
+                            </Link>
                         </Button>
                     </div>
                 ) : (
@@ -155,8 +162,10 @@ export default function EstudiantesIndex({
 
             {consolidado && alumnoId && (
                 <StudentProfileModal
+                    key={alumnoId}
                     open
                     consolidado={consolidado}
+                    carreras={carreras}
                     onClose={cerrarPerfil}
                 />
             )}

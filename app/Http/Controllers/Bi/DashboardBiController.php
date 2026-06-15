@@ -9,6 +9,7 @@ use App\Models\Ciclo;
 use App\Models\Matricula;
 use App\Models\Pago;
 use App\Models\ResultadoExamen;
+use App\Services\Bi\AreaMetricsService;
 use App\Services\Matriculas\ConsolidadoAlumnoService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -17,13 +18,20 @@ use Inertia\Response;
 class DashboardBiController extends Controller
 {
     public function __construct(
-        protected ConsolidadoAlumnoService $consolidadoAlumnoService
+        protected ConsolidadoAlumnoService $consolidadoAlumnoService,
+        protected AreaMetricsService $areaMetricsService,
     ) {}
 
     public function index(Request $request): Response
     {
         // Cycles list
-        $ciclos = Ciclo::orderBy('fecha_inicio', 'desc')->get();
+        $ciclos = Ciclo::query()
+            ->orderBy('fecha_inicio', 'desc')
+            ->get()
+            ->map(fn (Ciclo $ciclo): array => [
+                'id_ciclo' => $ciclo->id_ciclo,
+                'nombre' => $ciclo->nombre,
+            ]);
 
         // Active cycle or selected one
         $selectedCycleId = $request->integer('id_ciclo');
@@ -113,6 +121,7 @@ class DashboardBiController extends Controller
             'studentList' => $studentList,
             'consolidado' => $consolidado,
             'ciclos' => $ciclos,
+            'alumnosPorArea' => $this->areaMetricsService->alumnosActivosPorArea(),
             'selectedCycleId' => $selectedCycleId,
             'filters' => [
                 'q' => $q,

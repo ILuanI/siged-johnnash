@@ -16,13 +16,19 @@ class Pago extends Model
 
     public $incrementing = true;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'id_cuota',
+        'user_id',
+        'fecha_pago',
+        'monto',
+        'metodo_pago',
+    ];
 
     protected function casts(): array
     {
         return [
             'fecha_pago' => 'datetime',
-            'monto' => 'float',
+            'monto' => 'decimal:2',
         ];
     }
 

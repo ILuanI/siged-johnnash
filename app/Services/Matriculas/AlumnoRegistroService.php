@@ -15,7 +15,7 @@ class AlumnoRegistroService
      */
     public function registrar(array $datos): Alumno
     {
-        if (! empty($datos['dni']) && Alumno::query()->where('dni', $datos['dni'])->exists()) {
+        if (Alumno::query()->where('dni', $datos['dni'])->exists()) {
             throw new BusinessRuleException('Ya existe un alumno registrado con el DNI indicado.');
         }
 
@@ -28,37 +28,18 @@ class AlumnoRegistroService
             }
 
             return Alumno::query()->create([
-                'codigo' => $datos['codigo'] ?? $this->generarCodigo(),
+                'codigo' => $datos['dni'],
                 'nombres' => $datos['nombres'],
                 'apellidos' => $datos['apellidos'],
-                'dni' => $datos['dni'] ?? null,
+                'dni' => $datos['dni'],
                 'fecha_nac' => $datos['fecha_nac'] ?? null,
                 'sexo' => $datos['sexo'] ?? null,
                 'telefono' => $datos['telefono'] ?? null,
-                'correo' => $datos['correo'] ?? null,
-                'direccion' => $datos['direccion'] ?? null,
-                'colegio_proc' => $datos['colegio_proc'] ?? null,
+                'colegio_procedencia_id' => $datos['colegio_procedencia_id'] ?? null,
                 'id_carrera' => $datos['id_carrera'] ?? null,
                 'id_apoderado' => $idApoderado,
                 'estado' => EstadoAlumno::Activo,
             ]);
         });
-    }
-
-    private function generarCodigo(): string
-    {
-        $anio = now()->format('Y');
-        $ultimo = Alumno::query()
-            ->where('codigo', 'like', "JOB-{$anio}-%")
-            ->orderByDesc('id_alumno')
-            ->value('codigo');
-
-        $secuencia = 1;
-
-        if ($ultimo && preg_match('/JOB-\d{4}-(\d+)$/', $ultimo, $coincidencias)) {
-            $secuencia = (int) $coincidencias[1] + 1;
-        }
-
-        return sprintf('JOB-%s-%05d', $anio, $secuencia);
     }
 }

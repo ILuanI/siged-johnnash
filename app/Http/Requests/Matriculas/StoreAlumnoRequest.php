@@ -14,6 +14,12 @@ class StoreAlumnoRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->filled('dni')) {
+            $this->merge([
+                'codigo' => $this->input('dni'),
+            ]);
+        }
+
         if ($this->has('apoderado') && blank($this->input('apoderado.nombres'))) {
             $this->request->remove('apoderado');
         }
@@ -25,24 +31,19 @@ class StoreAlumnoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'codigo' => ['nullable', 'string', 'max:15', Rule::unique('alumno', 'codigo')],
+            'codigo' => ['required', 'digits:8', Rule::unique('alumno', 'codigo')],
             'nombres' => ['required', 'string', 'max:80'],
             'apellidos' => ['required', 'string', 'max:80'],
-            'dni' => ['nullable', 'digits:8', Rule::unique('alumno', 'dni')],
+            'dni' => ['required', 'digits:8', Rule::unique('alumno', 'dni')],
             'fecha_nac' => ['nullable', 'date', 'before:today'],
             'sexo' => ['nullable', Rule::in(['M', 'F', 'OTRO'])],
             'telefono' => ['nullable', 'string', 'max:20'],
-            'correo' => ['nullable', 'email', 'max:120'],
-            'direccion' => ['nullable', 'string', 'max:160'],
-            'colegio_proc' => ['nullable', 'string', 'max:120'],
+            'colegio_procedencia_id' => ['nullable', 'integer', Rule::exists('colegio_procedencia', 'id_colegio_procedencia')],
             'id_carrera' => ['nullable', 'integer', Rule::exists('carrera', 'id_carrera')],
             'id_apoderado' => ['nullable', 'integer', Rule::exists('apoderado', 'id_apoderado')],
             'apoderado' => ['nullable', 'array'],
             'apoderado.nombres' => ['required_with:apoderado', 'string', 'max:120'],
-            'apoderado.dni' => ['nullable', 'digits:8'],
             'apoderado.telefono' => ['nullable', 'string', 'max:20'],
-            'apoderado.parentesco' => ['nullable', 'string', 'max:40'],
-            'apoderado.correo' => ['nullable', 'email', 'max:120'],
         ];
     }
 
@@ -53,18 +54,18 @@ class StoreAlumnoRequest extends FormRequest
     {
         return [
             'codigo.unique' => 'El código de alumno ya existe.',
+            'codigo.digits' => 'El código del alumno debe ser el DNI de 8 dígitos.',
             'nombres.required' => 'El nombre del alumno es obligatorio.',
             'apellidos.required' => 'El apellido del alumno es obligatorio.',
+            'dni.required' => 'El DNI del alumno es obligatorio.',
             'dni.unique' => 'Ya existe un alumno registrado con este DNI.',
             'dni.digits' => 'El DNI debe tener exactamente 8 dígitos.',
             'fecha_nac.date' => 'La fecha de nacimiento no es una fecha válida.',
             'fecha_nac.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
             'sexo.in' => 'El género seleccionado no es válido.',
-            'correo.email' => 'El correo electrónico del alumno debe ser una dirección válida.',
+            'colegio_procedencia_id.exists' => 'El colegio de procedencia seleccionado no es válido.',
             'id_carrera.exists' => 'La carrera seleccionada no es válida.',
             'apoderado.nombres.required_with' => 'El nombre del apoderado es obligatorio si se ingresan sus datos.',
-            'apoderado.dni.digits' => 'El DNI del apoderado debe tener exactamente 8 dígitos.',
-            'apoderado.correo.email' => 'El correo electrónico del apoderado debe ser una dirección válida.',
         ];
     }
 }

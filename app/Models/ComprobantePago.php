@@ -17,14 +17,21 @@ class ComprobantePago extends Model
 
     public $incrementing = true;
 
-    protected $guarded = [];
+    protected $fillable = [
+        'id_matricula',
+        'numero',
+        'tipo',
+        'fecha_emision',
+        'costo_total',
+        'saldo_pendiente',
+    ];
 
     protected function casts(): array
     {
         return [
             'fecha_emision' => 'date',
-            'costo_total' => 'float',
-            'saldo_pendiente' => 'float',
+            'costo_total' => 'decimal:2',
+            'saldo_pendiente' => 'decimal:2',
         ];
     }
 

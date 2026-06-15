@@ -1,5 +1,7 @@
 import { Head, Link, useForm } from '@inertiajs/react';
 import { ArrowLeft } from 'lucide-react';
+import { store as storeMatricula } from '@/actions/App/Http/Controllers/Matriculas/MatriculaWebController';
+import { index as estudiantesIndex } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,11 +61,14 @@ export default function NuevaMatricula({
         tipo_pago: 'CONTADO',
         costo_total: '',
         fecha_matricula: new Date().toISOString().split('T')[0],
+        numero_cuotas: '2',
+        fecha_primera_cuota: new Date().toISOString().split('T')[0],
+        dias_entre_cuotas: '30',
     });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
-        post('/matriculas/nueva');
+        post(storeMatricula.url());
     };
 
     return (
@@ -72,42 +77,28 @@ export default function NuevaMatricula({
 
             <header className="border-b bg-white px-8 py-6">
                 <Link
-                    href="/matriculas/estudiantes"
+                    href={estudiantesIndex.url()}
                     className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800"
                 >
                     <ArrowLeft className="size-4" />
                     Volver al directorio
                 </Link>
-                <h1 className="text-2xl font-bold text-slate-900">
-                    Nueva matrícula
-                </h1>
-                <p className="text-sm text-slate-500">
-                    Asignar periodo, ciclo, turno y aula (RI002)
-                </p>
+                <h1 className="text-2xl font-bold text-slate-900">Nueva matrícula</h1>
+                <p className="text-sm text-slate-500">Periodo, ciclo, aula y plan de pago.</p>
             </header>
 
             <div className="mx-auto max-w-2xl px-8 py-8">
-                <form
-                    onSubmit={submit}
-                    className="space-y-5 rounded-xl border bg-white p-6 shadow-sm"
-                >
+                <form onSubmit={submit} className="space-y-5 rounded-xl border bg-white p-6 shadow-sm">
                     <div>
                         <Label htmlFor="id_alumno">Alumno *</Label>
-                        <Select
-                            value={data.id_alumno}
-                            onValueChange={(val) => setData('id_alumno', val)}
-                        >
+                        <Select value={data.id_alumno} onValueChange={(val) => setData('id_alumno', val)}>
                             <SelectTrigger id="id_alumno">
-                                <SelectValue placeholder="— Seleccionar —" />
+                                <SelectValue placeholder="Seleccionar" />
                             </SelectTrigger>
                             <SelectContent>
-                                {alumnos.map((a) => (
-                                    <SelectItem
-                                        key={a.id_alumno}
-                                        value={a.id_alumno.toString()}
-                                    >
-                                        {a.codigo} — {a.apellidos},{' '}
-                                        {a.nombres} ({a.estado})
+                                {alumnos.map((alumno) => (
+                                    <SelectItem key={alumno.id_alumno} value={alumno.id_alumno.toString()}>
+                                        {alumno.codigo} - {alumno.apellidos}, {alumno.nombres} ({alumno.estado})
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -118,20 +109,14 @@ export default function NuevaMatricula({
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                             <Label htmlFor="id_periodo">Periodo *</Label>
-                            <Select
-                                value={data.id_periodo}
-                                onValueChange={(val) => setData('id_periodo', val)}
-                            >
+                            <Select value={data.id_periodo} onValueChange={(val) => setData('id_periodo', val)}>
                                 <SelectTrigger id="id_periodo">
-                                    <SelectValue placeholder="—" />
+                                    <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {periodos.map((p) => (
-                                        <SelectItem
-                                            key={p.id_periodo}
-                                            value={p.id_periodo.toString()}
-                                        >
-                                            {p.nombre} ({p.anio})
+                                    {periodos.map((periodo) => (
+                                        <SelectItem key={periodo.id_periodo} value={periodo.id_periodo.toString()}>
+                                            {periodo.nombre} ({periodo.anio})
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -140,21 +125,14 @@ export default function NuevaMatricula({
                         </div>
                         <div>
                             <Label htmlFor="id_ciclo">Ciclo *</Label>
-                            <Select
-                                value={data.id_ciclo}
-                                onValueChange={(val) => setData('id_ciclo', val)}
-                            >
+                            <Select value={data.id_ciclo} onValueChange={(val) => setData('id_ciclo', val)}>
                                 <SelectTrigger id="id_ciclo">
-                                    <SelectValue placeholder="—" />
+                                    <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {ciclos.map((c) => (
-                                        <SelectItem
-                                            key={c.id_ciclo}
-                                            value={c.id_ciclo.toString()}
-                                        >
-                                            {c.nombre} — S/{' '}
-                                            {Number(c.costo_base).toFixed(2)}
+                                    {ciclos.map((ciclo) => (
+                                        <SelectItem key={ciclo.id_ciclo} value={ciclo.id_ciclo.toString()}>
+                                            {ciclo.nombre} - S/ {Number(ciclo.costo_base).toFixed(2)}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -163,20 +141,14 @@ export default function NuevaMatricula({
                         </div>
                         <div>
                             <Label htmlFor="id_turno">Turno *</Label>
-                            <Select
-                                value={data.id_turno}
-                                onValueChange={(val) => setData('id_turno', val)}
-                            >
+                            <Select value={data.id_turno} onValueChange={(val) => setData('id_turno', val)}>
                                 <SelectTrigger id="id_turno">
-                                    <SelectValue placeholder="—" />
+                                    <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {turnos.map((t) => (
-                                        <SelectItem
-                                            key={t.id_turno}
-                                            value={t.id_turno.toString()}
-                                        >
-                                            {t.nombre}
+                                    {turnos.map((turno) => (
+                                        <SelectItem key={turno.id_turno} value={turno.id_turno.toString()}>
+                                            {turno.nombre}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -185,21 +157,15 @@ export default function NuevaMatricula({
                         </div>
                         <div>
                             <Label htmlFor="id_aula">Aula *</Label>
-                            <Select
-                                value={data.id_aula}
-                                onValueChange={(val) => setData('id_aula', val)}
-                            >
+                            <Select value={data.id_aula} onValueChange={(val) => setData('id_aula', val)}>
                                 <SelectTrigger id="id_aula">
-                                    <SelectValue placeholder="—" />
+                                    <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {aulas.map((a) => (
-                                        <SelectItem
-                                            key={a.id_aula}
-                                            value={a.id_aula.toString()}
-                                        >
-                                            {a.nombre}
-                                            {a.capacidad ? ` (cap. ${a.capacidad})` : ''}
+                                    {aulas.map((aula) => (
+                                        <SelectItem key={aula.id_aula} value={aula.id_aula.toString()}>
+                                            {aula.nombre}
+                                            {aula.capacidad ? ` (cap. ${aula.capacidad})` : ''}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -208,17 +174,12 @@ export default function NuevaMatricula({
                         </div>
                         <div>
                             <Label htmlFor="modalidad">Modalidad</Label>
-                            <Select
-                                value={data.modalidad}
-                                onValueChange={(val) => setData('modalidad', val)}
-                            >
+                            <Select value={data.modalidad} onValueChange={(val) => setData('modalidad', val)}>
                                 <SelectTrigger id="modalidad">
-                                    <SelectValue placeholder="Modalidad" />
+                                    <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="PRESENCIAL">
-                                        Presencial
-                                    </SelectItem>
+                                    <SelectItem value="PRESENCIAL">Presencial</SelectItem>
                                     <SelectItem value="VIRTUAL">Virtual</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -226,12 +187,9 @@ export default function NuevaMatricula({
                         </div>
                         <div>
                             <Label htmlFor="tipo_pago">Tipo de pago</Label>
-                            <Select
-                                value={data.tipo_pago}
-                                onValueChange={(val) => setData('tipo_pago', val)}
-                            >
+                            <Select value={data.tipo_pago} onValueChange={(val) => setData('tipo_pago', val)}>
                                 <SelectTrigger id="tipo_pago">
-                                    <SelectValue placeholder="Tipo" />
+                                    <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="CONTADO">Contado</SelectItem>
@@ -246,7 +204,7 @@ export default function NuevaMatricula({
                                 id="costo_total"
                                 type="number"
                                 step="0.01"
-                                placeholder="Opcional"
+                                placeholder="Usa el costo del ciclo si queda vacío"
                                 value={data.costo_total}
                                 onChange={(e) => setData('costo_total', e.target.value)}
                             />
@@ -264,16 +222,51 @@ export default function NuevaMatricula({
                         </div>
                     </div>
 
+                    {data.tipo_pago === 'CREDITO' && (
+                        <div className="grid gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:grid-cols-3">
+                            <div>
+                                <Label htmlFor="numero_cuotas">Cuotas</Label>
+                                <Input
+                                    id="numero_cuotas"
+                                    type="number"
+                                    min="2"
+                                    max="12"
+                                    value={data.numero_cuotas}
+                                    onChange={(e) => setData('numero_cuotas', e.target.value)}
+                                />
+                                <InputError message={errors.numero_cuotas} />
+                            </div>
+                            <div>
+                                <Label htmlFor="fecha_primera_cuota">Primer vencimiento</Label>
+                                <Input
+                                    id="fecha_primera_cuota"
+                                    type="date"
+                                    value={data.fecha_primera_cuota}
+                                    onChange={(e) => setData('fecha_primera_cuota', e.target.value)}
+                                />
+                                <InputError message={errors.fecha_primera_cuota} />
+                            </div>
+                            <div>
+                                <Label htmlFor="dias_entre_cuotas">Días entre cuotas</Label>
+                                <Input
+                                    id="dias_entre_cuotas"
+                                    type="number"
+                                    min="1"
+                                    max="365"
+                                    value={data.dias_entre_cuotas}
+                                    onChange={(e) => setData('dias_entre_cuotas', e.target.value)}
+                                />
+                                <InputError message={errors.dias_entre_cuotas} />
+                            </div>
+                        </div>
+                    )}
+
                     <div className="flex gap-3 pt-2">
-                        <Button
-                            type="submit"
-                            disabled={processing}
-                            className="bg-[#ff7043] hover:bg-[#f4511e]"
-                        >
+                        <Button type="submit" disabled={processing} className="bg-[#ff7043] hover:bg-[#f4511e]">
                             Formalizar matrícula
                         </Button>
                         <Button type="button" variant="outline" asChild>
-                            <Link href="/matriculas/estudiantes">Cancelar</Link>
+                            <Link href={estudiantesIndex.url()}>Cancelar</Link>
                         </Button>
                     </div>
                 </form>

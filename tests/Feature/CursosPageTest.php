@@ -5,10 +5,21 @@ use App\Models\Aula;
 use App\Models\Ciclo;
 use App\Models\Curso;
 use App\Models\Docente;
+use App\Models\Rol;
 use App\Models\User;
+use Database\Seeders\RolSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
+
+function usuarioAdminCursos(): User
+{
+    test()->seed(RolSeeder::class);
+
+    return User::factory()->create([
+        'id_rol' => Rol::query()->where('nombre', 'Administrador')->value('id_rol'),
+    ]);
+}
 
 test('guests are redirected from cursos index', function () {
     $this->get(route('cursos.index'))
@@ -16,7 +27,7 @@ test('guests are redirected from cursos index', function () {
 });
 
 test('authenticated users can view cursos schedule', function () {
-    $user = User::factory()->create();
+    $user = usuarioAdminCursos();
     $ciclo = Ciclo::factory()->create(['nombre' => 'Ciclo Verano 2026']);
     $aula = Aula::factory()->create(['nombre' => 'Aula 101']);
     $docente = Docente::factory()->create(['nombres' => 'Pedro', 'apellidos' => 'Silva']);
@@ -47,7 +58,7 @@ test('authenticated users can view cursos schedule', function () {
 });
 
 test('authenticated users can create a course with teacher assignment and schedule', function () {
-    $user = User::factory()->create();
+    $user = usuarioAdminCursos();
     $ciclo = Ciclo::factory()->create();
     $aula = Aula::factory()->create();
     $docente = Docente::factory()->create();
@@ -73,7 +84,7 @@ test('authenticated users can create a course with teacher assignment and schedu
 });
 
 test('authenticated users can update a course schedule', function () {
-    $user = User::factory()->create();
+    $user = usuarioAdminCursos();
     $ciclo = Ciclo::factory()->create();
     $aula = Aula::factory()->create();
     $docente = Docente::factory()->create();
@@ -111,7 +122,7 @@ test('authenticated users can update a course schedule', function () {
 });
 
 test('updating a course in another cycle creates a new assignment', function () {
-    $user = User::factory()->create();
+    $user = usuarioAdminCursos();
     $cicloInicial = Ciclo::factory()->create();
     $cicloNuevo = Ciclo::factory()->create();
     $aulaInicial = Aula::factory()->create();
@@ -153,7 +164,7 @@ test('updating a course in another cycle creates a new assignment', function () 
 });
 
 test('course schedule rejects teacher overlap in the same cycle', function () {
-    $user = User::factory()->create();
+    $user = usuarioAdminCursos();
     $ciclo = Ciclo::factory()->create();
     $aula = Aula::factory()->create();
     $otraAula = Aula::factory()->create();

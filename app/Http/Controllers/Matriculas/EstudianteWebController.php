@@ -4,9 +4,15 @@ namespace App\Http\Controllers\Matriculas;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Matriculas\StoreAlumnoRequest;
+use App\Http\Requests\Matriculas\UpdateAlumnoCarreraRequest;
+use App\Http\Resources\Matriculas\AlumnoResource;
+use App\Http\Resources\Matriculas\AreaResource;
+use App\Http\Resources\Matriculas\CarreraResource;
+use App\Http\Resources\Matriculas\ColegioProcedenciaResource;
 use App\Models\Alumno;
 use App\Models\Area;
 use App\Models\Carrera;
+use App\Models\ColegioProcedencia;
 use App\Services\Matriculas\AlumnoRegistroService;
 use App\Services\Matriculas\ConsolidadoAlumnoService;
 use Illuminate\Http\RedirectResponse;
@@ -36,7 +42,7 @@ class EstudianteWebController extends Controller
             })
             ->orderBy('apellidos')
             ->orderBy('nombres')
-            ->get(['id_alumno', 'codigo', 'nombres', 'apellidos', 'dni', 'estado', 'correo', 'telefono']);
+            ->get(['id_alumno', 'codigo', 'nombres', 'apellidos', 'dni', 'estado', 'telefono']);
 
         $consolidado = null;
         $alumnoId = $request->integer('alumno') ?: null;
@@ -46,9 +52,10 @@ class EstudianteWebController extends Controller
         }
 
         return Inertia::render('matriculas/estudiantes/index', [
-            'estudiantes' => $estudiantes,
+            'estudiantes' => AlumnoResource::collection($estudiantes)->resolve(),
             'consolidado' => $consolidado,
             'alumnoId' => $alumnoId,
+            'carreras' => CarreraResource::collection(Carrera::query()->with('area')->orderBy('nombre')->get())->resolve(),
             'filters' => ['q' => $busqueda],
         ]);
     }
@@ -56,8 +63,9 @@ class EstudianteWebController extends Controller
     public function create(): Response
     {
         return Inertia::render('matriculas/estudiantes/create', [
-            'carreras' => Carrera::query()->with('area')->orderBy('nombre')->get(),
-            'areas' => Area::orderBy('nombre')->get(),
+            'carreras' => CarreraResource::collection(Carrera::query()->with('area')->orderBy('nombre')->get())->resolve(),
+            'areas' => AreaResource::collection(Area::query()->orderBy('codigo')->get())->resolve(),
+            'colegios' => ColegioProcedenciaResource::collection(ColegioProcedencia::query()->orderBy('nombre')->get())->resolve(),
         ]);
     }
 
@@ -70,28 +78,10 @@ class EstudianteWebController extends Controller
             ->with('success', 'Estudiante registrado correctamente.');
     }
 
-    public function storeCarrera(Request $request): RedirectResponse
+    public function updateCarrera(UpdateAlumnoCarreraRequest $request, Alumno $alumno): RedirectResponse
     {
-        $validated = $request->validate([
-            'nombre' => ['required', 'string', 'max:120', 'unique:carrera,nombre'],
-            'id_area' => ['required', 'integer', 'exists:area,id_area'],
-            'puntaje_min' => ['nullable', 'numeric', 'min:0', 'max:20'],
-            'puntaje_max' => ['nullable', 'numeric', 'min:0', 'max:20'],
-        ], [
-            'nombre.required' => 'El nombre de la carrera es obligatorio.',
-            'nombre.unique' => 'Esta carrera ya existe.',
-            'id_area.required' => 'El área es obligatoria.',
-            'id_area.exists' => 'El área seleccionada no es válida.',
-            'puntaje_min.numeric' => 'El puntaje mínimo debe ser un número.',
-            'puntaje_min.min' => 'El puntaje mínimo no puede ser menor a 0.',
-            'puntaje_min.max' => 'El puntaje mínimo no puede ser mayor a 20.',
-            'puntaje_max.numeric' => 'El puntaje máximo debe ser un número.',
-            'puntaje_max.min' => 'El puntaje máximo no puede ser menor a 0.',
-            'puntaje_max.max' => 'El puntaje máximo no puede ser mayor a 20.',
-        ]);
+        $alumno->update($request->validated());
 
-        Carrera::create($validated);
-
-        return redirect()->back()->with('success', 'Carrera añadida correctamente.');
+        return redirect()->back()->with('success', 'Carrera del alumno actualizada correctamente.');
     }
 }

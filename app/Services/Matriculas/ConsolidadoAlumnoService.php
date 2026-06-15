@@ -4,15 +4,21 @@ namespace App\Services\Matriculas;
 
 use App\Models\Alumno;
 use App\Models\ExamenMetrica;
+use App\Services\Ia\DesercionRiskService;
 
 class ConsolidadoAlumnoService
 {
+    public function __construct(
+        private readonly DesercionRiskService $desercionRiskService,
+    ) {}
+
     public function obtener(int $idAlumno): array
     {
         $alumno = Alumno::query()
             ->with([
                 'carrera.area',
                 'apoderado',
+                'colegioProcedencia',
                 'matriculaVigente.ciclo',
                 'matriculaVigente.periodo',
                 'matriculaVigente.turno',
@@ -21,6 +27,7 @@ class ConsolidadoAlumnoService
             ->findOrFail($idAlumno);
 
         $matricula = $alumno->matriculaVigente;
+        $prediccion = $matricula ? $this->desercionRiskService->calcularParaMatricula($matricula) : null;
 
         return [
             'perfil' => [
@@ -33,9 +40,10 @@ class ConsolidadoAlumnoService
                 'fecha_nac' => $alumno->fecha_nac?->toDateString(),
                 'sexo' => $alumno->sexo,
                 'telefono' => $alumno->telefono,
-                'correo' => $alumno->correo,
-                'direccion' => $alumno->direccion,
-                'colegio_procedencia' => $alumno->colegio_proc,
+                'colegio_procedencia' => $alumno->colegioProcedencia ? [
+                    'id_colegio_procedencia' => $alumno->colegioProcedencia->id_colegio_procedencia,
+                    'nombre' => $alumno->colegioProcedencia->nombre,
+                ] : null,
                 'estado' => $alumno->estado?->value,
                 'carrera' => $alumno->carrera ? [
                     'id_carrera' => $alumno->carrera->id_carrera,
@@ -49,10 +57,7 @@ class ConsolidadoAlumnoService
                 'apoderado' => $alumno->apoderado ? [
                     'id_apoderado' => $alumno->apoderado->id_apoderado,
                     'nombres' => $alumno->apoderado->nombres,
-                    'dni' => $alumno->apoderado->dni,
                     'telefono' => $alumno->apoderado->telefono,
-                    'parentesco' => $alumno->apoderado->parentesco,
-                    'correo' => $alumno->apoderado->correo,
                 ] : null,
             ],
             'matricula_actual' => $matricula ? [
@@ -83,6 +88,15 @@ class ConsolidadoAlumnoService
                     'nombre' => $matricula->aula?->nombre,
                     'capacidad' => $matricula->aula?->capacidad,
                 ],
+            ] : null,
+            'riesgo_desercion' => $prediccion ? [
+                'riesgo_pct' => $prediccion->riesgo_pct,
+                'nivel_riesgo' => $prediccion->nivel_riesgo,
+                'prioritario' => $prediccion->riesgo_pct > 75,
+                'tasa_asistencia' => $prediccion->tasa_asistencia,
+                'promedio_examenes' => $prediccion->promedio_examenes,
+                'cuotas_vencidas' => $prediccion->cuotas_vencidas,
+                'fecha_calculo' => $prediccion->fecha_calculo?->toDateTimeString(),
             ] : null,
             'asistencia' => [
                 'resumen' => (function () use ($matricula) {
@@ -172,7 +186,7 @@ class ConsolidadoAlumnoService
                 if ($comprobante) {
                     foreach ($comprobante->cuotas as $cuota) {
                         $estadoCuota = $cuota->estado;
-                        $vencida = $estadoCuota !== 'PAGADA' && $cuota->fecha_venc->isPast();
+                        $vencida = $estadoCuota !== 'PAGADA' && $cuota->fecha_vencimiento->lt(today());
                         if ($vencida) {
                             $estadoCuota = 'VENCIDA';
                             $tieneDeudaVencida = true;
@@ -182,7 +196,7 @@ class ConsolidadoAlumnoService
                             'id_cuota' => $cuota->id_cuota,
                             'numero_cuota' => $cuota->numero_cuota,
                             'monto' => floatval($cuota->monto),
-                            'fecha_venc' => $cuota->fecha_venc?->toDateString(),
+                            'fecha_vencimiento' => $cuota->fecha_vencimiento?->toDateString(),
                             'estado' => $estadoCuota,
                         ];
 
