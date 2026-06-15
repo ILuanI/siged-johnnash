@@ -26,9 +26,9 @@ const mainNavItems: NavItem[] = [
     { title: 'Estudiantes', href: '/matriculas/estudiantes', icon: GraduationCap },
     { title: 'Cursos', href: '/cursos', icon: BookOpen },
     { title: 'Usuarios', href: '#', icon: Users },
-    { title: 'Académico', href: '#', icon: BookOpen },
+    { title: 'Notas', href: '/notas', icon: BookOpen },
     { title: 'Pagos', href: '#', icon: CreditCard },
-    { title: 'Reportes', href: '#', icon: BarChart3 },
+    { title: 'Reportes', href: '/reportes', icon: BarChart3 },
     { title: 'Ajustes', href: '#', icon: Settings },
 ];
 
