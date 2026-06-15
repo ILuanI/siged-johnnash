@@ -28,7 +28,6 @@ class UpdateDocenteRequest extends FormRequest
             'correo' => ['required', 'string', 'email', 'max:255', 'unique:docentes,correo,'.$this->docente->id],
             'telefono' => ['nullable', 'string', 'size:9', 'regex:/^9\d{8}$/'],
             'dni' => ['required', 'string', 'size:8', 'unique:docentes,dni,'.$this->docente->id],
-            'curso_id' => ['nullable', 'integer'],
         ];
     }
 }
