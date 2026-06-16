@@ -319,10 +319,66 @@ export function StudentProfileModal({
                         />
                     )}
                     {tab === 'asistencia' && (
-                        <PlaceholderTab
-                            titulo="Asistencia"
-                            mensaje={consolidado.asistencia._meta.mensaje}
-                        />
+                        consolidado.asistencia.resumen ? (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                                    <div className="rounded-xl border bg-white p-4">
+                                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Tasa de Asistencia</p>
+                                        <p className="mt-1 text-xl font-bold text-slate-900">
+                                            {(consolidado.asistencia.resumen as any).tasa_asistencia !== null ? `${(consolidado.asistencia.resumen as any).tasa_asistencia.toFixed(1)}%` : '0%'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border bg-white p-4">
+                                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Asistencias</p>
+                                        <p className="mt-1 text-xl font-bold text-slate-900">{(consolidado.asistencia.resumen as any).total_asistencias}</p>
+                                    </div>
+                                    <div className="rounded-xl border bg-white p-4">
+                                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Tardanzas</p>
+                                        <p className="mt-1 text-xl font-bold text-slate-900">{(consolidado.asistencia.resumen as any).total_tardanzas}</p>
+                                    </div>
+                                    <div className="rounded-xl border bg-white p-4">
+                                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Faltas</p>
+                                        <p className="mt-1 text-xl font-bold text-slate-900">{(consolidado.asistencia.resumen as any).total_faltas}</p>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-xl border bg-white overflow-hidden">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-slate-50 text-slate-500 font-medium">
+                                            <tr>
+                                                <th className="px-4 py-3">Fecha</th>
+                                                <th className="px-4 py-3">Curso</th>
+                                                <th className="px-4 py-3">Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {consolidado.asistencia.detalle.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={3} className="px-4 py-8 text-center text-slate-500">No hay registros de asistencia</td>
+                                                </tr>
+                                            ) : (
+                                                (consolidado.asistencia.detalle as any[]).map((item: any, i: number) => (
+                                                    <tr key={i} className="hover:bg-slate-50">
+                                                        <td className="px-4 py-3">{item.fecha}</td>
+                                                        <td className="px-4 py-3 text-slate-900">{item.curso}</td>
+                                                        <td className="px-4 py-3">
+                                                            <Badge className={cn('rounded-full px-2 text-[10px]', estadoAsistenciaClass(item.estado))}>
+                                                                {item.estado}
+                                                            </Badge>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        ) : (
+                            <PlaceholderTab
+                                titulo="Asistencia"
+                                mensaje="No se encontraron registros de asistencia para este estudiante."
+                            />
+                        )
                     )}
                 </div>
 
@@ -407,4 +463,14 @@ function PlaceholderTab({
             <p className="mt-1 text-sm text-slate-500">{mensaje}</p>
         </div>
     );
+}
+
+function estadoAsistenciaClass(estado: string) {
+    switch (estado) {
+        case 'ASISTIO': return 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100';
+        case 'TARDANZA': return 'bg-amber-100 text-amber-700 hover:bg-amber-100';
+        case 'FALTO': return 'bg-red-100 text-red-700 hover:bg-red-100';
+        case 'JUSTIFICADO': return 'bg-blue-100 text-blue-700 hover:bg-blue-100';
+        default: return 'bg-slate-100 text-slate-700 hover:bg-slate-100';
+    }
 }
