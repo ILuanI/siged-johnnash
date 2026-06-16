@@ -121,8 +121,8 @@ function toMinutes(value: string): number {
 
 function computeEventLayout(dayEvents: EventoHorario[]) {
     if (dayEvents.length === 0) {
-return [];
-}
+        return [];
+    }
 
     const parsedEvents = dayEvents.map(ev => ({
         ...ev,
@@ -160,7 +160,7 @@ return [];
         let joinedGroupIndex = -1;
 
         for (let i = 0; i < groups.length; i++) {
-            const overlaps = groups[i].some(groupEv => 
+            const overlaps = groups[i].some(groupEv =>
                 ev.startMin < groupEv.endMin && ev.endMin > groupEv.startMin
             );
 
@@ -184,7 +184,7 @@ return [];
 
         for (let i = 0; i < groups.length; i++) {
             for (let j = i + 1; j < groups.length; j++) {
-                const overlaps = groups[i].some(evI => 
+                const overlaps = groups[i].some(evI =>
                     groups[j].some(evJ => evI.startMin < evJ.endMin && evI.endMin > evJ.startMin)
                 );
 
@@ -197,8 +197,8 @@ return [];
             }
 
             if (changed) {
-break;
-}
+                break;
+            }
         }
     }
 
@@ -262,6 +262,7 @@ export default function CursosIndex({
         setData,
         post,
         put,
+        processing,
         errors,
         reset,
         clearErrors,
@@ -450,7 +451,7 @@ export default function CursosIndex({
             confirmButtonText: 'Eliminar',
         });
 
-        if (! confirmed) {
+        if (!confirmed) {
             return;
         }
 
@@ -515,7 +516,6 @@ export default function CursosIndex({
                             type="button"
                             onClick={openCreateModal}
                             className="bg-[#ff7043] text-white hover:bg-[#f4511e]"
-                            disabled={docentes.length === 0}
                         >
                             <Plus className="size-4" />
                             Nuevo Curso
@@ -836,6 +836,14 @@ export default function CursosIndex({
                             </div>
                         </div>
 
+                        <DialogFooter className="mt-6">
+                            <Button type="button" variant="outline" onClick={closeModal} disabled={processing}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" className="bg-[#1a237e] text-white hover:bg-[#0b145f]" disabled={processing}>
+                                {editingCurso ? 'Guardar Cambios' : 'Crear Curso'}
+                            </Button>
+                        </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
