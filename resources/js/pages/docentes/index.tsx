@@ -1,5 +1,13 @@
 import { Head, useForm, router } from '@inertiajs/react';
-import { Pen, Trash2, UserPlus } from 'lucide-react';
+import {
+    Pen,
+    Trash2,
+    UserPlus,
+    Search,
+    ArrowDown,
+    ArrowUp,
+    TriangleAlert,
+} from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -40,12 +48,43 @@ interface Props {
         per_page: number;
         total: number;
     };
+    filters: {
+        search?: string;
+        sort?: 'asc' | 'desc';
+    };
 }
 
-export default function DocentesIndex({ docentes }: Props) {
+export default function DocentesIndex({ docentes, filters }: Props) {
     const getInitials = useInitials();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingDocente, setEditingDocente] = useState<Docente | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [docenteToDelete, setDocenteToDelete] = useState<Docente | null>(
+        null,
+    );
+    const [searchQuery, setSearchQuery] = useState(filters?.search || '');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(
+        filters?.sort || 'asc',
+    );
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+        router.get(
+            '/docentes',
+            { search: e.target.value, sort: sortOrder },
+            { preserveState: true, replace: true },
+        );
+    };
+
+    const toggleSort = () => {
+        const newSort = sortOrder === 'asc' ? 'desc' : 'asc';
+        setSortOrder(newSort);
+        router.get(
+            '/docentes',
+            { search: searchQuery, sort: newSort },
+            { preserveState: true, replace: true },
+        );
+    };
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } =
         useForm({
@@ -76,20 +115,21 @@ export default function DocentesIndex({ docentes }: Props) {
         setIsDialogOpen(true);
     };
 
-    const handleDelete = async (docente: Docente) => {
-        const confirmed = await confirmAction({
-            title: `Eliminar docente ${docente.nombres} ${docente.apellidos}`,
-            text: 'Esta acción no se puede deshacer.',
-            confirmButtonText: 'Eliminar',
-        });
+    const confirmDelete = (docente: Docente) => {
+        setDocenteToDelete(docente);
+        setIsDeleteDialogOpen(true);
+    };
 
-        if (!confirmed) {
-            return;
-        }
-
-        router.delete(destroy.url({ docente: docente.id }), {
-            onSuccess: () => toast.success('Docente eliminado exitosamente'),
+    const handleDelete = () => {
+        if (!docenteToDelete) return;
+        router.delete(destroy.url({ docente: docenteToDelete.id }), {
+            onSuccess: () => {
+                toast.success('Docente eliminado exitosamente');
+                setIsDeleteDialogOpen(false);
+                setDocenteToDelete(null);
+            },
             onError: (errors) => {
+                setIsDeleteDialogOpen(false);
                 if (errors.error) {
                     toast.error(errors.error);
                 } else {
@@ -163,7 +203,7 @@ export default function DocentesIndex({ docentes }: Props) {
             <Head title="Docentes" />
 
             <header className="border-b bg-white px-8 py-6">
-                <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">
                             Directorio de Docentes
@@ -174,13 +214,42 @@ export default function DocentesIndex({ docentes }: Props) {
                             {docentes.total !== 1 ? 's' : ''} en la academia.
                         </p>
                     </div>
-                    <Button
-                        onClick={openCreateDialog}
-                        className="bg-[#ff7043] hover:bg-[#f4511e]"
-                    >
-                        <UserPlus className="mr-2 size-4" />
-                        Nuevo docente
-                    </Button>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="relative">
+                            <Search className="absolute top-2.5 left-2.5 size-4 text-slate-400" />
+                            <Input
+                                type="text"
+                                placeholder="Buscar por DNI..."
+                                className="w-full pl-9 sm:w-64"
+                                value={searchQuery}
+                                onChange={handleSearchChange}
+                            />
+                        </div>
+                        <Button
+                            variant="outline"
+                            onClick={toggleSort}
+                            className="flex items-center gap-2"
+                        >
+                            {sortOrder === 'asc' ? (
+                                <>
+                                    <ArrowDown className="size-4" />
+                                    <span>Ordenar A-Z</span>
+                                </>
+                            ) : (
+                                <>
+                                    <ArrowUp className="size-4" />
+                                    <span>Ordenar Z-A</span>
+                                </>
+                            )}
+                        </Button>
+                        <Button
+                            onClick={openCreateDialog}
+                            className="bg-[#ff7043] hover:bg-[#f4511e]"
+                        >
+                            <UserPlus className="mr-2 size-4" />
+                            Nuevo docente
+                        </Button>
+                    </div>
                 </div>
             </header>
 
@@ -240,7 +309,7 @@ export default function DocentesIndex({ docentes }: Props) {
                                             variant="ghost"
                                             size="icon"
                                             onClick={() =>
-                                                handleDelete(docente)
+                                                confirmDelete(docente)
                                             }
                                             className="text-destructive focus:text-destructive"
                                             title="Eliminar"
@@ -254,6 +323,44 @@ export default function DocentesIndex({ docentes }: Props) {
                     </ul>
                 )}
             </div>
+
+            <Dialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+            >
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-600">
+                            <TriangleAlert className="size-5" />
+                            Confirmar eliminación
+                        </DialogTitle>
+                        <DialogDescription className="pt-2">
+                            ¿Estás seguro de que deseas eliminar al docente{' '}
+                            <span className="font-bold text-slate-900">
+                                {docenteToDelete?.nombres}{' '}
+                                {docenteToDelete?.apellidos}
+                            </span>
+                            ? Esta acción no se puede deshacer.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-4">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsDeleteDialogOpen(false)}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="destructive"
+                            onClick={handleDelete}
+                        >
+                            Eliminar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">

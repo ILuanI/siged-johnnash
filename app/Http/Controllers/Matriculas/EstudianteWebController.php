@@ -17,6 +17,9 @@ use App\Services\Matriculas\AlumnoRegistroService;
 use App\Services\Matriculas\ConsolidadoAlumnoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Builder;
+use App\Enums\EstadoMatricula;
+use App\Enums\EstadoCuota;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,6 +33,8 @@ class EstudianteWebController extends Controller
     public function index(Request $request): Response
     {
         $busqueda = $request->string('q')->trim()->toString();
+        $filtroEstado = $request->string('filtro')->toString();
+        $sort = $request->input('sort', 'asc');
 
         $estudiantes = Alumno::query()
             ->when($busqueda !== '', function ($query) use ($busqueda): void {
@@ -40,8 +45,34 @@ class EstudianteWebController extends Controller
                         ->orWhere('codigo', 'like', "%{$busqueda}%");
                 });
             })
-            ->orderBy('apellidos')
-            ->orderBy('nombres')
+            ->when($filtroEstado === 'matriculados', function (Builder $query): void {
+                $query->whereHas('matriculas', fn($q) => $q->where('estado', EstadoMatricula::Vigente));
+            })
+            ->when($filtroEstado === 'activos', function (Builder $query): void {
+                $query->where('estado', 'ACTIVO');
+            })
+            ->when($filtroEstado === 'al_dia', function (Builder $query): void {
+                $query->whereHas('matriculas', fn($q) => $q->where('estado', EstadoMatricula::Vigente))
+                      ->whereDoesntHave('matriculas.comprobantePago.cuotas', function ($q) {
+                          $q->where('estado', EstadoCuota::Vencida)
+                            ->orWhere(function ($sq) {
+                                $sq->where('estado', EstadoCuota::Pendiente)
+                                   ->where('fecha_vencimiento', '<', now()->startOfDay());
+                            });
+                      });
+            })
+            ->when($filtroEstado === 'vencidos', function (Builder $query): void {
+                $query->whereHas('matriculas', fn($q) => $q->where('estado', EstadoMatricula::Vigente))
+                      ->whereHas('matriculas.comprobantePago.cuotas', function ($q) {
+                          $q->where('estado', EstadoCuota::Vencida)
+                            ->orWhere(function ($sq) {
+                                $sq->where('estado', EstadoCuota::Pendiente)
+                                   ->where('fecha_vencimiento', '<', now()->startOfDay());
+                            });
+                      });
+            })
+            ->orderBy('apellidos', $sort)
+            ->orderBy('nombres', $sort)
             ->with(['matriculas' => function ($q) {
                 $q->latest('fecha_matricula')->with(['comprobantePago.cuotas']);
             }])
@@ -59,7 +90,9 @@ class EstudianteWebController extends Controller
             'consolidado' => $consolidado,
             'alumnoId' => $alumnoId,
             'carreras' => CarreraResource::collection(Carrera::query()->with('area')->orderBy('nombre')->get())->resolve(),
-            'filters' => ['q' => $busqueda],
+            'areas' => AreaResource::collection(Area::query()->orderBy('codigo')->get())->resolve(),
+            'colegios' => ColegioProcedenciaResource::collection(ColegioProcedencia::query()->orderBy('nombre')->get())->resolve(),
+            'filters' => (object) $request->only(['q', 'filtro', 'sort']),
         ]);
     }
 

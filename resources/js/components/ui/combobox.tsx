@@ -63,7 +63,7 @@ export function Combobox({
     );
 
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={setOpen} modal={true}>
             <PopoverTrigger asChild>
                 <Button
                     id={id}
@@ -73,7 +73,7 @@ export function Combobox({
                     aria-expanded={open}
                     disabled={disabled}
                     className={cn(
-                        'w-full justify-between font-normal',
+                        'w-full justify-between font-normal bg-white dark:bg-transparent',
                         !selected && 'text-muted-foreground',
                         className,
                     )}
