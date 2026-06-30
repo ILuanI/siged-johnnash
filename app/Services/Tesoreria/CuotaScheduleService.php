@@ -2,6 +2,7 @@
 
 namespace App\Services\Tesoreria;
 
+use App\Enums\EstadoCuota;
 use App\Models\ComprobantePago;
 use App\Models\Cuota;
 use Carbon\CarbonImmutable;
@@ -17,7 +18,7 @@ class CuotaScheduleService
 
             $cuota->update([
                 'fecha_vencimiento' => $nuevaFecha->toDateString(),
-                'estado' => $cuota->estado === \App\Enums\EstadoCuota::Vencida ? \App\Enums\EstadoCuota::Pendiente : $cuota->estado,
+                'estado' => $cuota->estado === EstadoCuota::Vencida ? EstadoCuota::Pendiente : $cuota->estado,
             ]);
 
             return $cuota->refresh();
@@ -30,14 +31,14 @@ class CuotaScheduleService
             $fechaBase = CarbonImmutable::parse($fechaPrimeraCuota);
             $dias = max(1, $diasEntreCuotas);
             $cuotasPendientes = $comprobante->cuotas()
-                ->where('estado', '!=', \App\Enums\EstadoCuota::Pagada)
+                ->where('estado', '!=', EstadoCuota::Pagada)
                 ->orderBy('numero_cuota')
                 ->get();
 
             foreach ($cuotasPendientes as $indice => $cuota) {
                 $cuota->update([
                     'fecha_vencimiento' => $fechaBase->addDays($dias * $indice)->toDateString(),
-                    'estado' => \App\Enums\EstadoCuota::Pendiente,
+                    'estado' => EstadoCuota::Pendiente,
                 ]);
             }
 
@@ -48,13 +49,13 @@ class CuotaScheduleService
     public function sincronizarVencidas(?ComprobantePago $comprobante = null): int
     {
         $query = Cuota::query()
-            ->where('estado', \App\Enums\EstadoCuota::Pendiente)
+            ->where('estado', EstadoCuota::Pendiente)
             ->whereDate('fecha_vencimiento', '<', now()->toDateString());
 
         if ($comprobante) {
             $query->where('id_comprobante', $comprobante->id_comprobante);
         }
 
-        return $query->update(['estado' => \App\Enums\EstadoCuota::Vencida]);
+        return $query->update(['estado' => EstadoCuota::Vencida]);
     }
 }

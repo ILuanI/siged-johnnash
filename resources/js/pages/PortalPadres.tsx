@@ -48,7 +48,13 @@ type PageProps = {
     mensaje: string | null;
 };
 
-export default function PortalPadres({ alumno, asistencias, simulacros, filters, mensaje }: PageProps) {
+export default function PortalPadres({
+    alumno,
+    asistencias,
+    simulacros,
+    filters,
+    mensaje,
+}: PageProps) {
     const [dni, setDni] = useState(filters.dni ?? '');
     const [processing, setProcessing] = useState(false);
 
@@ -81,14 +87,21 @@ export default function PortalPadres({ alumno, asistencias, simulacros, filters,
                         <GraduationCap className="size-6" />
                     </div>
                     <div>
-                        <h1 className="text-lg font-bold text-slate-900">Portal de Padres</h1>
-                        <p className="text-xs font-medium text-slate-500">Academia John Nash</p>
+                        <h1 className="text-lg font-bold text-slate-900">
+                            Portal de Padres
+                        </h1>
+                        <p className="text-xs font-medium text-slate-500">
+                            Academia John Nash
+                        </p>
                     </div>
                 </div>
             </header>
 
             <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 md:px-6">
-                <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg border bg-white p-4 sm:flex-row sm:items-end">
+                <form
+                    onSubmit={submit}
+                    className="flex flex-col gap-3 rounded-lg border bg-white p-4 sm:flex-row sm:items-end"
+                >
                     <div className="flex-1 space-y-2">
                         <Label htmlFor="dni">DNI del alumno</Label>
                         <Input
@@ -96,17 +109,31 @@ export default function PortalPadres({ alumno, asistencias, simulacros, filters,
                             value={dni}
                             inputMode="numeric"
                             maxLength={8}
-                            onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                            onChange={(e) =>
+                                setDni(
+                                    e.target.value
+                                        .replace(/\D/g, '')
+                                        .slice(0, 8),
+                                )
+                            }
                             placeholder="00000000"
                         />
                     </div>
-                    <Button type="submit" disabled={processing || dni.length !== 8} className="bg-[#ff7043] hover:bg-[#f4511e]">
+                    <Button
+                        type="submit"
+                        disabled={processing || dni.length !== 8}
+                        className="bg-[#ff7043] hover:bg-[#f4511e]"
+                    >
                         <Search className="size-4" />
                         Consultar
                     </Button>
                 </form>
 
-                {mensaje && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{mensaje}</div>}
+                {mensaje && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        {mensaje}
+                    </div>
+                )}
 
                 {alumno && (
                     <section className="rounded-lg border bg-white p-4">
@@ -119,12 +146,16 @@ export default function PortalPadres({ alumno, asistencias, simulacros, filters,
                                     DNI {alumno.dni} · Código {alumno.codigo}
                                 </p>
                             </div>
-                            <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-700">
+                            <Badge
+                                variant="outline"
+                                className="border-slate-200 bg-slate-50 text-slate-700"
+                            >
                                 {alumno.ciclo ?? 'Sin ciclo vigente'}
                             </Badge>
                         </div>
                         <p className="mt-3 text-sm text-slate-600">
-                            {alumno.carrera ?? 'Sin carrera'} {alumno.area ? `· ${alumno.area}` : ''}
+                            {alumno.carrera ?? 'Sin carrera'}{' '}
+                            {alumno.area ? `· ${alumno.area}` : ''}
                         </p>
                     </section>
                 )}
@@ -133,30 +164,47 @@ export default function PortalPadres({ alumno, asistencias, simulacros, filters,
                     <div className="grid gap-6 lg:grid-cols-2">
                         <section className="overflow-hidden rounded-lg border bg-white">
                             <div className="border-b px-4 py-3">
-                                <h2 className="text-sm font-semibold text-slate-900">Últimas 5 asistencias</h2>
+                                <h2 className="text-sm font-semibold text-slate-900">
+                                    Últimas 5 asistencias
+                                </h2>
                             </div>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Fecha</TableHead>
                                         <TableHead>Hora</TableHead>
-                                        <TableHead className="text-right">Estado</TableHead>
+                                        <TableHead className="text-right">
+                                            Estado
+                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {asistencias.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="py-8 text-center text-sm text-slate-500">
+                                            <TableCell
+                                                colSpan={3}
+                                                className="py-8 text-center text-sm text-slate-500"
+                                            >
                                                 Sin asistencias registradas.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
                                         asistencias.map((asistencia) => (
-                                            <TableRow key={asistencia.id_asistencia}>
-                                                <TableCell>{asistencia.fecha ?? '-'}</TableCell>
-                                                <TableCell>{asistencia.hora ?? '-'}</TableCell>
+                                            <TableRow
+                                                key={asistencia.id_asistencia}
+                                            >
+                                                <TableCell>
+                                                    {asistencia.fecha ?? '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {asistencia.hora ?? '-'}
+                                                </TableCell>
                                                 <TableCell className="text-right">
-                                                    <EstadoAsistenciaBadge estado={asistencia.estado} />
+                                                    <EstadoAsistenciaBadge
+                                                        estado={
+                                                            asistencia.estado
+                                                        }
+                                                    />
                                                 </TableCell>
                                             </TableRow>
                                         ))
@@ -167,33 +215,52 @@ export default function PortalPadres({ alumno, asistencias, simulacros, filters,
 
                         <section className="overflow-hidden rounded-lg border bg-white">
                             <div className="border-b px-4 py-3">
-                                <h2 className="text-sm font-semibold text-slate-900">Últimos 3 simulacros</h2>
+                                <h2 className="text-sm font-semibold text-slate-900">
+                                    Últimos 3 simulacros
+                                </h2>
                             </div>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Fecha</TableHead>
                                         <TableHead>Simulacro</TableHead>
-                                        <TableHead className="text-right">Nota</TableHead>
-                                        <TableHead className="text-right">Puesto</TableHead>
+                                        <TableHead className="text-right">
+                                            Nota
+                                        </TableHead>
+                                        <TableHead className="text-right">
+                                            Puesto
+                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {simulacros.length === 0 ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="py-8 text-center text-sm text-slate-500">
+                                            <TableCell
+                                                colSpan={4}
+                                                className="py-8 text-center text-sm text-slate-500"
+                                            >
                                                 Sin simulacros registrados.
                                             </TableCell>
                                         </TableRow>
                                     ) : (
                                         simulacros.map((simulacro) => (
-                                            <TableRow key={simulacro.id_resultado}>
-                                                <TableCell>{simulacro.fecha ?? '-'}</TableCell>
-                                                <TableCell>{simulacro.simulacro}</TableCell>
-                                                <TableCell className="text-right font-semibold">
-                                                    {simulacro.puntaje_total.toFixed(3)}
+                                            <TableRow
+                                                key={simulacro.id_resultado}
+                                            >
+                                                <TableCell>
+                                                    {simulacro.fecha ?? '-'}
                                                 </TableCell>
-                                                <TableCell className="text-right">{simulacro.puesto ?? '-'}</TableCell>
+                                                <TableCell>
+                                                    {simulacro.simulacro}
+                                                </TableCell>
+                                                <TableCell className="text-right font-semibold">
+                                                    {simulacro.puntaje_total.toFixed(
+                                                        3,
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {simulacro.puesto ?? '-'}
+                                                </TableCell>
                                             </TableRow>
                                         ))
                                     )}

@@ -1,10 +1,9 @@
 <?php
 
 use App\Models\Alumno;
-use App\Models\Matricula;
 use App\Models\Cuota;
+use App\Models\Matricula;
 use App\Models\PrediccionDesercion;
-use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -27,7 +26,7 @@ test('modulo tesoreria: puede generar cuotas', function () {
 test('modulo ia desercion: puede almacenar predicciones de riesgo', function () {
     $prediccion = PrediccionDesercion::factory()->create([
         'riesgo_pct' => 85.50,
-        'nivel_riesgo' => 'ALTO'
+        'nivel_riesgo' => 'ALTO',
     ]);
 
     expect($prediccion->riesgo_pct)->toEqual(85.50)

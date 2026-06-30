@@ -11,7 +11,10 @@ export type PermisosMap = Record<string, PermisoModulo>;
 export function usePermisos() {
     const { auth } = usePage<{ auth: { permisos: PermisosMap } }>().props;
 
-    const puede = (modulo: string, accion: 'ver' | 'editar' | 'eliminar'): boolean => {
+    const puede = (
+        modulo: string,
+        accion: 'ver' | 'editar' | 'eliminar',
+    ): boolean => {
         const permiso = auth.permisos?.[modulo];
 
         if (!permiso) {

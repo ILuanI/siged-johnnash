@@ -1,7 +1,19 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { CheckCircle2, Pen, Search, ShieldCheck, Trash2, UserPlus, XCircle } from 'lucide-react';
+import {
+    CheckCircle2,
+    Pen,
+    Search,
+    ShieldCheck,
+    Trash2,
+    UserPlus,
+    XCircle,
+} from 'lucide-react';
 import React, { useState } from 'react';
-import { destroy, store, update } from '@/actions/App/Http/Controllers/UserController';
+import {
+    destroy,
+    store,
+    update,
+} from '@/actions/App/Http/Controllers/UserController';
 import InputError from '@/components/input-error';
 import PasswordInput from '@/components/password-input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -99,7 +111,7 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
             confirmButtonText: 'Eliminar',
         });
 
-        if (! confirmed) {
+        if (!confirmed) {
             return;
         }
 
@@ -112,27 +124,35 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
         e.preventDefault();
 
         if (editingUsuario) {
-            router.put(update.url({ user: editingUsuario.id }), {
-                ...data,
-                id_rol: Number(data.id_rol),
-            }, {
-                preserveScroll: true,
-                onSuccess: () => setIsDialogOpen(false),
-            });
+            router.put(
+                update.url({ user: editingUsuario.id }),
+                {
+                    ...data,
+                    id_rol: Number(data.id_rol),
+                },
+                {
+                    preserveScroll: true,
+                    onSuccess: () => setIsDialogOpen(false),
+                },
+            );
 
             return;
         }
 
-        router.post(store.url(), {
-            ...data,
-            id_rol: Number(data.id_rol),
-        }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                reset();
-                setIsDialogOpen(false);
+        router.post(
+            store.url(),
+            {
+                ...data,
+                id_rol: Number(data.id_rol),
             },
-        });
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    reset();
+                    setIsDialogOpen(false);
+                },
+            },
+        );
     };
 
     return (
@@ -150,7 +170,9 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                             Usuarios del sistema
                         </h1>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {usuarios.total} usuario{usuarios.total !== 1 ? 's' : ''} registrado{usuarios.total !== 1 ? 's' : ''}.
+                            {usuarios.total} usuario
+                            {usuarios.total !== 1 ? 's' : ''} registrado
+                            {usuarios.total !== 1 ? 's' : ''}.
                         </p>
                     </div>
                     {puede('usuarios', 'editar') && (
@@ -203,7 +225,8 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                                                 variant="outline"
                                                 className="border-[#1a237e]/20 bg-[#1a237e]/5 text-[#1a237e]"
                                             >
-                                                {usuario.rol?.nombre ?? 'Sin rol'}
+                                                {usuario.rol?.nombre ??
+                                                    'Sin rol'}
                                             </Badge>
                                             <Badge
                                                 variant="outline"
@@ -230,7 +253,9 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => openEditDialog(usuario)}
+                                                onClick={() =>
+                                                    openEditDialog(usuario)
+                                                }
                                                 title="Editar"
                                             >
                                                 <Pen className="size-4 text-slate-500" />
@@ -240,7 +265,9 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => handleDelete(usuario)}
+                                                onClick={() =>
+                                                    handleDelete(usuario)
+                                                }
                                                 className="text-destructive focus:text-destructive"
                                                 title="Eliminar"
                                             >
@@ -259,7 +286,9 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                 <DialogContent className="sm:max-w-[480px]">
                     <DialogHeader>
                         <DialogTitle>
-                            {editingUsuario ? 'Editar usuario' : 'Nuevo usuario'}
+                            {editingUsuario
+                                ? 'Editar usuario'
+                                : 'Nuevo usuario'}
                         </DialogTitle>
                         <DialogDescription>
                             {editingUsuario
@@ -274,7 +303,9 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                                 <Input
                                     id="name"
                                     value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('name', e.target.value)
+                                    }
                                     placeholder="Nombre completo"
                                 />
                                 <InputError message={errors.name} />
@@ -285,7 +316,9 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                                     id="email"
                                     type="email"
                                     value={data.email}
-                                    onChange={(e) => setData('email', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('email', e.target.value)
+                                    }
                                     placeholder="usuario@johnnash.edu.pe"
                                 />
                                 <InputError message={errors.email} />
@@ -294,9 +327,14 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                                 <Label htmlFor="id_rol">Rol</Label>
                                 <Select
                                     value={data.id_rol}
-                                    onValueChange={(value) => setData('id_rol', value)}
+                                    onValueChange={(value) =>
+                                        setData('id_rol', value)
+                                    }
                                 >
-                                    <SelectTrigger id="id_rol" className="w-full">
+                                    <SelectTrigger
+                                        id="id_rol"
+                                        className="w-full"
+                                    >
                                         <SelectValue placeholder="Selecciona un rol" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -317,29 +355,47 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                                 <Select
                                     value={data.estado}
                                     onValueChange={(value) =>
-                                        setData('estado', value as EstadoUsuario)
+                                        setData(
+                                            'estado',
+                                            value as EstadoUsuario,
+                                        )
                                     }
                                 >
-                                    <SelectTrigger id="estado" className="w-full">
+                                    <SelectTrigger
+                                        id="estado"
+                                        className="w-full"
+                                    >
                                         <SelectValue placeholder="Selecciona un estado" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="ACTIVO">Activo</SelectItem>
-                                        <SelectItem value="INACTIVO">Inactivo</SelectItem>
+                                        <SelectItem value="ACTIVO">
+                                            Activo
+                                        </SelectItem>
+                                        <SelectItem value="INACTIVO">
+                                            Inactivo
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.estado} />
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="password">
-                                    {editingUsuario ? 'Nueva contraseña' : 'Contraseña'}
+                                    {editingUsuario
+                                        ? 'Nueva contraseña'
+                                        : 'Contraseña'}
                                 </Label>
                                 <PasswordInput
                                     id="password"
                                     value={data.password}
-                                    onChange={(e) => setData('password', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('password', e.target.value)
+                                    }
                                     autoComplete="new-password"
-                                    placeholder={editingUsuario ? 'Dejar en blanco para conservar' : 'Contraseña segura'}
+                                    placeholder={
+                                        editingUsuario
+                                            ? 'Dejar en blanco para conservar'
+                                            : 'Contraseña segura'
+                                    }
                                 />
                                 <InputError message={errors.password} />
                             </div>
@@ -351,12 +407,17 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                                     id="password_confirmation"
                                     value={data.password_confirmation}
                                     onChange={(e) =>
-                                        setData('password_confirmation', e.target.value)
+                                        setData(
+                                            'password_confirmation',
+                                            e.target.value,
+                                        )
                                     }
                                     autoComplete="new-password"
                                     placeholder="Repite la contraseña"
                                 />
-                                <InputError message={errors.password_confirmation} />
+                                <InputError
+                                    message={errors.password_confirmation}
+                                />
                             </div>
                         </div>
                         <DialogFooter>
@@ -372,7 +433,9 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                                 disabled={processing}
                                 className="bg-[#ff7043] text-white hover:bg-[#f4511e]"
                             >
-                                {editingUsuario ? 'Guardar cambios' : 'Registrar'}
+                                {editingUsuario
+                                    ? 'Guardar cambios'
+                                    : 'Registrar'}
                             </Button>
                         </DialogFooter>
                     </form>

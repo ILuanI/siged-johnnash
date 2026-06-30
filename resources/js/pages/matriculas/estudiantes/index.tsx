@@ -1,6 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Search, UserPlus } from 'lucide-react';
-import type { FormEvent} from 'react';
+import type { FormEvent } from 'react';
 import { useState } from 'react';
 import {
     create as estudiantesCreate,
@@ -76,10 +76,7 @@ export default function EstudiantesIndex({
                             {estudiantes.length !== 1 ? 's' : ''}
                         </p>
                     </div>
-                    <Button
-                        asChild
-                        className="bg-[#ff7043] hover:bg-[#f4511e]"
-                    >
+                    <Button asChild className="bg-[#ff7043] hover:bg-[#f4511e]">
                         <Link href={estudiantesCreate.url()}>
                             <UserPlus className="size-4" />
                             Nuevo estudiante
@@ -87,10 +84,7 @@ export default function EstudiantesIndex({
                     </Button>
                 </div>
 
-                <form
-                    onSubmit={buscar}
-                    className="relative mt-5 max-w-xl"
-                >
+                <form onSubmit={buscar} className="relative mt-5 max-w-xl">
                     <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
                     <Input
                         value={busqueda}
@@ -151,14 +145,21 @@ export default function EstudiantesIndex({
                                         <Badge
                                             className={cn(
                                                 'shrink-0 rounded-full text-xs uppercase',
-                                                estadoBadgeClass(estudiante.estado),
+                                                estadoBadgeClass(
+                                                    estudiante.estado,
+                                                ),
                                             )}
                                         >
                                             {estudiante.estado}
                                         </Badge>
-                                        {estudiante.cuotas && estudiante.cuotas.length > 0 && (
-                                            <SemaforoPagos cuotas={estudiante.cuotas as any} />
-                                        )}
+                                        {estudiante.cuotas &&
+                                            estudiante.cuotas.length > 0 && (
+                                                <SemaforoPagos
+                                                    cuotas={
+                                                        estudiante.cuotas as any
+                                                    }
+                                                />
+                                            )}
                                     </div>
                                 </button>
                             </li>

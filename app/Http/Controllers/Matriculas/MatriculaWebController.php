@@ -24,6 +24,9 @@ class MatriculaWebController extends Controller
     public function create(): Response
     {
         $alumnos = Alumno::query()
+            ->with('apoderado')
+            ->where('estado', 'ACTIVO')
+            ->doesntHave('matriculaVigente')
             ->orderBy('apellidos')
             ->orderBy('nombres')
             ->get(['id_alumno', 'codigo', 'nombres', 'apellidos', 'dni', 'estado', 'telefono']);

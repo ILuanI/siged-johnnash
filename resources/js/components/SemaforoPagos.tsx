@@ -15,31 +15,45 @@ type SemaforoPagosProps = {
     className?: string;
 };
 
-export default function SemaforoPagos({ cuotas = [], estado, className }: SemaforoPagosProps) {
+export default function SemaforoPagos({
+    cuotas = [],
+    estado,
+    className,
+}: SemaforoPagosProps) {
     const estadoActual = estado ?? calcularEstado(cuotas);
     const config = {
         AL_DIA: {
             label: 'Pagos al día',
             icon: CheckCircle2,
-            className: 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50',
+            className:
+                'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50',
         },
         PROXIMO: {
             label: 'Próximo a vencer',
             icon: AlertTriangle,
-            className: 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50',
+            className:
+                'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50',
         },
         VENCIDO: {
             label: 'Vencido',
             icon: XCircle,
-            className: 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50',
+            className:
+                'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50',
         },
-    } satisfies Record<SemaforoEstado, { label: string; icon: typeof CheckCircle2; className: string }>;
+    } satisfies Record<
+        SemaforoEstado,
+        { label: string; icon: typeof CheckCircle2; className: string }
+    >;
     const Icon = config[estadoActual].icon;
 
     return (
         <Badge
             variant="outline"
-            className={cn('gap-1.5 px-3 py-1 text-sm font-semibold', config[estadoActual].className, className)}
+            className={cn(
+                'gap-1.5 px-3 py-1 text-sm font-semibold',
+                config[estadoActual].className,
+                className,
+            )}
         >
             <Icon className="size-3.5" />
             {config[estadoActual].label}
@@ -62,10 +76,15 @@ function calcularEstado(cuotas: CuotaSemaforo[]): SemaforoEstado {
         .map((cuota) => {
             const vencimiento = new Date(`${cuota.fecha_vencimiento}T00:00:00`);
 
-            return Math.ceil((vencimiento.getTime() - hoy.getTime()) / 86_400_000);
+            return Math.ceil(
+                (vencimiento.getTime() - hoy.getTime()) / 86_400_000,
+            );
         });
 
-    if (pendientes.some((cuota) => cuota.estado === 'VENCIDA') || diasHastaVencimiento.some((dias) => dias < 0)) {
+    if (
+        pendientes.some((cuota) => cuota.estado === 'VENCIDA') ||
+        diasHastaVencimiento.some((dias) => dias < 0)
+    ) {
         return 'VENCIDO';
     }
 

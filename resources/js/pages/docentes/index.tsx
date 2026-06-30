@@ -2,7 +2,11 @@ import { Head, useForm, router } from '@inertiajs/react';
 import { Pen, Trash2, UserPlus } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { store, update, destroy } from '@/actions/App/Http/Controllers/DocenteController';
+import {
+    store,
+    update,
+    destroy,
+} from '@/actions/App/Http/Controllers/DocenteController';
 
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -43,13 +47,14 @@ export default function DocentesIndex({ docentes }: Props) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingDocente, setEditingDocente] = useState<Docente | null>(null);
 
-    const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
-        nombres: '',
-        apellidos: '',
-        correo: '',
-        telefono: '',
-        dni: '',
-    });
+    const { data, setData, post, put, processing, errors, reset, clearErrors } =
+        useForm({
+            nombres: '',
+            apellidos: '',
+            correo: '',
+            telefono: '',
+            dni: '',
+        });
 
     const openCreateDialog = () => {
         setEditingDocente(null);
@@ -78,7 +83,7 @@ export default function DocentesIndex({ docentes }: Props) {
             confirmButtonText: 'Eliminar',
         });
 
-        if (! confirmed) {
+        if (!confirmed) {
             return;
         }
 
@@ -88,9 +93,11 @@ export default function DocentesIndex({ docentes }: Props) {
                 if (errors.error) {
                     toast.error(errors.error);
                 } else {
-                    toast.error('Ocurrió un error al intentar eliminar el docente');
+                    toast.error(
+                        'Ocurrió un error al intentar eliminar el docente',
+                    );
                 }
-            }
+            },
         });
     };
 
@@ -105,11 +112,18 @@ export default function DocentesIndex({ docentes }: Props) {
                 },
                 onError: (errs) => {
                     console.error(errs);
-                    const fieldsOrder = ['dni', 'nombres', 'apellidos', 'correo', 'telefono'] as const;
+                    const fieldsOrder = [
+                        'dni',
+                        'nombres',
+                        'apellidos',
+                        'correo',
+                        'telefono',
+                    ] as const;
                     fieldsOrder.forEach((field) => {
                         if (errs[field]) {
                             toast.error(errs[field], {
-                                className: 'bg-rose-50 border-rose-200 text-rose-800'
+                                className:
+                                    'bg-rose-50 border-rose-200 text-rose-800',
                             });
                         }
                     });
@@ -124,11 +138,18 @@ export default function DocentesIndex({ docentes }: Props) {
                 },
                 onError: (errs) => {
                     console.error(errs);
-                    const fieldsOrder = ['dni', 'nombres', 'apellidos', 'correo', 'telefono'] as const;
+                    const fieldsOrder = [
+                        'dni',
+                        'nombres',
+                        'apellidos',
+                        'correo',
+                        'telefono',
+                    ] as const;
                     fieldsOrder.forEach((field) => {
                         if (errs[field]) {
                             toast.error(errs[field], {
-                                className: 'bg-rose-50 border-rose-200 text-rose-800'
+                                className:
+                                    'bg-rose-50 border-rose-200 text-rose-800',
                             });
                         }
                     });
@@ -148,7 +169,9 @@ export default function DocentesIndex({ docentes }: Props) {
                             Directorio de Docentes
                         </h1>
                         <p className="text-sm text-slate-500">
-                            {docentes.total} docente{docentes.total !== 1 ? 's' : ''} registrado{docentes.total !== 1 ? 's' : ''} en la academia.
+                            {docentes.total} docente
+                            {docentes.total !== 1 ? 's' : ''} registrado
+                            {docentes.total !== 1 ? 's' : ''} en la academia.
                         </p>
                     </div>
                     <Button
@@ -167,7 +190,11 @@ export default function DocentesIndex({ docentes }: Props) {
                         <p className="text-slate-600">
                             No hay docentes registrados.
                         </p>
-                        <Button onClick={openCreateDialog} className="mt-4" variant="outline">
+                        <Button
+                            onClick={openCreateDialog}
+                            className="mt-4"
+                            variant="outline"
+                        >
                             Registrar primer docente
                         </Button>
                     </div>
@@ -175,9 +202,7 @@ export default function DocentesIndex({ docentes }: Props) {
                     <ul className="space-y-2">
                         {docentes.data.map((docente) => (
                             <li key={docente.id}>
-                                <div
-                                    className="flex w-full items-center gap-4 rounded-xl border bg-white p-4 transition hover:border-[#ff7043]/40 hover:shadow-sm"
-                                >
+                                <div className="flex w-full items-center gap-4 rounded-xl border bg-white p-4 transition hover:border-[#ff7043]/40 hover:shadow-sm">
                                     <Avatar className="size-12">
                                         <AvatarFallback className="bg-[#1a237e]/10 text-[#1a237e]">
                                             {getInitials(
@@ -204,7 +229,9 @@ export default function DocentesIndex({ docentes }: Props) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => openEditDialog(docente)}
+                                            onClick={() =>
+                                                openEditDialog(docente)
+                                            }
                                             title="Editar"
                                         >
                                             <Pen className="size-4 text-slate-500" />
@@ -212,7 +239,9 @@ export default function DocentesIndex({ docentes }: Props) {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            onClick={() => handleDelete(docente)}
+                                            onClick={() =>
+                                                handleDelete(docente)
+                                            }
                                             className="text-destructive focus:text-destructive"
                                             title="Eliminar"
                                         >
@@ -229,7 +258,11 @@ export default function DocentesIndex({ docentes }: Props) {
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>{editingDocente ? 'Editar Docente' : 'Nuevo Docente'}</DialogTitle>
+                        <DialogTitle>
+                            {editingDocente
+                                ? 'Editar Docente'
+                                : 'Nuevo Docente'}
+                        </DialogTitle>
                         <DialogDescription>
                             {editingDocente
                                 ? 'Modifica los datos del docente.'
@@ -243,11 +276,17 @@ export default function DocentesIndex({ docentes }: Props) {
                                 <Input
                                     id="dni"
                                     value={data.dni}
-                                    onChange={(e) => setData('dni', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('dni', e.target.value)
+                                    }
                                     maxLength={8}
                                     placeholder="Número de DNI"
                                 />
-                                {errors.dni && <p className="text-sm text-destructive">{errors.dni}</p>}
+                                {errors.dni && (
+                                    <p className="text-sm text-destructive">
+                                        {errors.dni}
+                                    </p>
+                                )}
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
@@ -255,48 +294,86 @@ export default function DocentesIndex({ docentes }: Props) {
                                     <Input
                                         id="nombres"
                                         value={data.nombres}
-                                        onChange={(e) => setData('nombres', e.target.value)}
+                                        onChange={(e) =>
+                                            setData('nombres', e.target.value)
+                                        }
                                     />
-                                    {errors.nombres && <p className="text-sm text-destructive">{errors.nombres}</p>}
+                                    {errors.nombres && (
+                                        <p className="text-sm text-destructive">
+                                            {errors.nombres}
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="apellidos">Apellidos</Label>
                                     <Input
                                         id="apellidos"
                                         value={data.apellidos}
-                                        onChange={(e) => setData('apellidos', e.target.value)}
+                                        onChange={(e) =>
+                                            setData('apellidos', e.target.value)
+                                        }
                                     />
-                                    {errors.apellidos && <p className="text-sm text-destructive">{errors.apellidos}</p>}
+                                    {errors.apellidos && (
+                                        <p className="text-sm text-destructive">
+                                            {errors.apellidos}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="correo">Correo Electrónico</Label>
+                                <Label htmlFor="correo">
+                                    Correo Electrónico
+                                </Label>
                                 <Input
                                     id="correo"
                                     type="email"
                                     value={data.correo}
-                                    onChange={(e) => setData('correo', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('correo', e.target.value)
+                                    }
                                     placeholder="ejemplo@correo.com"
                                 />
-                                {errors.correo && <p className="text-sm text-destructive">{errors.correo}</p>}
+                                {errors.correo && (
+                                    <p className="text-sm text-destructive">
+                                        {errors.correo}
+                                    </p>
+                                )}
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="telefono">Teléfono (Opcional)</Label>
+                                <Label htmlFor="telefono">
+                                    Teléfono (Opcional)
+                                </Label>
                                 <Input
                                     id="telefono"
                                     value={data.telefono}
-                                    onChange={(e) => setData('telefono', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('telefono', e.target.value)
+                                    }
                                     placeholder="Número de contacto"
                                 />
-                                {errors.telefono && <p className="text-sm text-destructive">{errors.telefono}</p>}
+                                {errors.telefono && (
+                                    <p className="text-sm text-destructive">
+                                        {errors.telefono}
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsDialogOpen(false)}
+                            >
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={processing} className="bg-[#ff7043] hover:bg-[#f4511e]">
-                                {editingDocente ? 'Guardar Cambios' : 'Registrar'}
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                className="bg-[#ff7043] hover:bg-[#f4511e]"
+                            >
+                                {editingDocente
+                                    ? 'Guardar Cambios'
+                                    : 'Registrar'}
                             </Button>
                         </DialogFooter>
                     </form>

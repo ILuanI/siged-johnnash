@@ -49,7 +49,11 @@ type PageProps = {
     colegios: ColegioProcedencia[];
 };
 
-export default function EstudianteCreate({ carreras, areas, colegios }: PageProps) {
+export default function EstudianteCreate({
+    carreras,
+    areas,
+    colegios,
+}: PageProps) {
     const { data, setData, post, processing, errors } = useForm({
         nombres: '',
         apellidos: '',
@@ -70,7 +74,9 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
     const [carreraAreaId, setCarreraAreaId] = useState('');
     const [carreraPuntajeMin, setCarreraPuntajeMin] = useState('');
     const [carreraPuntajeMax, setCarreraPuntajeMax] = useState('');
-    const [carreraErrors, setCarreraErrors] = useState<Record<string, string>>({});
+    const [carreraErrors, setCarreraErrors] = useState<Record<string, string>>(
+        {},
+    );
     const [carreraLoading, setCarreraLoading] = useState(false);
 
     const handleCreateCarrera = (e: React.FormEvent) => {
@@ -97,7 +103,9 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                 },
                 onError: (errs) => {
                     setCarreraErrors(errs as Record<string, string>);
-                    Object.values(errs).forEach((message) => toast.error(message));
+                    Object.values(errs).forEach((message) =>
+                        toast.error(message),
+                    );
                 },
                 onFinish: () => setCarreraLoading(false),
                 preserveState: true,
@@ -128,8 +136,12 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                 </Link>
                 <div className="flex flex-wrap items-end justify-between gap-3">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Registrar estudiante</h1>
-                        <p className="text-sm text-slate-500">El código del alumno será su DNI.</p>
+                        <h1 className="text-2xl font-bold text-slate-900">
+                            Registrar estudiante
+                        </h1>
+                        <p className="text-sm text-slate-500">
+                            El código del alumno será su DNI.
+                        </p>
                     </div>
                     <Button asChild variant="outline">
                         <Link href={catalogoIndex.url()}>
@@ -141,14 +153,19 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
             </header>
 
             <div className="mx-auto max-w-2xl px-8 py-8">
-                <form onSubmit={submit} className="space-y-6 rounded-xl border bg-white p-6 shadow-sm">
+                <form
+                    onSubmit={submit}
+                    className="space-y-6 rounded-xl border bg-white p-6 shadow-sm"
+                >
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                             <Label htmlFor="nombres">Nombres *</Label>
                             <Input
                                 id="nombres"
                                 value={data.nombres}
-                                onChange={(e) => setData('nombres', e.target.value)}
+                                onChange={(e) =>
+                                    setData('nombres', e.target.value)
+                                }
                                 required
                             />
                             <InputError message={errors.nombres} />
@@ -158,7 +175,9 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                             <Input
                                 id="apellidos"
                                 value={data.apellidos}
-                                onChange={(e) => setData('apellidos', e.target.value)}
+                                onChange={(e) =>
+                                    setData('apellidos', e.target.value)
+                                }
                                 required
                             />
                             <InputError message={errors.apellidos} />
@@ -168,7 +187,12 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                             <Input
                                 id="dni"
                                 value={data.dni}
-                                onChange={(e) => setData('dni', e.target.value.replace(/\D/g, ''))}
+                                onChange={(e) =>
+                                    setData(
+                                        'dni',
+                                        e.target.value.replace(/\D/g, ''),
+                                    )
+                                }
                                 maxLength={8}
                                 pattern="\d{8}"
                                 required
@@ -180,23 +204,32 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                             <Input
                                 id="telefono"
                                 value={data.telefono}
-                                onChange={(e) => setData('telefono', e.target.value)}
+                                onChange={(e) =>
+                                    setData('telefono', e.target.value)
+                                }
                             />
                             <InputError message={errors.telefono} />
                         </div>
                         <div>
-                            <Label htmlFor="fecha_nac">Fecha de nacimiento</Label>
+                            <Label htmlFor="fecha_nac">
+                                Fecha de nacimiento
+                            </Label>
                             <Input
                                 id="fecha_nac"
                                 type="date"
                                 value={data.fecha_nac}
-                                onChange={(e) => setData('fecha_nac', e.target.value)}
+                                onChange={(e) =>
+                                    setData('fecha_nac', e.target.value)
+                                }
                             />
                             <InputError message={errors.fecha_nac} />
                         </div>
                         <div>
                             <Label htmlFor="sexo">Sexo</Label>
-                            <Select value={data.sexo} onValueChange={(val) => setData('sexo', val)}>
+                            <Select
+                                value={data.sexo}
+                                onValueChange={(val) => setData('sexo', val)}
+                            >
                                 <SelectTrigger id="sexo">
                                     <SelectValue placeholder="Seleccionar" />
                                 </SelectTrigger>
@@ -246,11 +279,15 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                             <InputError message={errors.id_carrera} />
                         </div>
                         <div>
-                            <Label htmlFor="colegio_procedencia_id">Colegio de procedencia</Label>
+                            <Label htmlFor="colegio_procedencia_id">
+                                Colegio de procedencia
+                            </Label>
                             <Combobox
                                 id="colegio_procedencia_id"
                                 value={data.colegio_procedencia_id}
-                                onChange={(val) => setData('colegio_procedencia_id', val)}
+                                onChange={(val) =>
+                                    setData('colegio_procedencia_id', val)
+                                }
                                 placeholder="Sin colegio registrado"
                                 searchPlaceholder="Buscar colegio…"
                                 emptyText="Sin colegios. Agrégalos en Configuración."
@@ -259,15 +296,21 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                                     label: colegio.nombre,
                                 }))}
                             />
-                            <InputError message={errors.colegio_procedencia_id} />
+                            <InputError
+                                message={errors.colegio_procedencia_id}
+                            />
                         </div>
                     </div>
 
                     <div className="space-y-4 border-t border-slate-100 pt-5">
-                        <p className="text-sm font-medium text-slate-700">Apoderado</p>
+                        <p className="text-sm font-medium text-slate-700">
+                            Apoderado
+                        </p>
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div>
-                                <Label htmlFor="apoderado_nombres">Nombre</Label>
+                                <Label htmlFor="apoderado_nombres">
+                                    Nombre
+                                </Label>
                                 <Input
                                     id="apoderado_nombres"
                                     value={data.apoderado.nombres}
@@ -278,10 +321,14 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                                         })
                                     }
                                 />
-                                <InputError message={errors['apoderado.nombres']} />
+                                <InputError
+                                    message={errors['apoderado.nombres']}
+                                />
                             </div>
                             <div>
-                                <Label htmlFor="apoderado_telefono">Teléfono</Label>
+                                <Label htmlFor="apoderado_telefono">
+                                    Teléfono
+                                </Label>
                                 <Input
                                     id="apoderado_telefono"
                                     value={data.apoderado.telefono}
@@ -292,13 +339,19 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                                         })
                                     }
                                 />
-                                <InputError message={errors['apoderado.telefono']} />
+                                <InputError
+                                    message={errors['apoderado.telefono']}
+                                />
                             </div>
                         </div>
                     </div>
 
                     <div className="flex gap-3 pt-2">
-                        <Button type="submit" disabled={processing} className="bg-[#ff7043] hover:bg-[#f4511e]">
+                        <Button
+                            type="submit"
+                            disabled={processing}
+                            className="bg-[#ff7043] hover:bg-[#f4511e]"
+                        >
                             Registrar estudiante
                         </Button>
                         <Button type="button" variant="outline" asChild>
@@ -308,11 +361,17 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                 </form>
             </div>
 
-            <Dialog open={isCarreraDialogOpen} onOpenChange={setIsCarreraDialogOpen}>
+            <Dialog
+                open={isCarreraDialogOpen}
+                onOpenChange={setIsCarreraDialogOpen}
+            >
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Nueva carrera</DialogTitle>
-                        <DialogDescription>Registra una carrera para asociarla a los estudiantes.</DialogDescription>
+                        <DialogDescription>
+                            Registra una carrera para asociarla a los
+                            estudiantes.
+                        </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleCreateCarrera}>
                         <div className="grid gap-4 py-4">
@@ -321,36 +380,58 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                                 <Input
                                     id="carrera_nombre"
                                     value={carreraNombre}
-                                    onChange={(e) => setCarreraNombre(e.target.value)}
+                                    onChange={(e) =>
+                                        setCarreraNombre(e.target.value)
+                                    }
                                     required
                                 />
-                                {carreraErrors.nombre && <p className="text-sm text-destructive">{carreraErrors.nombre}</p>}
+                                {carreraErrors.nombre && (
+                                    <p className="text-sm text-destructive">
+                                        {carreraErrors.nombre}
+                                    </p>
+                                )}
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="carrera_area">Área *</Label>
-                                <Select value={carreraAreaId} onValueChange={setCarreraAreaId}>
+                                <Select
+                                    value={carreraAreaId}
+                                    onValueChange={setCarreraAreaId}
+                                >
                                     <SelectTrigger id="carrera_area">
                                         <SelectValue placeholder="Selecciona un área" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {areas.length > 0 ? (
                                             areas.map((area) => (
-                                                <SelectItem key={area.id_area} value={area.id_area.toString()}>
-                                                    Área {area.codigo} - {area.nombre}
+                                                <SelectItem
+                                                    key={area.id_area}
+                                                    value={area.id_area.toString()}
+                                                >
+                                                    Área {area.codigo} -{' '}
+                                                    {area.nombre}
                                                 </SelectItem>
                                             ))
                                         ) : (
-                                            <SelectItem value="sin-areas" disabled>
+                                            <SelectItem
+                                                value="sin-areas"
+                                                disabled
+                                            >
                                                 Sin áreas registradas
                                             </SelectItem>
                                         )}
                                     </SelectContent>
                                 </Select>
-                                {carreraErrors.id_area && <p className="text-sm text-destructive">{carreraErrors.id_area}</p>}
+                                {carreraErrors.id_area && (
+                                    <p className="text-sm text-destructive">
+                                        {carreraErrors.id_area}
+                                    </p>
+                                )}
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="puntaje_min">Puntaje min.</Label>
+                                    <Label htmlFor="puntaje_min">
+                                        Puntaje min.
+                                    </Label>
                                     <Input
                                         id="puntaje_min"
                                         type="number"
@@ -358,11 +439,15 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                                         min="0"
                                         max="20"
                                         value={carreraPuntajeMin}
-                                        onChange={(e) => setCarreraPuntajeMin(e.target.value)}
+                                        onChange={(e) =>
+                                            setCarreraPuntajeMin(e.target.value)
+                                        }
                                     />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="puntaje_max">Puntaje max.</Label>
+                                    <Label htmlFor="puntaje_max">
+                                        Puntaje max.
+                                    </Label>
                                     <Input
                                         id="puntaje_max"
                                         type="number"
@@ -370,17 +455,29 @@ export default function EstudianteCreate({ carreras, areas, colegios }: PageProp
                                         min="0"
                                         max="20"
                                         value={carreraPuntajeMax}
-                                        onChange={(e) => setCarreraPuntajeMax(e.target.value)}
+                                        onChange={(e) =>
+                                            setCarreraPuntajeMax(e.target.value)
+                                        }
                                     />
                                 </div>
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button type="button" variant="outline" onClick={() => setIsCarreraDialogOpen(false)}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsCarreraDialogOpen(false)}
+                            >
                                 Cancelar
                             </Button>
-                            <Button type="submit" disabled={carreraLoading} className="bg-[#ff7043] hover:bg-[#f4511e]">
-                                {carreraLoading ? 'Creando...' : 'Crear carrera'}
+                            <Button
+                                type="submit"
+                                disabled={carreraLoading}
+                                className="bg-[#ff7043] hover:bg-[#f4511e]"
+                            >
+                                {carreraLoading
+                                    ? 'Creando...'
+                                    : 'Crear carrera'}
                             </Button>
                         </DialogFooter>
                     </form>

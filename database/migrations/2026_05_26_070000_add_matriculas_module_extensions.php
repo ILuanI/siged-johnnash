@@ -58,7 +58,8 @@ return new class extends Migration
                     Schema::table('matricula', function (Blueprint $table) {
                         $table->foreign('id_periodo')->references('id_periodo')->on('periodo_academico');
                     });
-                } catch (\Exception $e) {}
+                } catch (Exception $e) {
+                }
             }
 
             if (Schema::hasTable('turno') && Schema::hasColumn('matricula', 'id_turno')) {
@@ -66,7 +67,8 @@ return new class extends Migration
                     Schema::table('matricula', function (Blueprint $table) {
                         $table->foreign('id_turno')->references('id_turno')->on('turno');
                     });
-                } catch (\Exception $e) {}
+                } catch (Exception $e) {
+                }
             }
 
             if (Schema::hasTable('aula') && Schema::hasColumn('matricula', 'id_aula')) {
@@ -74,7 +76,8 @@ return new class extends Migration
                     Schema::table('matricula', function (Blueprint $table) {
                         $table->foreign('id_aula')->references('id_aula')->on('aula');
                     });
-                } catch (\Exception $e) {}
+                } catch (Exception $e) {
+                }
             }
         }
 

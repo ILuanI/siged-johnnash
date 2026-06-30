@@ -1,7 +1,18 @@
 import { Head, router, useForm } from '@inertiajs/react';
-import { Pen, Search, ShieldCheck, ShieldPlus, Trash2, Users } from 'lucide-react';
+import {
+    Pen,
+    Search,
+    ShieldCheck,
+    ShieldPlus,
+    Trash2,
+    Users,
+} from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { destroy, store, update } from '@/actions/App/Http/Controllers/RolController';
+import {
+    destroy,
+    store,
+    update,
+} from '@/actions/App/Http/Controllers/RolController';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,8 +27,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { usePermisos   } from '@/hooks/use-permisos';
-import type {PermisoModulo, PermisosMap} from '@/hooks/use-permisos';
+import { usePermisos } from '@/hooks/use-permisos';
+import type { PermisoModulo, PermisosMap } from '@/hooks/use-permisos';
 import { confirmAction } from '@/lib/confirm';
 import { cn } from '@/lib/utils';
 
@@ -54,7 +65,10 @@ export default function RolesIndex({ roles, modulos }: Props) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingRol, setEditingRol] = useState<Rol | null>(null);
 
-    const permisosVacios = useMemo(() => crearPermisosVacios(modulos), [modulos]);
+    const permisosVacios = useMemo(
+        () => crearPermisosVacios(modulos),
+        [modulos],
+    );
 
     const { data, setData, processing, errors, reset, clearErrors } = useForm({
         nombre: '',
@@ -111,7 +125,7 @@ export default function RolesIndex({ roles, modulos }: Props) {
             confirmButtonText: 'Eliminar',
         });
 
-        if (! confirmed) {
+        if (!confirmed) {
             return;
         }
 
@@ -124,10 +138,14 @@ export default function RolesIndex({ roles, modulos }: Props) {
         e.preventDefault();
 
         if (editingRol) {
-            router.put(update.url({ rol: editingRol.id_rol.toString() }), data, {
-                preserveScroll: true,
-                onSuccess: () => setIsDialogOpen(false),
-            });
+            router.put(
+                update.url({ rol: editingRol.id_rol.toString() }),
+                data,
+                {
+                    preserveScroll: true,
+                    onSuccess: () => setIsDialogOpen(false),
+                },
+            );
 
             return;
         }
@@ -159,7 +177,8 @@ export default function RolesIndex({ roles, modulos }: Props) {
                             Roles del sistema
                         </h1>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                            {roles.total} rol{roles.total !== 1 ? 'es' : ''} configurado{roles.total !== 1 ? 's' : ''}.
+                            {roles.total} rol{roles.total !== 1 ? 'es' : ''}{' '}
+                            configurado{roles.total !== 1 ? 's' : ''}.
                         </p>
                     </div>
                     {puede('roles', 'editar') && (
@@ -177,7 +196,9 @@ export default function RolesIndex({ roles, modulos }: Props) {
             <div className="flex-1 px-8 py-6">
                 <div className="mb-4 flex max-w-md items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm text-slate-500 dark:bg-background">
                     <Search className="size-4 shrink-0" />
-                    <span>Asigna vistas y permisos de edición o eliminación</span>
+                    <span>
+                        Asigna vistas y permisos de edición o eliminación
+                    </span>
                 </div>
 
                 {roles.data.length === 0 ? (
@@ -199,16 +220,29 @@ export default function RolesIndex({ roles, modulos }: Props) {
                                             <p className="truncate font-semibold text-slate-900 dark:text-white">
                                                 {rol.nombre}
                                             </p>
-                                            <Badge variant="outline" className="gap-1">
+                                            <Badge
+                                                variant="outline"
+                                                className="gap-1"
+                                            >
                                                 <Users className="size-3" />
-                                                {rol.usuarios_count} usuario{rol.usuarios_count !== 1 ? 's' : ''}
+                                                {rol.usuarios_count} usuario
+                                                {rol.usuarios_count !== 1
+                                                    ? 's'
+                                                    : ''}
                                             </Badge>
                                             <Badge variant="outline">
-                                                {contarPermisos(rol.permisos)} vista{contarPermisos(rol.permisos) !== 1 ? 's' : ''}
+                                                {contarPermisos(rol.permisos)}{' '}
+                                                vista
+                                                {contarPermisos(
+                                                    rol.permisos,
+                                                ) !== 1
+                                                    ? 's'
+                                                    : ''}
                                             </Badge>
                                         </div>
                                         <p className="truncate text-sm text-slate-500">
-                                            {rol.descripcion || 'Sin descripción'}
+                                            {rol.descripcion ||
+                                                'Sin descripción'}
                                         </p>
                                     </div>
                                     <div className="flex shrink-0 items-center gap-2">
@@ -216,7 +250,9 @@ export default function RolesIndex({ roles, modulos }: Props) {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => openEditDialog(rol)}
+                                                onClick={() =>
+                                                    openEditDialog(rol)
+                                                }
                                                 title="Editar"
                                             >
                                                 <Pen className="size-4 text-slate-500" />
@@ -226,10 +262,14 @@ export default function RolesIndex({ roles, modulos }: Props) {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                onClick={() => handleDelete(rol)}
+                                                onClick={() =>
+                                                    handleDelete(rol)
+                                                }
                                                 className="text-destructive focus:text-destructive"
                                                 title="Eliminar"
-                                                disabled={rol.usuarios_count > 0}
+                                                disabled={
+                                                    rol.usuarios_count > 0
+                                                }
                                             >
                                                 <Trash2 className="size-4" />
                                             </Button>
@@ -249,7 +289,8 @@ export default function RolesIndex({ roles, modulos }: Props) {
                             {editingRol ? 'Editar rol' : 'Nuevo rol'}
                         </DialogTitle>
                         <DialogDescription>
-                            Define el nombre del rol y qué módulos puede ver, editar o eliminar.
+                            Define el nombre del rol y qué módulos puede ver,
+                            editar o eliminar.
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit}>
@@ -259,7 +300,9 @@ export default function RolesIndex({ roles, modulos }: Props) {
                                 <Input
                                     id="nombre"
                                     value={data.nombre}
-                                    onChange={(e) => setData('nombre', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('nombre', e.target.value)
+                                    }
                                     placeholder="Ej. Coordinador"
                                 />
                                 <InputError message={errors.nombre} />
@@ -269,12 +312,14 @@ export default function RolesIndex({ roles, modulos }: Props) {
                                 <textarea
                                     id="descripcion"
                                     value={data.descripcion}
-                                    onChange={(e) => setData('descripcion', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('descripcion', e.target.value)
+                                    }
                                     placeholder="Describe las responsabilidades del rol"
                                     rows={2}
                                     className={cn(
-                                        'border-input placeholder:text-muted-foreground flex min-h-16 w-full rounded-md border bg-transparent px-3 py-2 text-base shadow-xs outline-none md:text-sm',
-                                        'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
+                                        'flex min-h-16 w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none placeholder:text-muted-foreground md:text-sm',
+                                        'focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
                                     )}
                                 />
                                 <InputError message={errors.descripcion} />
@@ -286,46 +331,105 @@ export default function RolesIndex({ roles, modulos }: Props) {
                                     <table className="w-full text-sm">
                                         <thead className="bg-slate-50 dark:bg-slate-900">
                                             <tr>
-                                                <th className="px-3 py-2 text-left font-medium">Módulo</th>
-                                                <th className="px-3 py-2 text-center font-medium">Ver</th>
-                                                <th className="px-3 py-2 text-center font-medium">Editar</th>
-                                                <th className="px-3 py-2 text-center font-medium">Eliminar</th>
+                                                <th className="px-3 py-2 text-left font-medium">
+                                                    Módulo
+                                                </th>
+                                                <th className="px-3 py-2 text-center font-medium">
+                                                    Ver
+                                                </th>
+                                                <th className="px-3 py-2 text-center font-medium">
+                                                    Editar
+                                                </th>
+                                                <th className="px-3 py-2 text-center font-medium">
+                                                    Eliminar
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {Object.entries(modulos).map(([modulo, etiqueta]) => (
-                                                <tr key={modulo} className="border-t">
-                                                    <td className="px-3 py-2">{etiqueta}</td>
-                                                    <td className="px-3 py-2 text-center">
-                                                        <Checkbox
-                                                            checked={data.permisos[modulo]?.puede_ver ?? false}
-                                                            onCheckedChange={(checked) =>
-                                                                actualizarPermiso(modulo, 'puede_ver', checked === true)
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td className="px-3 py-2 text-center">
-                                                        <Checkbox
-                                                            checked={data.permisos[modulo]?.puede_editar ?? false}
-                                                            onCheckedChange={(checked) =>
-                                                                actualizarPermiso(modulo, 'puede_editar', checked === true)
-                                                            }
-                                                        />
-                                                    </td>
-                                                    <td className="px-3 py-2 text-center">
-                                                        <Checkbox
-                                                            checked={data.permisos[modulo]?.puede_eliminar ?? false}
-                                                            onCheckedChange={(checked) =>
-                                                                actualizarPermiso(modulo, 'puede_eliminar', checked === true)
-                                                            }
-                                                        />
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {Object.entries(modulos).map(
+                                                ([modulo, etiqueta]) => (
+                                                    <tr
+                                                        key={modulo}
+                                                        className="border-t"
+                                                    >
+                                                        <td className="px-3 py-2">
+                                                            {etiqueta}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center">
+                                                            <Checkbox
+                                                                checked={
+                                                                    data
+                                                                        .permisos[
+                                                                        modulo
+                                                                    ]
+                                                                        ?.puede_ver ??
+                                                                    false
+                                                                }
+                                                                onCheckedChange={(
+                                                                    checked,
+                                                                ) =>
+                                                                    actualizarPermiso(
+                                                                        modulo,
+                                                                        'puede_ver',
+                                                                        checked ===
+                                                                            true,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center">
+                                                            <Checkbox
+                                                                checked={
+                                                                    data
+                                                                        .permisos[
+                                                                        modulo
+                                                                    ]
+                                                                        ?.puede_editar ??
+                                                                    false
+                                                                }
+                                                                onCheckedChange={(
+                                                                    checked,
+                                                                ) =>
+                                                                    actualizarPermiso(
+                                                                        modulo,
+                                                                        'puede_editar',
+                                                                        checked ===
+                                                                            true,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </td>
+                                                        <td className="px-3 py-2 text-center">
+                                                            <Checkbox
+                                                                checked={
+                                                                    data
+                                                                        .permisos[
+                                                                        modulo
+                                                                    ]
+                                                                        ?.puede_eliminar ??
+                                                                    false
+                                                                }
+                                                                onCheckedChange={(
+                                                                    checked,
+                                                                ) =>
+                                                                    actualizarPermiso(
+                                                                        modulo,
+                                                                        'puede_eliminar',
+                                                                        checked ===
+                                                                            true,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </td>
+                                                    </tr>
+                                                ),
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
-                                <InputError message={errors.permisos as string} />
+                                <InputError
+                                    message={errors.permisos as string}
+                                />
                             </div>
                         </div>
                         <DialogFooter>

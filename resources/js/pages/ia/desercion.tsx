@@ -1,5 +1,11 @@
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, Brain, GraduationCap, Percent, Users } from 'lucide-react';
+import {
+    AlertTriangle,
+    Brain,
+    GraduationCap,
+    Percent,
+    Users,
+} from 'lucide-react';
 import { index as estudiantesIndex } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -64,7 +70,12 @@ type PageProps = {
     procesados: number;
 };
 
-export default function DesercionIaPage({ resumen, distribucion, prioritarios, procesados }: PageProps) {
+export default function DesercionIaPage({
+    resumen,
+    distribucion,
+    prioritarios,
+    procesados,
+}: PageProps) {
     return (
         <>
             <Head title="IA Deserción" />
@@ -72,9 +83,12 @@ export default function DesercionIaPage({ resumen, distribucion, prioritarios, p
             <header className="border-b bg-white px-8 py-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">IA de riesgo de deserción</h1>
+                        <h1 className="text-2xl font-bold text-slate-900">
+                            IA de riesgo de deserción
+                        </h1>
                         <p className="text-sm text-slate-500">
-                            Cálculo basado en asistencia, notas y pagos vencidos.
+                            Cálculo basado en asistencia, notas y pagos
+                            vencidos.
                         </p>
                     </div>
                     <Badge variant="outline" className="rounded-full px-3 py-1">
@@ -85,22 +99,52 @@ export default function DesercionIaPage({ resumen, distribucion, prioritarios, p
 
             <main className="space-y-6 px-8 py-6">
                 <section className="grid gap-4 md:grid-cols-4">
-                    <MetricCard icon={Users} label="Evaluados" value={resumen.total.toString()} />
-                    <MetricCard icon={Percent} label="Riesgo promedio" value={`${resumen.promedio_riesgo.toFixed(1)}%`} />
-                    <MetricCard icon={AlertTriangle} label="Prioritarios" value={resumen.prioritarios.toString()} tone="danger" />
-                    <MetricCard icon={Brain} label="Riesgo alto" value={resumen.alto.toString()} tone="warning" />
+                    <MetricCard
+                        icon={Users}
+                        label="Evaluados"
+                        value={resumen.total.toString()}
+                    />
+                    <MetricCard
+                        icon={Percent}
+                        label="Riesgo promedio"
+                        value={`${resumen.promedio_riesgo.toFixed(1)}%`}
+                    />
+                    <MetricCard
+                        icon={AlertTriangle}
+                        label="Prioritarios"
+                        value={resumen.prioritarios.toString()}
+                        tone="danger"
+                    />
+                    <MetricCard
+                        icon={Brain}
+                        label="Riesgo alto"
+                        value={resumen.alto.toString()}
+                        tone="warning"
+                    />
                 </section>
 
                 <section className="grid gap-4 lg:grid-cols-[320px_1fr]">
                     <div className="rounded-lg border bg-white p-5">
-                        <h2 className="text-base font-semibold text-slate-900">Distribución</h2>
+                        <h2 className="text-base font-semibold text-slate-900">
+                            Distribución
+                        </h2>
                         <div className="mt-4 space-y-3">
                             {distribucion.map((item) => (
-                                <div key={item.nivel} className="flex items-center justify-between rounded-lg border px-3 py-2">
-                                    <Badge className={cn('rounded-full', riesgoBadgeClass(item.nivel))}>
+                                <div
+                                    key={item.nivel}
+                                    className="flex items-center justify-between rounded-lg border px-3 py-2"
+                                >
+                                    <Badge
+                                        className={cn(
+                                            'rounded-full',
+                                            riesgoBadgeClass(item.nivel),
+                                        )}
+                                    >
                                         {item.nivel}
                                     </Badge>
-                                    <span className="font-semibold text-slate-900">{item.total}</span>
+                                    <span className="font-semibold text-slate-900">
+                                        {item.total}
+                                    </span>
                                 </div>
                             ))}
                         </div>
@@ -109,8 +153,12 @@ export default function DesercionIaPage({ resumen, distribucion, prioritarios, p
                     <div className="rounded-lg border bg-white">
                         <div className="flex items-center justify-between gap-3 border-b p-5">
                             <div>
-                                <h2 className="text-base font-semibold text-slate-900">Atención prioritaria</h2>
-                                <p className="text-sm text-slate-500">Alumnos con riesgo mayor a 75%.</p>
+                                <h2 className="text-base font-semibold text-slate-900">
+                                    Atención prioritaria
+                                </h2>
+                                <p className="text-sm text-slate-500">
+                                    Alumnos con riesgo mayor a 75%.
+                                </p>
                             </div>
                             <Badge className="rounded-full bg-red-100 text-red-700 hover:bg-red-100">
                                 {prioritarios.length} casos
@@ -126,41 +174,89 @@ export default function DesercionIaPage({ resumen, distribucion, prioritarios, p
                                     <TableHead>Promedio</TableHead>
                                     <TableHead>Cuotas</TableHead>
                                     <TableHead>Riesgo</TableHead>
-                                    <TableHead className="text-right">Perfil</TableHead>
+                                    <TableHead className="text-right">
+                                        Perfil
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {prioritarios.length > 0 ? (
                                     prioritarios.map((prediccion) => (
-                                        <TableRow key={prediccion.id_prediccion}>
+                                        <TableRow
+                                            key={prediccion.id_prediccion}
+                                        >
                                             <TableCell>
                                                 <div className="font-medium text-slate-900">
-                                                    {prediccion.alumno?.nombre_completo ?? 'Sin alumno'}
+                                                    {prediccion.alumno
+                                                        ?.nombre_completo ??
+                                                        'Sin alumno'}
                                                 </div>
                                                 <div className="text-xs text-slate-500">
-                                                    DNI {prediccion.alumno?.dni ?? '—'}
+                                                    DNI{' '}
+                                                    {prediccion.alumno?.dni ??
+                                                        '—'}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <div>{prediccion.alumno?.carrera?.nombre ?? 'Sin carrera'}</div>
+                                                <div>
+                                                    {prediccion.alumno?.carrera
+                                                        ?.nombre ??
+                                                        'Sin carrera'}
+                                                </div>
                                                 <div className="text-xs text-slate-500">
-                                                    {prediccion.alumno?.carrera?.area
+                                                    {prediccion.alumno?.carrera
+                                                        ?.area
                                                         ? `Área ${prediccion.alumno.carrera.area.codigo}`
                                                         : 'Sin área'}
                                                 </div>
                                             </TableCell>
-                                            <TableCell>{formatPercent(prediccion.tasa_asistencia)}</TableCell>
-                                            <TableCell>{formatNumber(prediccion.promedio_examenes)}</TableCell>
-                                            <TableCell>{prediccion.cuotas_vencidas ?? 0}</TableCell>
                                             <TableCell>
-                                                <Badge className={cn('rounded-full', riesgoBadgeClass(prediccion.nivel_riesgo))}>
-                                                    {prediccion.riesgo_pct.toFixed(1)}%
+                                                {formatPercent(
+                                                    prediccion.tasa_asistencia,
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {formatNumber(
+                                                    prediccion.promedio_examenes,
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {prediccion.cuotas_vencidas ??
+                                                    0}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge
+                                                    className={cn(
+                                                        'rounded-full',
+                                                        riesgoBadgeClass(
+                                                            prediccion.nivel_riesgo,
+                                                        ),
+                                                    )}
+                                                >
+                                                    {prediccion.riesgo_pct.toFixed(
+                                                        1,
+                                                    )}
+                                                    %
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 {prediccion.alumno && (
-                                                    <Button asChild size="sm" variant="outline">
-                                                        <Link href={estudiantesIndex.url({ query: { alumno: prediccion.alumno.id_alumno } })}>
+                                                    <Button
+                                                        asChild
+                                                        size="sm"
+                                                        variant="outline"
+                                                    >
+                                                        <Link
+                                                            href={estudiantesIndex.url(
+                                                                {
+                                                                    query: {
+                                                                        alumno: prediccion
+                                                                            .alumno
+                                                                            .id_alumno,
+                                                                    },
+                                                                },
+                                                            )}
+                                                        >
                                                             <GraduationCap className="size-4" />
                                                             Ver
                                                         </Link>
@@ -171,8 +267,12 @@ export default function DesercionIaPage({ resumen, distribucion, prioritarios, p
                                     ))
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="py-10 text-center text-slate-500">
-                                            No hay alumnos en atención prioritaria.
+                                        <TableCell
+                                            colSpan={7}
+                                            className="py-10 text-center text-slate-500"
+                                        >
+                                            No hay alumnos en atención
+                                            prioritaria.
                                         </TableCell>
                                     </TableRow>
                                 )}

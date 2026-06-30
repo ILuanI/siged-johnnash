@@ -1,16 +1,15 @@
 <?php
 
-use App\Models\Alumno;
-use App\Models\Matricula;
-use App\Models\Ciclo;
-use App\Models\PeriodoAcademico;
-use App\Models\Turno;
-use App\Models\Aula;
-use App\Models\Carrera;
+use App\Enums\EstadoAlumno;
 use App\Enums\EstadoMatricula;
 use App\Enums\ModalidadMatricula;
 use App\Enums\TipoPagoMatricula;
-use App\Enums\EstadoAlumno;
+use App\Models\Alumno;
+use App\Models\Aula;
+use App\Models\Ciclo;
+use App\Models\Matricula;
+use App\Models\PeriodoAcademico;
+use App\Models\Turno;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -66,10 +65,10 @@ describe('Caso 2: Creación de Matrícula Válida', function () {
                 'costo_total' => 3500.00,
                 'estado' => EstadoMatricula::Vigente,
             ]);
-            
+
             $this->fail('Debería fallar con alumno inválido');
-        } catch (\Exception $e) {
-            expect($e)->toBeInstanceOf(\Exception::class);
+        } catch (Exception $e) {
+            expect($e)->toBeInstanceOf(Exception::class);
         }
     });
 
@@ -99,8 +98,8 @@ describe('Caso 2: Creación de Matrícula Válida', function () {
                 Matricula::where('costo_total', 0)->exists(),
                 'No debería existir matrícula con costo 0'
             );
-        } catch (\Exception $e) {
-            expect($e)->toBeInstanceOf(\Exception::class);
+        } catch (Exception $e) {
+            expect($e)->toBeInstanceOf(Exception::class);
         }
     });
 });
