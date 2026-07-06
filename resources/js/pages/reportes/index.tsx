@@ -6,8 +6,21 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 
 interface AlumnoReportRow {
     id_alumno: number;
@@ -48,11 +61,18 @@ interface Props {
     };
 }
 
-export default function ReportesIndex({ estudiantes, turnos, areas, filters }: Props) {
+export default function ReportesIndex({
+    estudiantes,
+    turnos,
+    areas,
+    filters,
+}: Props) {
     const [q, setQ] = useState(filters.q || '');
     const [idTurno, setIdTurno] = useState(filters.id_turno || 'all');
     const [idArea, setIdArea] = useState(filters.id_area || 'all');
-    const [tardanzasCount, setTardanzasCount] = useState(filters.tardanzas_count || '');
+    const [tardanzasCount, setTardanzasCount] = useState(
+        filters.tardanzas_count || '',
+    );
     const [faltasCount, setFaltasCount] = useState(filters.faltas_count || '');
     const [loading, setLoading] = useState(false);
 
@@ -99,9 +119,13 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
         setTardanzasCount('');
         setFaltasCount('');
         setLoading(true);
-        router.get('/reportes', {}, {
-            onFinish: () => setLoading(false),
-        });
+        router.get(
+            '/reportes',
+            {},
+            {
+                onFinish: () => setLoading(false),
+            },
+        );
     };
 
     const handlePageChange = (page: number) => {
@@ -173,7 +197,8 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                             Reportes BI & Filtros Avanzados
                         </h1>
                         <p className="text-sm text-slate-500">
-                            Filtra, cruza información académica y de asistencia, y exporta a Excel.
+                            Filtra, cruza información académica y de asistencia,
+                            y exporta a Excel.
                         </p>
                     </div>
                     <div className="flex gap-2">
@@ -189,7 +214,7 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                             onClick={handleExportPdf}
                             disabled={estudiantes.total === 0}
                             variant="outline"
-                            className="border-slate-300 hover:bg-slate-50 text-slate-700"
+                            className="border-slate-300 text-slate-700 hover:bg-slate-50"
                         >
                             <Download className="mr-2 size-4 text-red-500" />
                             Exportar a PDF (.pdf)
@@ -201,7 +226,10 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
             <div className="flex-1 space-y-6 px-8 py-6">
                 {/* Panel de Filtros */}
                 <div className="rounded-xl border bg-white p-6 shadow-sm">
-                    <form onSubmit={handleSearchSubmit} className="grid gap-4 md:grid-cols-5 items-end">
+                    <form
+                        onSubmit={handleSearchSubmit}
+                        className="grid items-end gap-4 md:grid-cols-5"
+                    >
                         <div className="space-y-2">
                             <Label htmlFor="search">Búsqueda rápida</Label>
                             <div className="relative">
@@ -216,7 +244,7 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                                     <button
                                         type="button"
                                         onClick={() => setQ('')}
-                                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                                        className="absolute top-2.5 right-2.5 text-slate-400 hover:text-slate-600"
                                     >
                                         <X className="size-4" />
                                     </button>
@@ -231,9 +259,14 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todos los turnos</SelectItem>
+                                    <SelectItem value="all">
+                                        Todos los turnos
+                                    </SelectItem>
                                     {turnos.map((t) => (
-                                        <SelectItem key={t.id_turno} value={t.id_turno.toString()}>
+                                        <SelectItem
+                                            key={t.id_turno}
+                                            value={t.id_turno.toString()}
+                                        >
                                             {t.nombre}
                                         </SelectItem>
                                     ))}
@@ -248,9 +281,14 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Todas las áreas</SelectItem>
+                                    <SelectItem value="all">
+                                        Todas las áreas
+                                    </SelectItem>
                                     {areas.map((a) => (
-                                        <SelectItem key={a.id_area} value={a.id_area.toString()}>
+                                        <SelectItem
+                                            key={a.id_area}
+                                            value={a.id_area.toString()}
+                                        >
                                             {a.nombre}
                                         </SelectItem>
                                     ))}
@@ -260,14 +298,18 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
-                                <Label htmlFor="tardanzas">Tardanzas (Min)</Label>
+                                <Label htmlFor="tardanzas">
+                                    Tardanzas (Min)
+                                </Label>
                                 <Input
                                     id="tardanzas"
                                     type="number"
                                     min="0"
                                     placeholder="Ej: 3"
                                     value={tardanzasCount}
-                                    onChange={(e) => setTardanzasCount(e.target.value)}
+                                    onChange={(e) =>
+                                        setTardanzasCount(e.target.value)
+                                    }
                                 />
                             </div>
                             <div className="space-y-2">
@@ -278,7 +320,9 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                                     min="0"
                                     placeholder="Ej: 2"
                                     value={faltasCount}
-                                    onChange={(e) => setFaltasCount(e.target.value)}
+                                    onChange={(e) =>
+                                        setFaltasCount(e.target.value)
+                                    }
                                 />
                             </div>
                         </div>
@@ -312,72 +356,115 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                 </div>
 
                 {/* Tabla de Resultados */}
-                <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+                <div className="overflow-hidden rounded-xl border bg-white shadow-sm">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-slate-50">
-                                <TableHead className="w-[180px]">Código / DNI</TableHead>
+                                <TableHead className="w-[180px]">
+                                    Código / DNI
+                                </TableHead>
                                 <TableHead>Estudiante</TableHead>
                                 <TableHead>Área / Carrera</TableHead>
                                 <TableHead>Turno</TableHead>
-                                <TableHead className="text-center">Asistencias</TableHead>
-                                <TableHead className="text-center">Tardanzas</TableHead>
-                                <TableHead className="text-center">Faltas</TableHead>
-                                <TableHead className="text-center">Asistencia %</TableHead>
-                                <TableHead className="text-right">Prom. Notas</TableHead>
+                                <TableHead className="text-center">
+                                    Asistencias
+                                </TableHead>
+                                <TableHead className="text-center">
+                                    Tardanzas
+                                </TableHead>
+                                <TableHead className="text-center">
+                                    Faltas
+                                </TableHead>
+                                <TableHead className="text-center">
+                                    Asistencia %
+                                </TableHead>
+                                <TableHead className="text-right">
+                                    Prom. Notas
+                                </TableHead>
                                 <TableHead className="w-[100px]"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {estudiantes.data.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={10} className="h-32 text-center text-slate-500">
-                                        No se encontraron estudiantes matriculados que cumplan con los filtros.
+                                    <TableCell
+                                        colSpan={10}
+                                        className="h-32 text-center text-slate-500"
+                                    >
+                                        No se encontraron estudiantes
+                                        matriculados que cumplan con los
+                                        filtros.
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 estudiantes.data.map((row) => (
-                                    <TableRow key={row.id_alumno} className="hover:bg-slate-50/50">
+                                    <TableRow
+                                        key={row.id_alumno}
+                                        className="hover:bg-slate-50/50"
+                                    >
                                         <TableCell>
-                                            <div className="font-mono text-xs font-semibold text-slate-900">{row.codigo}</div>
-                                            <div className="text-xs text-slate-400">DNI {row.dni}</div>
+                                            <div className="font-mono text-xs font-semibold text-slate-900">
+                                                {row.codigo}
+                                            </div>
+                                            <div className="text-xs text-slate-400">
+                                                DNI {row.dni}
+                                            </div>
                                         </TableCell>
                                         <TableCell className="font-medium text-slate-900">
                                             {row.apellidos}, {row.nombres}
                                         </TableCell>
                                         <TableCell>
-                                            <div className="text-slate-900 text-sm font-medium">{row.carrera}</div>
-                                            <div className="text-xs text-slate-500">Área {row.area}</div>
+                                            <div className="text-sm font-medium text-slate-900">
+                                                {row.carrera}
+                                            </div>
+                                            <div className="text-xs text-slate-500">
+                                                Área {row.area}
+                                            </div>
                                         </TableCell>
-                                        <TableCell className="text-slate-600 text-sm">
+                                        <TableCell className="text-sm text-slate-600">
                                             {row.turno}
                                         </TableCell>
-                                        <TableCell className="text-center text-emerald-600 font-semibold">{row.total_asistencias}</TableCell>
-                                        <TableCell className="text-center text-amber-600 font-semibold">{row.total_tardanzas}</TableCell>
-                                        <TableCell className="text-center text-rose-600 font-semibold">{row.total_faltas}</TableCell>
+                                        <TableCell className="text-center font-semibold text-emerald-600">
+                                            {row.total_asistencias}
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold text-amber-600">
+                                            {row.total_tardanzas}
+                                        </TableCell>
+                                        <TableCell className="text-center font-semibold text-rose-600">
+                                            {row.total_faltas}
+                                        </TableCell>
                                         <TableCell className="text-center">
                                             {row.tasa_asistencia !== null ? (
                                                 <Badge
                                                     className={
-                                                        row.tasa_asistencia >= 90
-                                                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-emerald-200'
-                                                            : row.tasa_asistencia >= 75
-                                                            ? 'bg-amber-50 text-amber-700 hover:bg-amber-50 border-amber-200'
-                                                            : 'bg-rose-50 text-rose-700 hover:bg-rose-50 border-rose-200'
+                                                        row.tasa_asistencia >=
+                                                        90
+                                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50'
+                                                            : row.tasa_asistencia >=
+                                                                75
+                                                              ? 'border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50'
+                                                              : 'border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-50'
                                                     }
                                                     variant="outline"
                                                 >
-                                                    {row.tasa_asistencia.toFixed(1)}%
+                                                    {row.tasa_asistencia.toFixed(
+                                                        1,
+                                                    )}
+                                                    %
                                                 </Badge>
                                             ) : (
-                                                <span className="text-slate-400 text-xs">-</span>
+                                                <span className="text-xs text-slate-400">
+                                                    -
+                                                </span>
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-right font-bold text-slate-900 text-sm">
+                                        <TableCell className="text-right text-sm font-bold text-slate-900">
                                             {row.promedio_notas !== null ? (
                                                 row.promedio_notas.toFixed(3)
                                             ) : (
-                                                <span className="text-slate-400 font-normal text-xs">Sin notas</span>
+                                                <span className="text-xs font-normal text-slate-400">
+                                                    Sin notas
+                                                </span>
                                             )}
                                         </TableCell>
                                         <TableCell>
@@ -385,11 +472,13 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => {
-                                                    router.visit(`/dashboard?alumno=${row.id_alumno}`);
+                                                    router.visit(
+                                                        `/dashboard?alumno=${row.id_alumno}`,
+                                                    );
                                                 }}
                                                 className="text-slate-500 hover:text-[#ff7043]"
                                             >
-                                                <User className="size-4 mr-1.5" />
+                                                <User className="mr-1.5 size-4" />
                                                 Ficha 360
                                             </Button>
                                         </TableCell>
@@ -405,15 +494,26 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                             <div className="flex flex-1 justify-between sm:hidden">
                                 <Button
                                     variant="outline"
-                                    onClick={() => handlePageChange(estudiantes.current_page - 1)}
+                                    onClick={() =>
+                                        handlePageChange(
+                                            estudiantes.current_page - 1,
+                                        )
+                                    }
                                     disabled={estudiantes.current_page === 1}
                                 >
                                     Anterior
                                 </Button>
                                 <Button
                                     variant="outline"
-                                    onClick={() => handlePageChange(estudiantes.current_page + 1)}
-                                    disabled={estudiantes.current_page === estudiantes.last_page}
+                                    onClick={() =>
+                                        handlePageChange(
+                                            estudiantes.current_page + 1,
+                                        )
+                                    }
+                                    disabled={
+                                        estudiantes.current_page ===
+                                        estudiantes.last_page
+                                    }
                                 >
                                     Siguiente
                                 </Button>
@@ -421,35 +521,64 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                                 <div>
                                     <p className="text-sm text-slate-500">
-                                        Mostrando página <span className="font-semibold text-slate-800">{estudiantes.current_page}</span> de{' '}
-                                        <span className="font-semibold text-slate-800">{estudiantes.last_page}</span> ({estudiantes.total} estudiantes)
+                                        Mostrando página{' '}
+                                        <span className="font-semibold text-slate-800">
+                                            {estudiantes.current_page}
+                                        </span>{' '}
+                                        de{' '}
+                                        <span className="font-semibold text-slate-800">
+                                            {estudiantes.last_page}
+                                        </span>{' '}
+                                        ({estudiantes.total} estudiantes)
                                     </p>
                                 </div>
                                 <div className="flex gap-1.5">
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handlePageChange(estudiantes.current_page - 1)}
-                                        disabled={estudiantes.current_page === 1}
+                                        onClick={() =>
+                                            handlePageChange(
+                                                estudiantes.current_page - 1,
+                                            )
+                                        }
+                                        disabled={
+                                            estudiantes.current_page === 1
+                                        }
                                     >
                                         Anterior
                                     </Button>
-                                    {Array.from({ length: estudiantes.last_page }).map((_, i) => {
+                                    {Array.from({
+                                        length: estudiantes.last_page,
+                                    }).map((_, i) => {
                                         const page = i + 1;
 
                                         // Simple page collapse logic
                                         if (
                                             page === 1 ||
                                             page === estudiantes.last_page ||
-                                            Math.abs(page - estudiantes.current_page) <= 2
+                                            Math.abs(
+                                                page - estudiantes.current_page,
+                                            ) <= 2
                                         ) {
                                             return (
                                                 <Button
                                                     key={page}
-                                                    variant={estudiantes.current_page === page ? 'default' : 'outline'}
+                                                    variant={
+                                                        estudiantes.current_page ===
+                                                        page
+                                                            ? 'default'
+                                                            : 'outline'
+                                                    }
                                                     size="sm"
-                                                    onClick={() => handlePageChange(page)}
-                                                    className={estudiantes.current_page === page ? 'bg-[#ff7043] hover:bg-[#f4511e] text-white border-transparent' : ''}
+                                                    onClick={() =>
+                                                        handlePageChange(page)
+                                                    }
+                                                    className={
+                                                        estudiantes.current_page ===
+                                                        page
+                                                            ? 'border-transparent bg-[#ff7043] text-white hover:bg-[#f4511e]'
+                                                            : ''
+                                                    }
                                                 >
                                                     {page}
                                                 </Button>
@@ -460,7 +589,14 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                                             page === 2 ||
                                             page === estudiantes.last_page - 1
                                         ) {
-                                            return <span key={page} className="px-2 py-1 text-slate-400 text-sm">...</span>;
+                                            return (
+                                                <span
+                                                    key={page}
+                                                    className="px-2 py-1 text-sm text-slate-400"
+                                                >
+                                                    ...
+                                                </span>
+                                            );
                                         }
 
                                         return null;
@@ -468,8 +604,15 @@ export default function ReportesIndex({ estudiantes, turnos, areas, filters }: P
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => handlePageChange(estudiantes.current_page + 1)}
-                                        disabled={estudiantes.current_page === estudiantes.last_page}
+                                        onClick={() =>
+                                            handlePageChange(
+                                                estudiantes.current_page + 1,
+                                            )
+                                        }
+                                        disabled={
+                                            estudiantes.current_page ===
+                                            estudiantes.last_page
+                                        }
                                     >
                                         Siguiente
                                     </Button>

@@ -8,6 +8,7 @@ use App\Models\Matricula;
 use App\Models\PrediccionDesercion;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class DesercionRiskService
 {
@@ -17,10 +18,96 @@ class DesercionRiskService
 
         Matricula::query()
             ->where('estado', EstadoMatricula::Vigente->value)
+            ->with(['alumno', 'turno'])
             ->orderBy('id_matricula')
             ->chunkById(100, function (Collection $matriculas) use (&$procesados): void {
+                $payload = [];
+                $matriculaMap = [];
+
                 foreach ($matriculas as $matricula) {
-                    $this->calcularParaMatricula($matricula);
+                    $metricas = $this->metricas($matricula);
+
+                    $course = $matricula->alumno->id_carrera ?? 1;
+                    $turnoNombre = $matricula->turno?->nombre ?? '';
+                    $daytimeEveningAttendance = (stripos($turnoNombre, 'mañana') !== false) ? 1 : 0;
+
+                    $promedio = $metricas['promedio_examenes'];
+                    $grade = 14.0;
+                    if ($promedio !== null) {
+                        $grade = ($promedio > 20) ? min(20.0, ($promedio / 100) * 20) : (float) $promedio;
+                    }
+
+                    $debtor = $metricas['cuotas_vencidas'] > 0 ? 1 : 0;
+                    $tuitionFeesUpToDate = $metricas['cuotas_vencidas'] === 0 ? 1 : 0;
+
+                    $fechaNac = $matricula->alumno->fecha_nac;
+                    $fechaMatricula = $matricula->fecha_matricula ?? now();
+                    $ageAtEnrollment = $fechaNac ? (int) $fechaNac->diffInYears($fechaMatricula) : 18;
+
+                    $payload[] = [
+                        'application_mode' => 1,
+                        'course' => (int) $course,
+                        'daytime_evening_attendance' => (int) $daytimeEveningAttendance,
+                        'previous_qualification' => 1,
+                        'previous_qualification_grade' => (float) $grade,
+                        'admission_grade' => (float) $grade,
+                        'debtor' => (int) $debtor,
+                        'tuition_fees_up_to_date' => (int) $tuitionFeesUpToDate,
+                        'scholarship_holder' => 0,
+                        'age_at_enrollment' => (int) $ageAtEnrollment,
+                    ];
+
+                    $matriculaMap[] = [
+                        'matricula' => $matricula,
+                        'metricas' => $metricas,
+                    ];
+                }
+
+                $predictions = [];
+                try {
+                    $response = Http::timeout(5)->post('http://127.0.0.1:8001/predict/bulk', [
+                        'students' => $payload,
+                    ]);
+
+                    if ($response->successful()) {
+                        $predictions = $response->json()['predictions'] ?? [];
+                    }
+                } catch (\Exception $e) {
+                    logger()->warning('Microservicio de deserción inaccesible en bulk: '.$e->getMessage());
+                }
+
+                foreach ($matriculaMap as $index => $item) {
+                    $matricula = $item['matricula'];
+                    $metricas = $item['metricas'];
+
+                    $riesgo = null;
+                    $nivelRiesgo = null;
+
+                    if (isset($predictions[$index])) {
+                        $riesgo = (float) $predictions[$index]['dropout_probability'];
+                        $nivelRiesgo = $predictions[$index]['risk_level'];
+                    } else {
+                        // Fallback a heurística
+                        $riesgo = $this->calcularRiesgo(
+                            $metricas['tasa_asistencia'],
+                            $metricas['promedio_examenes'],
+                            $metricas['cuotas_vencidas'],
+                        );
+                        $nivelRiesgo = $this->nivelRiesgo($riesgo);
+                    }
+
+                    PrediccionDesercion::query()->updateOrCreate(
+                        ['id_matricula' => $matricula->id_matricula],
+                        [
+                            'fecha_calculo' => now(),
+                            'riesgo_pct' => $riesgo,
+                            'nivel_riesgo' => $nivelRiesgo,
+                            'tasa_asistencia' => $metricas['tasa_asistencia'],
+                            'promedio_examenes' => $metricas['promedio_examenes'],
+                            'cuotas_vencidas' => $metricas['cuotas_vencidas'],
+                        ],
+                    );
+
                     $procesados++;
                 }
             }, 'id_matricula', 'id_matricula');
@@ -31,18 +118,65 @@ class DesercionRiskService
     public function calcularParaMatricula(Matricula $matricula): PrediccionDesercion
     {
         $metricas = $this->metricas($matricula);
-        $riesgo = $this->calcularRiesgo(
-            $metricas['tasa_asistencia'],
-            $metricas['promedio_examenes'],
-            $metricas['cuotas_vencidas'],
-        );
+
+        $course = $matricula->alumno->id_carrera ?? 1;
+        $turnoNombre = $matricula->turno?->nombre ?? '';
+        $daytimeEveningAttendance = (stripos($turnoNombre, 'mañana') !== false) ? 1 : 0;
+
+        $promedio = $metricas['promedio_examenes'];
+        $grade = 14.0;
+        if ($promedio !== null) {
+            $grade = ($promedio > 20) ? min(20.0, ($promedio / 100) * 20) : (float) $promedio;
+        }
+
+        $debtor = $metricas['cuotas_vencidas'] > 0 ? 1 : 0;
+        $tuitionFeesUpToDate = $metricas['cuotas_vencidas'] === 0 ? 1 : 0;
+
+        $fechaNac = $matricula->alumno->fecha_nac;
+        $fechaMatricula = $matricula->fecha_matricula ?? now();
+        $ageAtEnrollment = $fechaNac ? (int) $fechaNac->diffInYears($fechaMatricula) : 18;
+
+        $riesgo = null;
+        $nivelRiesgo = null;
+
+        try {
+            $response = Http::timeout(3)->post('http://127.0.0.1:8001/predict', [
+                'application_mode' => 1,
+                'course' => (int) $course,
+                'daytime_evening_attendance' => (int) $daytimeEveningAttendance,
+                'previous_qualification' => 1,
+                'previous_qualification_grade' => (float) $grade,
+                'admission_grade' => (float) $grade,
+                'debtor' => (int) $debtor,
+                'tuition_fees_up_to_date' => (int) $tuitionFeesUpToDate,
+                'scholarship_holder' => 0,
+                'age_at_enrollment' => (int) $ageAtEnrollment,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $riesgo = (float) $data['dropout_probability'];
+                $nivelRiesgo = $data['risk_level'];
+            }
+        } catch (\Exception $e) {
+            logger()->warning('Microservicio de deserción inaccesible: '.$e->getMessage());
+        }
+
+        if ($riesgo === null || $nivelRiesgo === null) {
+            $riesgo = $this->calcularRiesgo(
+                $metricas['tasa_asistencia'],
+                $metricas['promedio_examenes'],
+                $metricas['cuotas_vencidas'],
+            );
+            $nivelRiesgo = $this->nivelRiesgo($riesgo);
+        }
 
         $prediccion = PrediccionDesercion::query()->updateOrCreate(
             ['id_matricula' => $matricula->id_matricula],
             [
                 'fecha_calculo' => now(),
                 'riesgo_pct' => $riesgo,
-                'nivel_riesgo' => $this->nivelRiesgo($riesgo),
+                'nivel_riesgo' => $nivelRiesgo,
                 'tasa_asistencia' => $metricas['tasa_asistencia'],
                 'promedio_examenes' => $metricas['promedio_examenes'],
                 'cuotas_vencidas' => $metricas['cuotas_vencidas'],

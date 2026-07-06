@@ -29,7 +29,9 @@ export default function Login({ status }: Props) {
                         <>
                             <div className="grid gap-5">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="email">Correo electrónico</Label>
+                                    <Label htmlFor="email">
+                                        Correo electrónico
+                                    </Label>
                                     <Input
                                         id="email"
                                         type="email"
@@ -72,7 +74,11 @@ export default function Login({ status }: Props) {
                                     disabled={processing}
                                     data-test="login-button"
                                 >
-                                    {processing ? <Spinner /> : <LogIn className="size-4" />}
+                                    {processing ? (
+                                        <Spinner />
+                                    ) : (
+                                        <LogIn className="size-4" />
+                                    )}
                                     Iniciar sesión
                                 </Button>
                             </div>

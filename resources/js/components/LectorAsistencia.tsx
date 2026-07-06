@@ -46,7 +46,9 @@ export default function LectorAsistencia() {
                 onSuccess: () => setDni(''),
                 onError: (errors) => {
                     const firstError = Object.values(errors)[0];
-                    toast.error(firstError ?? 'No se pudo registrar la asistencia.');
+                    toast.error(
+                        firstError ?? 'No se pudo registrar la asistencia.',
+                    );
                 },
                 onFinish: () => {
                     setProcessing(false);
@@ -70,7 +72,9 @@ export default function LectorAsistencia() {
             <Alert className="border-slate-200 bg-white">
                 <ScanBarcode className="size-4" />
                 <AlertTitle>Lector de asistencia</AlertTitle>
-                <AlertDescription>Escaneo activo para el turno actual.</AlertDescription>
+                <AlertDescription>
+                    Escaneo activo para el turno actual.
+                </AlertDescription>
             </Alert>
 
             <div className="rounded-xl border bg-white p-6 shadow-sm">
@@ -84,8 +88,17 @@ export default function LectorAsistencia() {
                         autoFocus
                         value={dni}
                         maxLength={8}
-                        onBlur={() => window.setTimeout(() => inputRef.current?.focus(), 50)}
-                        onChange={(e) => setDni(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                        onBlur={() =>
+                            window.setTimeout(
+                                () => inputRef.current?.focus(),
+                                50,
+                            )
+                        }
+                        onChange={(e) =>
+                            setDni(
+                                e.target.value.replace(/\D/g, '').slice(0, 8),
+                            )
+                        }
                         onKeyDown={handleKeyDown}
                         className="h-12 font-mono text-lg tracking-widest"
                         placeholder="00000000"
@@ -93,8 +106,16 @@ export default function LectorAsistencia() {
                 </div>
 
                 <div className="mt-4 flex items-center justify-between gap-3">
-                    <p className="text-sm text-slate-500">{processing ? 'Registrando asistencia...' : 'Listo para escanear'}</p>
-                    <Button type="button" disabled={processing || dni.length !== 8} onClick={() => submitDni(dni)}>
+                    <p className="text-sm text-slate-500">
+                        {processing
+                            ? 'Registrando asistencia...'
+                            : 'Listo para escanear'}
+                    </p>
+                    <Button
+                        type="button"
+                        disabled={processing || dni.length !== 8}
+                        onClick={() => submitDni(dni)}
+                    >
                         <ScanBarcode className="size-4" />
                         Registrar
                     </Button>

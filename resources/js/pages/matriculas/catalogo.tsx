@@ -56,7 +56,8 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
         event.preventDefault();
         carreraForm.post(storeCarrera.url(), {
             preserveScroll: true,
-            onSuccess: () => carreraForm.reset('nombre', 'puntaje_min', 'puntaje_max'),
+            onSuccess: () =>
+                carreraForm.reset('nombre', 'puntaje_min', 'puntaje_max'),
             onError: () => toast.error('Revisa los datos de la carrera.'),
         });
     };
@@ -68,7 +69,9 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
             <header className="border-b bg-white px-8 py-6">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Catálogo académico</h1>
+                        <h1 className="text-2xl font-bold text-slate-900">
+                            Catálogo académico
+                        </h1>
                         <p className="text-sm text-slate-500">
                             Áreas A, B, C y D con sus carreras de postulación.
                         </p>
@@ -81,10 +84,15 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
 
             <main className="space-y-6 px-8 py-6">
                 <section className="grid gap-4 lg:grid-cols-2">
-                    <form onSubmit={crearArea} className="rounded-lg border bg-white p-5">
+                    <form
+                        onSubmit={crearArea}
+                        className="rounded-lg border bg-white p-5"
+                    >
                         <div className="mb-4 flex items-center gap-2">
                             <Layers3 className="size-5 text-slate-500" />
-                            <h2 className="text-base font-semibold text-slate-900">Nueva área</h2>
+                            <h2 className="text-base font-semibold text-slate-900">
+                                Nueva área
+                            </h2>
                         </div>
                         <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
                             <div>
@@ -93,7 +101,12 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
                                     id="codigo"
                                     maxLength={1}
                                     value={areaForm.data.codigo}
-                                    onChange={(event) => areaForm.setData('codigo', event.target.value.toUpperCase())}
+                                    onChange={(event) =>
+                                        areaForm.setData(
+                                            'codigo',
+                                            event.target.value.toUpperCase(),
+                                        )
+                                    }
                                 />
                                 <InputError message={areaForm.errors.codigo} />
                             </div>
@@ -102,21 +115,35 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
                                 <Input
                                     id="nombre_area"
                                     value={areaForm.data.nombre}
-                                    onChange={(event) => areaForm.setData('nombre', event.target.value)}
+                                    onChange={(event) =>
+                                        areaForm.setData(
+                                            'nombre',
+                                            event.target.value,
+                                        )
+                                    }
                                 />
                                 <InputError message={areaForm.errors.nombre} />
                             </div>
                         </div>
-                        <Button type="submit" className="mt-4 bg-[#ff7043] hover:bg-[#f4511e]" disabled={areaForm.processing}>
+                        <Button
+                            type="submit"
+                            className="mt-4 bg-[#ff7043] hover:bg-[#f4511e]"
+                            disabled={areaForm.processing}
+                        >
                             <Plus className="size-4" />
                             Crear área
                         </Button>
                     </form>
 
-                    <form onSubmit={crearCarrera} className="rounded-lg border bg-white p-5">
+                    <form
+                        onSubmit={crearCarrera}
+                        className="rounded-lg border bg-white p-5"
+                    >
                         <div className="mb-4 flex items-center gap-2">
                             <BookOpen className="size-5 text-slate-500" />
-                            <h2 className="text-base font-semibold text-slate-900">Nueva carrera</h2>
+                            <h2 className="text-base font-semibold text-slate-900">
+                                Nueva carrera
+                            </h2>
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div>
@@ -124,28 +151,48 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
                                 <Input
                                     id="nombre_carrera"
                                     value={carreraForm.data.nombre}
-                                    onChange={(event) => carreraForm.setData('nombre', event.target.value)}
+                                    onChange={(event) =>
+                                        carreraForm.setData(
+                                            'nombre',
+                                            event.target.value,
+                                        )
+                                    }
                                 />
-                                <InputError message={carreraForm.errors.nombre} />
+                                <InputError
+                                    message={carreraForm.errors.nombre}
+                                />
                             </div>
                             <div>
                                 <Label>Área</Label>
-                                <Select value={carreraForm.data.id_area} onValueChange={(value) => carreraForm.setData('id_area', value)}>
+                                <Select
+                                    value={carreraForm.data.id_area}
+                                    onValueChange={(value) =>
+                                        carreraForm.setData('id_area', value)
+                                    }
+                                >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecciona un área" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {areas.map((area) => (
-                                            <SelectItem key={area.id_area} value={area.id_area.toString()}>
-                                                Área {area.codigo} · {area.nombre}
+                                            <SelectItem
+                                                key={area.id_area}
+                                                value={area.id_area.toString()}
+                                            >
+                                                Área {area.codigo} ·{' '}
+                                                {area.nombre}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <InputError message={carreraForm.errors.id_area} />
+                                <InputError
+                                    message={carreraForm.errors.id_area}
+                                />
                             </div>
                             <div>
-                                <Label htmlFor="puntaje_min">Puntaje mínimo</Label>
+                                <Label htmlFor="puntaje_min">
+                                    Puntaje mínimo
+                                </Label>
                                 <Input
                                     id="puntaje_min"
                                     type="number"
@@ -153,12 +200,21 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
                                     max="20"
                                     step="0.001"
                                     value={carreraForm.data.puntaje_min}
-                                    onChange={(event) => carreraForm.setData('puntaje_min', event.target.value)}
+                                    onChange={(event) =>
+                                        carreraForm.setData(
+                                            'puntaje_min',
+                                            event.target.value,
+                                        )
+                                    }
                                 />
-                                <InputError message={carreraForm.errors.puntaje_min} />
+                                <InputError
+                                    message={carreraForm.errors.puntaje_min}
+                                />
                             </div>
                             <div>
-                                <Label htmlFor="puntaje_max">Puntaje máximo</Label>
+                                <Label htmlFor="puntaje_max">
+                                    Puntaje máximo
+                                </Label>
                                 <Input
                                     id="puntaje_max"
                                     type="number"
@@ -166,12 +222,25 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
                                     max="20"
                                     step="0.001"
                                     value={carreraForm.data.puntaje_max}
-                                    onChange={(event) => carreraForm.setData('puntaje_max', event.target.value)}
+                                    onChange={(event) =>
+                                        carreraForm.setData(
+                                            'puntaje_max',
+                                            event.target.value,
+                                        )
+                                    }
                                 />
-                                <InputError message={carreraForm.errors.puntaje_max} />
+                                <InputError
+                                    message={carreraForm.errors.puntaje_max}
+                                />
                             </div>
                         </div>
-                        <Button type="submit" className="mt-4 bg-[#ff7043] hover:bg-[#f4511e]" disabled={carreraForm.processing || areas.length === 0}>
+                        <Button
+                            type="submit"
+                            className="mt-4 bg-[#ff7043] hover:bg-[#f4511e]"
+                            disabled={
+                                carreraForm.processing || areas.length === 0
+                            }
+                        >
                             <Plus className="size-4" />
                             Crear carrera
                         </Button>
@@ -180,7 +249,11 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
 
                 <section className="space-y-4">
                     {areas.map((area) => (
-                        <AreaBlock key={area.id_area} area={area} areas={areas} />
+                        <AreaBlock
+                            key={area.id_area}
+                            area={area}
+                            areas={areas}
+                        />
                     ))}
                 </section>
             </main>
@@ -188,7 +261,13 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
     );
 }
 
-function AreaBlock({ area, areas }: { area: AreaCatalogo; areas: AreaCatalogo[] }) {
+function AreaBlock({
+    area,
+    areas,
+}: {
+    area: AreaCatalogo;
+    areas: AreaCatalogo[];
+}) {
     const form = useForm({
         codigo: area.codigo,
         nombre: area.nombre,
@@ -204,14 +283,24 @@ function AreaBlock({ area, areas }: { area: AreaCatalogo; areas: AreaCatalogo[] 
 
     return (
         <article className="rounded-lg border bg-white">
-            <form onSubmit={guardarArea} className="grid gap-3 border-b p-4 md:grid-cols-[96px_1fr_auto]">
+            <form
+                onSubmit={guardarArea}
+                className="grid gap-3 border-b p-4 md:grid-cols-[96px_1fr_auto]"
+            >
                 <div>
-                    <Label htmlFor={`area_codigo_${area.id_area}`}>Código</Label>
+                    <Label htmlFor={`area_codigo_${area.id_area}`}>
+                        Código
+                    </Label>
                     <Input
                         id={`area_codigo_${area.id_area}`}
                         maxLength={1}
                         value={form.data.codigo}
-                        onChange={(event) => form.setData('codigo', event.target.value.toUpperCase())}
+                        onChange={(event) =>
+                            form.setData(
+                                'codigo',
+                                event.target.value.toUpperCase(),
+                            )
+                        }
                     />
                     <InputError message={form.errors.codigo} />
                 </div>
@@ -220,11 +309,18 @@ function AreaBlock({ area, areas }: { area: AreaCatalogo; areas: AreaCatalogo[] 
                     <Input
                         id={`area_nombre_${area.id_area}`}
                         value={form.data.nombre}
-                        onChange={(event) => form.setData('nombre', event.target.value)}
+                        onChange={(event) =>
+                            form.setData('nombre', event.target.value)
+                        }
                     />
                     <InputError message={form.errors.nombre} />
                 </div>
-                <Button type="submit" variant="outline" className="self-end" disabled={form.processing}>
+                <Button
+                    type="submit"
+                    variant="outline"
+                    className="self-end"
+                    disabled={form.processing}
+                >
                     <Save className="size-4" />
                     Guardar área
                 </Button>
@@ -237,17 +333,26 @@ function AreaBlock({ area, areas }: { area: AreaCatalogo; areas: AreaCatalogo[] 
                         <TableHead className="w-40">Área</TableHead>
                         <TableHead className="w-36">Puntaje mín.</TableHead>
                         <TableHead className="w-36">Puntaje máx.</TableHead>
-                        <TableHead className="w-32 text-right">Acción</TableHead>
+                        <TableHead className="w-32 text-right">
+                            Acción
+                        </TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {area.carreras.length > 0 ? (
                         area.carreras.map((carrera) => (
-                            <CarreraRow key={carrera.id_carrera} carrera={carrera} areas={areas} />
+                            <CarreraRow
+                                key={carrera.id_carrera}
+                                carrera={carrera}
+                                areas={areas}
+                            />
                         ))
                     ) : (
                         <TableRow>
-                            <TableCell colSpan={5} className="py-6 text-center text-slate-500">
+                            <TableCell
+                                colSpan={5}
+                                className="py-6 text-center text-slate-500"
+                            >
                                 Esta área todavía no tiene carreras.
                             </TableCell>
                         </TableRow>
@@ -258,7 +363,13 @@ function AreaBlock({ area, areas }: { area: AreaCatalogo; areas: AreaCatalogo[] 
     );
 }
 
-function CarreraRow({ carrera, areas }: { carrera: CarreraOption; areas: AreaCatalogo[] }) {
+function CarreraRow({
+    carrera,
+    areas,
+}: {
+    carrera: CarreraOption;
+    areas: AreaCatalogo[];
+}) {
     const form = useForm({
         nombre: carrera.nombre,
         id_area: carrera.id_area.toString(),
@@ -277,17 +388,28 @@ function CarreraRow({ carrera, areas }: { carrera: CarreraOption; areas: AreaCat
     return (
         <TableRow>
             <TableCell>
-                <Input value={form.data.nombre} onChange={(event) => form.setData('nombre', event.target.value)} />
+                <Input
+                    value={form.data.nombre}
+                    onChange={(event) =>
+                        form.setData('nombre', event.target.value)
+                    }
+                />
                 <InputError message={form.errors.nombre} />
             </TableCell>
             <TableCell>
-                <Select value={form.data.id_area} onValueChange={(value) => form.setData('id_area', value)}>
+                <Select
+                    value={form.data.id_area}
+                    onValueChange={(value) => form.setData('id_area', value)}
+                >
                     <SelectTrigger>
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                         {areas.map((area) => (
-                            <SelectItem key={area.id_area} value={area.id_area.toString()}>
+                            <SelectItem
+                                key={area.id_area}
+                                value={area.id_area.toString()}
+                            >
                                 Área {area.codigo}
                             </SelectItem>
                         ))}
@@ -302,7 +424,9 @@ function CarreraRow({ carrera, areas }: { carrera: CarreraOption; areas: AreaCat
                     max="20"
                     step="0.001"
                     value={form.data.puntaje_min}
-                    onChange={(event) => form.setData('puntaje_min', event.target.value)}
+                    onChange={(event) =>
+                        form.setData('puntaje_min', event.target.value)
+                    }
                 />
                 <InputError message={form.errors.puntaje_min} />
             </TableCell>
@@ -313,12 +437,19 @@ function CarreraRow({ carrera, areas }: { carrera: CarreraOption; areas: AreaCat
                     max="20"
                     step="0.001"
                     value={form.data.puntaje_max}
-                    onChange={(event) => form.setData('puntaje_max', event.target.value)}
+                    onChange={(event) =>
+                        form.setData('puntaje_max', event.target.value)
+                    }
                 />
                 <InputError message={form.errors.puntaje_max} />
             </TableCell>
             <TableCell className="text-right">
-                <Button type="button" variant="outline" onClick={guardarCarrera} disabled={form.processing}>
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={guardarCarrera}
+                    disabled={form.processing}
+                >
                     <Save className="size-4" />
                     Guardar
                 </Button>

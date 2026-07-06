@@ -19,17 +19,23 @@ interface SemaforoPagosProps {
 export function SemaforoPagos({ cuotas, className }: SemaforoPagosProps) {
     if (!cuotas || cuotas.length === 0) {
         return (
-            <Badge variant="outline" className={`bg-gray-100 text-gray-500 hover:bg-gray-200 ${className || ''}`}>
+            <Badge
+                variant="outline"
+                className={`bg-gray-100 text-gray-500 hover:bg-gray-200 ${className || ''}`}
+            >
                 Sin Pagos
             </Badge>
         );
     }
 
-    const pendientes = cuotas.filter(c => c.estado !== 'PAGADA');
-    
+    const pendientes = cuotas.filter((c) => c.estado !== 'PAGADA');
+
     if (pendientes.length === 0) {
         return (
-            <Badge variant="outline" className={`bg-green-100 text-green-700 hover:bg-green-200 border-green-200 ${className || ''}`}>
+            <Badge
+                variant="outline"
+                className={`border-green-200 bg-green-100 text-green-700 hover:bg-green-200 ${className || ''}`}
+            >
                 Al Día
             </Badge>
         );
@@ -38,7 +44,7 @@ export function SemaforoPagos({ cuotas, className }: SemaforoPagosProps) {
     const now = new Date();
     now.setHours(0, 0, 0, 0); // Start of today for accurate day comparisons
 
-    const hasVencidas = pendientes.some(c => {
+    const hasVencidas = pendientes.some((c) => {
         if (c.estado === 'VENCIDA') return true;
         const vDate = parseDate(c.fecha_vencimiento);
         return vDate < now;
@@ -46,14 +52,17 @@ export function SemaforoPagos({ cuotas, className }: SemaforoPagosProps) {
 
     if (hasVencidas) {
         return (
-            <Badge variant="outline" className={`bg-red-100 text-red-700 hover:bg-red-200 border-red-200 ${className || ''}`}>
+            <Badge
+                variant="outline"
+                className={`border-red-200 bg-red-100 text-red-700 hover:bg-red-200 ${className || ''}`}
+            >
                 Vencido
             </Badge>
         );
     }
 
     // Check if any is yellow (due in <= 3 days)
-    const hasProximasVencer = pendientes.some(c => {
+    const hasProximasVencer = pendientes.some((c) => {
         const vDate = parseDate(c.fecha_vencimiento);
         const diffTime = vDate.getTime() - now.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -62,14 +71,20 @@ export function SemaforoPagos({ cuotas, className }: SemaforoPagosProps) {
 
     if (hasProximasVencer) {
         return (
-            <Badge variant="outline" className={`bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border-yellow-200 ${className || ''}`}>
+            <Badge
+                variant="outline"
+                className={`border-yellow-200 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 ${className || ''}`}
+            >
                 Próximo a Vencer
             </Badge>
         );
     }
 
     return (
-        <Badge variant="outline" className={`bg-green-100 text-green-700 hover:bg-green-200 border-green-200 ${className || ''}`}>
+        <Badge
+            variant="outline"
+            className={`border-green-200 bg-green-100 text-green-700 hover:bg-green-200 ${className || ''}`}
+        >
             Al Día
         </Badge>
     );

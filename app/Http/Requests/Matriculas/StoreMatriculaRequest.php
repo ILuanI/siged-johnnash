@@ -31,7 +31,7 @@ class StoreMatriculaRequest extends FormRequest
                 'nullable',
                 'integer',
                 'min:2',
-                'max:12',
+                'max:4',
                 Rule::requiredIf($this->input('tipo_pago') === 'CREDITO'),
             ],
             'fecha_primera_cuota' => ['nullable', 'date'],

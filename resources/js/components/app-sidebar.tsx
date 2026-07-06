@@ -32,25 +32,67 @@ import { index as tesoreriaIndex } from '@/actions/App/Http/Controllers/Tesoreri
 import type { NavItem } from '@/types';
 
 const mainNavItems: (NavItem & { modulo: string })[] = [
-    { title: 'Dashboard', href: dashboard(), icon: LayoutGrid, modulo: 'dashboard' },
+    {
+        title: 'Dashboard',
+        href: dashboard(),
+        icon: LayoutGrid,
+        modulo: 'dashboard',
+    },
     { title: 'Docentes', href: '/docentes', icon: Users, modulo: 'docentes' },
-    { title: 'Estudiantes', href: estudiantesIndex(), icon: GraduationCap, modulo: 'estudiantes' },
-    { title: 'Catálogo académico', href: catalogoAcademicoIndex(), icon: BookOpen, modulo: 'estudiantes' },
+    {
+        title: 'Estudiantes',
+        href: estudiantesIndex(),
+        icon: GraduationCap,
+        modulo: 'estudiantes',
+    },
+    {
+        title: 'Catálogo académico',
+        href: catalogoAcademicoIndex(),
+        icon: BookOpen,
+        modulo: 'estudiantes',
+    },
     { title: 'Cursos', href: '/cursos', icon: BookOpen, modulo: 'cursos' },
-    { title: 'Asistencias', href: lectorAsistenciaIndex(), icon: ScanBarcode, modulo: 'asistencias' },
+    {
+        title: 'Asistencias',
+        href: lectorAsistenciaIndex(),
+        icon: ScanBarcode,
+        modulo: 'asistencias',
+    },
     { title: 'Usuarios', href: '/usuarios', icon: Users, modulo: 'usuarios' },
     { title: 'Roles', href: '/roles', icon: ShieldCheck, modulo: 'roles' },
     { title: 'Notas', href: '/notas', icon: BookOpen, modulo: 'academico' },
-    { title: 'Pagos', href: tesoreriaIndex(), icon: CreditCard, modulo: 'pagos' },
-    { title: 'Reportes', href: '/reportes', icon: BarChart3, modulo: 'reportes' },
-    { title: 'IA Deserción', href: desercionIndex(), icon: Brain, modulo: 'ia' },
-    { title: 'Ajustes', href: ajustesIndex(), icon: Settings, modulo: 'ajustes' },
+    {
+        title: 'Pagos',
+        href: tesoreriaIndex(),
+        icon: CreditCard,
+        modulo: 'pagos',
+    },
+    {
+        title: 'Reportes',
+        href: '/reportes',
+        icon: BarChart3,
+        modulo: 'reportes',
+    },
+    {
+        title: 'IA Deserción',
+        href: desercionIndex(),
+        icon: Brain,
+        modulo: 'ia',
+    },
+    {
+        title: 'Ajustes',
+        href: ajustesIndex(),
+        icon: Settings,
+        modulo: 'ajustes',
+    },
 ];
 
 export function AppSidebar() {
     const { puede } = usePermisos();
 
-    const visibleNavItems = mainNavItems.filter((item) => puede(item.modulo, 'ver'));
+    const visibleNavItems = mainNavItems.filter((item) =>
+        puede(item.modulo, 'ver'),
+    );
     const puedeMatricular = puede('estudiantes', 'editar');
 
     return (
@@ -61,7 +103,7 @@ export function AppSidebar() {
                         <GraduationCap className="size-6" />
                     </div>
                     <div className="group-data-[collapsible=icon]:hidden">
-                        <p className="text-sm font-semibold leading-tight text-sidebar-foreground">
+                        <p className="text-sm leading-tight font-semibold text-sidebar-foreground">
                             Academia John Nash
                         </p>
                         <p className="text-xs text-sidebar-foreground/70">
@@ -83,10 +125,10 @@ export function AppSidebar() {
                                 Nueva Matrícula
                             </Link>
                         </div>
-                        <div className="px-4 py-5 hidden group-data-[collapsible=icon]:flex justify-center">
+                        <div className="hidden justify-center px-4 py-5 group-data-[collapsible=icon]:flex">
                             <Link
                                 href={nuevaMatricula.url()}
-                                className="flex size-10 items-center justify-center rounded-lg bg-[#ff7043] text-white shadow-md hover:bg-[#f4511e] transition"
+                                className="flex size-10 items-center justify-center rounded-lg bg-[#ff7043] text-white shadow-md transition hover:bg-[#f4511e]"
                                 title="Nueva Matrícula"
                             >
                                 <Plus className="size-5 shrink-0" />

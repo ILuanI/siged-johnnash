@@ -19,11 +19,7 @@ import { updateCarrera as updateAlumnoCarrera } from '@/actions/App/Http/Control
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
     Select,
     SelectContent,
@@ -86,7 +82,9 @@ export function StudentProfileModal({
             {
                 preserveScroll: true,
                 onError: (errors) => {
-                    Object.values(errors).forEach((message) => toast.error(message));
+                    Object.values(errors).forEach((message) =>
+                        toast.error(message),
+                    );
                 },
                 onFinish: () => setActualizandoCarrera(false),
             },
@@ -94,13 +92,13 @@ export function StudentProfileModal({
     };
 
     return (
-        <Dialog open={open} onOpenChange={(isOpen) => ! isOpen && onClose()}>
+        <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
             <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto border-0 p-0 sm:max-w-2xl">
                 <DialogTitle className="sr-only">
                     Perfil de {perfil.nombre_completo}
                 </DialogTitle>
 
-                <div className="border-b px-6 pb-4 pt-8 text-center">
+                <div className="border-b px-6 pt-8 pb-4 text-center">
                     <Avatar className="mx-auto size-20 border-4 border-white shadow-md">
                         <AvatarFallback className="bg-[#1a237e] text-xl text-white">
                             {getInitials(perfil.nombre_completo)}
@@ -158,7 +156,10 @@ export function StudentProfileModal({
                                 <InfoRow
                                     icon={School}
                                     label="Colegio de procedencia"
-                                    value={perfil.colegio_procedencia?.nombre ?? '—'}
+                                    value={
+                                        perfil.colegio_procedencia?.nombre ??
+                                        '—'
+                                    }
                                 />
                             </section>
 
@@ -169,7 +170,10 @@ export function StudentProfileModal({
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <AcademicCell
                                         label="Carrera"
-                                        value={perfil.carrera?.nombre ?? 'Sin carrera'}
+                                        value={
+                                            perfil.carrera?.nombre ??
+                                            'Sin carrera'
+                                        }
                                     />
                                     <AcademicCell
                                         label="Área"
@@ -206,16 +210,24 @@ export function StudentProfileModal({
                                     />
                                 </div>
                                 <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-[1fr_auto]">
-                                    <Select value={carreraId} onValueChange={setCarreraId}>
+                                    <Select
+                                        value={carreraId}
+                                        onValueChange={setCarreraId}
+                                    >
                                         <SelectTrigger aria-label="Cambiar carrera">
                                             <GraduationCap className="size-4 text-slate-400" />
                                             <SelectValue placeholder="Cambiar carrera del alumno" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {carreras.map((carrera) => (
-                                                <SelectItem key={carrera.id_carrera} value={carrera.id_carrera.toString()}>
+                                                <SelectItem
+                                                    key={carrera.id_carrera}
+                                                    value={carrera.id_carrera.toString()}
+                                                >
                                                     {carrera.nombre}
-                                                    {carrera.area ? ` · Área ${carrera.area.codigo}` : ''}
+                                                    {carrera.area
+                                                        ? ` · Área ${carrera.area.codigo}`
+                                                        : ''}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -224,7 +236,11 @@ export function StudentProfileModal({
                                         type="button"
                                         variant="outline"
                                         onClick={cambiarCarrera}
-                                        disabled={actualizandoCarrera || ! carreraId || carreraId === carreraActualId}
+                                        disabled={
+                                            actualizandoCarrera ||
+                                            !carreraId ||
+                                            carreraId === carreraActualId
+                                        }
                                     >
                                         <Save className="size-4" />
                                         Guardar
@@ -241,11 +257,20 @@ export function StudentProfileModal({
                                         </h3>
                                     </div>
                                     {riesgo ? (
-                                        <Badge className={cn('rounded-full', riesgoBadgeClass(riesgo.nivel_riesgo))}>
+                                        <Badge
+                                            className={cn(
+                                                'rounded-full',
+                                                riesgoBadgeClass(
+                                                    riesgo.nivel_riesgo,
+                                                ),
+                                            )}
+                                        >
                                             {riesgo.riesgo_pct.toFixed(1)}%
                                         </Badge>
                                     ) : (
-                                        <Badge variant="outline">Sin datos</Badge>
+                                        <Badge variant="outline">
+                                            Sin datos
+                                        </Badge>
                                     )}
                                 </div>
                                 {riesgo ? (
@@ -264,13 +289,16 @@ export function StudentProfileModal({
                                         />
                                         <AcademicCell
                                             label="Cuotas vencidas"
-                                            value={(riesgo.cuotas_vencidas ?? 0).toString()}
+                                            value={(
+                                                riesgo.cuotas_vencidas ?? 0
+                                            ).toString()}
                                         />
                                     </div>
                                 ) : (
                                     <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
                                         <AlertTriangle className="size-4" />
-                                        El perfil se calculará cuando exista matrícula vigente.
+                                        El perfil se calculará cuando exista
+                                        matrícula vigente.
                                     </div>
                                 )}
                             </section>
@@ -283,7 +311,7 @@ export function StudentProfileModal({
                                     <div className="mb-4 flex items-center gap-2 rounded-lg bg-slate-100 px-3 py-2.5 text-sm">
                                         <User className="size-4 shrink-0 text-slate-500" />
                                         <span>
-                                            <span className="font-medium uppercase text-slate-500">
+                                            <span className="font-medium text-slate-500 uppercase">
                                                 Apoderado:
                                             </span>{' '}
                                             {apoderado.nombres}
@@ -318,56 +346,124 @@ export function StudentProfileModal({
                             mensaje={consolidado.notas._meta.mensaje}
                         />
                     )}
-                    {tab === 'asistencia' && (
-                        consolidado.asistencia.resumen ? (
+                    {tab === 'asistencia' &&
+                        (consolidado.asistencia.resumen ? (
                             <div className="space-y-6">
                                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                                     <div className="rounded-xl border bg-white p-4">
-                                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Tasa de Asistencia</p>
+                                        <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                                            Tasa de Asistencia
+                                        </p>
                                         <p className="mt-1 text-xl font-bold text-slate-900">
-                                            {(consolidado.asistencia.resumen as any).tasa_asistencia !== null ? `${(consolidado.asistencia.resumen as any).tasa_asistencia.toFixed(1)}%` : '0%'}
+                                            {(
+                                                consolidado.asistencia
+                                                    .resumen as any
+                                            ).tasa_asistencia !== null
+                                                ? `${(consolidado.asistencia.resumen as any).tasa_asistencia.toFixed(1)}%`
+                                                : '0%'}
                                         </p>
                                     </div>
                                     <div className="rounded-xl border bg-white p-4">
-                                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Asistencias</p>
-                                        <p className="mt-1 text-xl font-bold text-slate-900">{(consolidado.asistencia.resumen as any).total_asistencias}</p>
+                                        <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                                            Asistencias
+                                        </p>
+                                        <p className="mt-1 text-xl font-bold text-slate-900">
+                                            {
+                                                (
+                                                    consolidado.asistencia
+                                                        .resumen as any
+                                                ).total_asistencias
+                                            }
+                                        </p>
                                     </div>
                                     <div className="rounded-xl border bg-white p-4">
-                                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Tardanzas</p>
-                                        <p className="mt-1 text-xl font-bold text-slate-900">{(consolidado.asistencia.resumen as any).total_tardanzas}</p>
+                                        <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                                            Tardanzas
+                                        </p>
+                                        <p className="mt-1 text-xl font-bold text-slate-900">
+                                            {
+                                                (
+                                                    consolidado.asistencia
+                                                        .resumen as any
+                                                ).total_tardanzas
+                                            }
+                                        </p>
                                     </div>
                                     <div className="rounded-xl border bg-white p-4">
-                                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Faltas</p>
-                                        <p className="mt-1 text-xl font-bold text-slate-900">{(consolidado.asistencia.resumen as any).total_faltas}</p>
+                                        <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                                            Faltas
+                                        </p>
+                                        <p className="mt-1 text-xl font-bold text-slate-900">
+                                            {
+                                                (
+                                                    consolidado.asistencia
+                                                        .resumen as any
+                                                ).total_faltas
+                                            }
+                                        </p>
                                     </div>
                                 </div>
 
-                                <div className="rounded-xl border bg-white overflow-hidden">
-                                    <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-50 text-slate-500 font-medium">
+                                <div className="overflow-hidden rounded-xl border bg-white">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-slate-50 font-medium text-slate-500">
                                             <tr>
-                                                <th className="px-4 py-3">Fecha</th>
-                                                <th className="px-4 py-3">Curso</th>
-                                                <th className="px-4 py-3">Estado</th>
+                                                <th className="px-4 py-3">
+                                                    Fecha
+                                                </th>
+                                                <th className="px-4 py-3">
+                                                    Curso
+                                                </th>
+                                                <th className="px-4 py-3">
+                                                    Estado
+                                                </th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100">
-                                            {consolidado.asistencia.detalle.length === 0 ? (
+                                            {consolidado.asistencia.detalle
+                                                .length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={3} className="px-4 py-8 text-center text-slate-500">No hay registros de asistencia</td>
+                                                    <td
+                                                        colSpan={3}
+                                                        className="px-4 py-8 text-center text-slate-500"
+                                                    >
+                                                        No hay registros de
+                                                        asistencia
+                                                    </td>
                                                 </tr>
                                             ) : (
-                                                (consolidado.asistencia.detalle as any[]).map((item: any, i: number) => (
-                                                    <tr key={i} className="hover:bg-slate-50">
-                                                        <td className="px-4 py-3">{item.fecha}</td>
-                                                        <td className="px-4 py-3 text-slate-900">{item.curso}</td>
-                                                        <td className="px-4 py-3">
-                                                            <Badge className={cn('rounded-full px-2 text-[10px]', estadoAsistenciaClass(item.estado))}>
-                                                                {item.estado}
-                                                            </Badge>
-                                                        </td>
-                                                    </tr>
-                                                ))
+                                                (
+                                                    consolidado.asistencia
+                                                        .detalle as any[]
+                                                ).map(
+                                                    (item: any, i: number) => (
+                                                        <tr
+                                                            key={i}
+                                                            className="hover:bg-slate-50"
+                                                        >
+                                                            <td className="px-4 py-3">
+                                                                {item.fecha}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-slate-900">
+                                                                {item.curso}
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <Badge
+                                                                    className={cn(
+                                                                        'rounded-full px-2 text-[10px]',
+                                                                        estadoAsistenciaClass(
+                                                                            item.estado,
+                                                                        ),
+                                                                    )}
+                                                                >
+                                                                    {
+                                                                        item.estado
+                                                                    }
+                                                                </Badge>
+                                                            </td>
+                                                        </tr>
+                                                    ),
+                                                )
                                             )}
                                         </tbody>
                                     </table>
@@ -378,8 +474,7 @@ export function StudentProfileModal({
                                 titulo="Asistencia"
                                 mensaje="No se encontraron registros de asistencia para este estudiante."
                             />
-                        )
-                    )}
+                        ))}
                 </div>
 
                 <div className="flex gap-3 border-t bg-slate-50 px-6 py-4">
@@ -429,7 +524,7 @@ function InfoRow({
         <div className={cn('flex gap-3', compact && 'items-start')}>
             <Icon className="mt-0.5 size-5 shrink-0 text-slate-400" />
             <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
                     {label}
                 </p>
                 <p className="text-sm text-slate-800">{value}</p>
@@ -441,7 +536,7 @@ function InfoRow({
 function AcademicCell({ label, value }: { label: string; value: string }) {
     return (
         <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
                 {label}
             </p>
             <p className="font-medium text-slate-800">{value}</p>
@@ -467,10 +562,15 @@ function PlaceholderTab({
 
 function estadoAsistenciaClass(estado: string) {
     switch (estado) {
-        case 'ASISTIO': return 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100';
-        case 'TARDANZA': return 'bg-amber-100 text-amber-700 hover:bg-amber-100';
-        case 'FALTO': return 'bg-red-100 text-red-700 hover:bg-red-100';
-        case 'JUSTIFICADO': return 'bg-blue-100 text-blue-700 hover:bg-blue-100';
-        default: return 'bg-slate-100 text-slate-700 hover:bg-slate-100';
+        case 'ASISTIO':
+            return 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100';
+        case 'TARDANZA':
+            return 'bg-amber-100 text-amber-700 hover:bg-amber-100';
+        case 'FALTO':
+            return 'bg-red-100 text-red-700 hover:bg-red-100';
+        case 'JUSTIFICADO':
+            return 'bg-blue-100 text-blue-700 hover:bg-blue-100';
+        default:
+            return 'bg-slate-100 text-slate-700 hover:bg-slate-100';
     }
 }

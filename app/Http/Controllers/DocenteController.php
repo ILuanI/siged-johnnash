@@ -12,10 +12,20 @@ class DocenteController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
+        $query = Docente::query();
+
+        if ($request->filled('search')) {
+            $query->where('dni', 'like', '%' . $request->search . '%');
+        }
+
+        $sort = $request->input('sort', 'asc');
+        $query->orderBy('apellidos', $sort)->orderBy('nombres', $sort);
+
         return Inertia::render('docentes/index', [
-            'docentes' => Docente::latest()->paginate(10),
+            'docentes' => $query->paginate(10)->withQueryString(),
+            'filters' => (object) $request->only(['search', 'sort']),
         ]);
     }
 

@@ -1,15 +1,6 @@
 <?php
 
 use App\Models\User;
-use App\Models\Alumno;
-use App\Models\Matricula;
-use App\Models\Ciclo;
-use App\Models\PeriodoAcademico;
-use App\Models\Turno;
-use App\Models\Aula;
-use App\Enums\EstadoMatricula;
-use App\Enums\ModalidadMatricula;
-use App\Enums\TipoPagoMatricula;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 describe('Caso 1: Autenticación de Usuario (Login)', function () {

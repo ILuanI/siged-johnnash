@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\EstadoCuota;
 use App\Models\Alumno;
 use App\Models\Apoderado;
 use App\Models\Area;
@@ -19,6 +20,7 @@ use App\Models\ExamenMetrica;
 use App\Models\Matricula;
 use App\Models\Pago;
 use App\Models\PeriodoAcademico;
+use App\Models\PrediccionDesercion;
 use App\Models\ResultadoExamen;
 use App\Models\Turno;
 use Carbon\Carbon;
@@ -336,7 +338,7 @@ class MockBiDataSeeder extends Seeder
                 'estado' => $isMatriculado ? 'MATRICULADO' : 'ACTIVO',
             ]);
 
-            if (!$isMatriculado) {
+            if (! $isMatriculado) {
                 // If not enrolled, do not create Matricula, Pagos, Asistencias, or Simulacros.
                 continue;
             }
@@ -379,7 +381,7 @@ class MockBiDataSeeder extends Seeder
                         'numero_cuota' => $cuotaIdx,
                         'monto' => $s['costo'] / 3,
                         'fecha_vencimiento' => Carbon::now()->subWeeks(5 - $cuotaIdx)->toDateString(),
-                        'estado' => \App\Enums\EstadoCuota::Pendiente,
+                        'estado' => EstadoCuota::Pendiente,
                     ]);
                 }
             } elseif ($isCredito) {
@@ -389,7 +391,7 @@ class MockBiDataSeeder extends Seeder
                     'numero_cuota' => 1,
                     'monto' => $s['costo'] / 2,
                     'fecha_vencimiento' => Carbon::now()->subWeeks(2)->toDateString(),
-                    'estado' => \App\Enums\EstadoCuota::Pagada,
+                    'estado' => EstadoCuota::Pagada,
                 ]);
                 Pago::create([
                     'id_cuota' => $cuota1->id_cuota,
@@ -400,7 +402,7 @@ class MockBiDataSeeder extends Seeder
                 ]);
 
                 // Cuota 2
-                $cuota2Estado = $s['pagado_completo'] ? \App\Enums\EstadoCuota::Pagada : \App\Enums\EstadoCuota::Pendiente;
+                $cuota2Estado = $s['pagado_completo'] ? EstadoCuota::Pagada : EstadoCuota::Pendiente;
                 $cuota2 = Cuota::create([
                     'id_comprobante' => $comprobante->id_comprobante,
                     'numero_cuota' => 2,
@@ -424,7 +426,7 @@ class MockBiDataSeeder extends Seeder
                     'numero_cuota' => 1,
                     'monto' => $s['costo'],
                     'fecha_vencimiento' => Carbon::now()->subWeeks(3)->toDateString(),
-                    'estado' => $s['pagado_completo'] ? \App\Enums\EstadoCuota::Pagada : \App\Enums\EstadoCuota::Pendiente,
+                    'estado' => $s['pagado_completo'] ? EstadoCuota::Pagada : EstadoCuota::Pendiente,
                 ]);
 
                 if ($s['pagado_completo']) {
@@ -469,14 +471,14 @@ class MockBiDataSeeder extends Seeder
             if (isset($s['desercion']) && $s['desercion'] !== null) {
                 $riesgoPct = $s['desercion']['probabilidad'] * 100;
                 $nivel = $riesgoPct > 75 ? 'ALTO' : ($riesgoPct > 40 ? 'MEDIO' : 'BAJO');
-                \App\Models\PrediccionDesercion::create([
+                PrediccionDesercion::create([
                     'id_matricula' => $matricula->id_matricula,
                     'fecha_calculo' => Carbon::now()->toDateString(),
                     'riesgo_pct' => $riesgoPct,
                     'nivel_riesgo' => $nivel,
                     'tasa_asistencia' => ($s['asistencias'] / max(1, $s['asistencias'] + $s['faltas'])) * 100,
                     'promedio_examenes' => array_sum($s['simulacros']) / max(1, count($s['simulacros'])),
-                    'cuotas_vencidas' => $s['tipo_pago'] === 'CREDITO' && !$s['pagado_completo'] ? 1 : 0,
+                    'cuotas_vencidas' => $s['tipo_pago'] === 'CREDITO' && ! $s['pagado_completo'] ? 1 : 0,
                 ]);
             }
         }
@@ -493,7 +495,7 @@ class MockBiDataSeeder extends Seeder
 
             // Save results for all matriculas
             foreach ($studentsData as $idx => $s) {
-                $matricula = Matricula::whereHas('alumno', function($q) use ($s) {
+                $matricula = Matricula::whereHas('alumno', function ($q) use ($s) {
                     $q->where('dni', $s['dni']);
                 })->first();
 

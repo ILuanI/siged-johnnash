@@ -1,5 +1,5 @@
 export function calcularEdad(fechaNac: string | null): number | null {
-    if (! fechaNac) {
+    if (!fechaNac) {
         return null;
     }
 
@@ -16,7 +16,7 @@ export function calcularEdad(fechaNac: string | null): number | null {
 }
 
 export function formatearFechaLarga(fecha: string | null): string {
-    if (! fecha) {
+    if (!fecha) {
         return '—';
     }
 

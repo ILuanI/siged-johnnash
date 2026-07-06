@@ -7,6 +7,11 @@ export type EstudianteListItem = {
     estado: string;
     telefono: string | null;
     cuotas?: { estado: string; fecha_vencimiento: string }[];
+    apoderado?: {
+        id_apoderado: number;
+        nombres: string;
+        telefono: string | null;
+    } | null;
 };
 
 export type ConsolidadoAlumno = {

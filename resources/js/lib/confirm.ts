@@ -26,7 +26,9 @@ export async function confirmAction({
 }: ConfirmOptions): Promise<boolean> {
     try {
         const specifier = 'sweetalert2';
-        const module = (await import(/* @vite-ignore */ specifier)) as SweetAlertModule;
+        const module = (await import(
+            /* @vite-ignore */ specifier
+        )) as SweetAlertModule;
         const sweetAlert = module.default ?? module;
 
         if (typeof sweetAlert.fire === 'function') {
