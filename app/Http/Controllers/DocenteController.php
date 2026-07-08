@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreDocenteRequest;
 use App\Http\Requests\UpdateDocenteRequest;
 use App\Models\Docente;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class DocenteController extends Controller
@@ -12,12 +13,12 @@ class DocenteController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(\Illuminate\Http\Request $request)
+    public function index(Request $request)
     {
         $query = Docente::query();
 
         if ($request->filled('search')) {
-            $query->where('dni', 'like', '%' . $request->search . '%');
+            $query->where('dni', 'like', '%'.$request->search.'%');
         }
 
         $sort = $request->input('sort', 'asc');

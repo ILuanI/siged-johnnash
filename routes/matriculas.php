@@ -36,6 +36,12 @@ Route::middleware(['auth', 'verified', 'permiso'])
         Route::patch('carreras/{carrera}', [CatalogoAcademicoController::class, 'updateCarrera'])
             ->name('carreras.update');
 
+        Route::post('cursos', [CatalogoAcademicoController::class, 'storeCurso'])
+            ->name('cursos.store');
+
+        Route::patch('cursos/{curso}', [CatalogoAcademicoController::class, 'updateCurso'])
+            ->name('cursos.update');
+
         Route::get('nueva', [MatriculaWebController::class, 'create'])
             ->name('nueva');
 

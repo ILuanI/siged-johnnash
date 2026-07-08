@@ -1,11 +1,13 @@
 import { Head, useForm } from '@inertiajs/react';
-import { BookOpen, Layers3, Plus, Save } from 'lucide-react';
+import { BookOpen, Layers3, Plus, Save, Book } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     storeArea,
     storeCarrera,
+    storeCurso,
     updateArea,
     updateCarrera,
+    updateCurso,
 } from '@/actions/App/Http/Controllers/Matriculas/CatalogoAcademicoController';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -27,20 +29,26 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import type { AreaCatalogo, CarreraOption } from '@/types/matriculas';
+import type { AreaCatalogo, CarreraOption, CursoCatalogo } from '@/types/matriculas';
 
 type PageProps = {
     areas: AreaCatalogo[];
     carreras: CarreraOption[];
+    cursos: CursoCatalogo[];
 };
 
-export default function CatalogoAcademico({ areas, carreras }: PageProps) {
+export default function CatalogoAcademico({ areas, carreras, cursos }: PageProps) {
     const areaForm = useForm({ codigo: '', nombre: '' });
     const carreraForm = useForm({
         nombre: '',
         id_area: areas[0]?.id_area.toString() ?? '',
         puntaje_min: '',
         puntaje_max: '',
+    });
+    const cursoForm = useForm({
+        nombre: '',
+        area_conoc: '',
+        color: '#FF7043',
     });
 
     const crearArea = (event: React.FormEvent) => {
@@ -59,6 +67,16 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
             onSuccess: () =>
                 carreraForm.reset('nombre', 'puntaje_min', 'puntaje_max'),
             onError: () => toast.error('Revisa los datos de la carrera.'),
+        });
+    };
+
+    const crearCurso = (event: React.FormEvent) => {
+        event.preventDefault();
+        cursoForm.post(storeCurso.url(), {
+            preserveScroll: true,
+            onSuccess: () =>
+                cursoForm.reset('nombre', 'area_conoc'),
+            onError: () => toast.error('Revisa los datos del curso.'),
         });
     };
 
@@ -83,7 +101,7 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
             </header>
 
             <main className="space-y-6 px-8 py-6">
-                <section className="grid gap-4 lg:grid-cols-2">
+                <section className="grid gap-4 lg:grid-cols-3">
                     <form
                         onSubmit={crearArea}
                         className="rounded-lg border bg-white p-5"
@@ -245,6 +263,72 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
                             Crear carrera
                         </Button>
                     </form>
+
+                    <form
+                        onSubmit={crearCurso}
+                        className="rounded-lg border bg-white p-5"
+                    >
+                        <div className="mb-4 flex items-center gap-2">
+                            <Book className="size-5 text-slate-500" />
+                            <h2 className="text-base font-semibold text-slate-900">
+                                Nuevo curso
+                            </h2>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div>
+                                <Label htmlFor="nombre_curso">Nombre</Label>
+                                <Input
+                                    id="nombre_curso"
+                                    value={cursoForm.data.nombre}
+                                    onChange={(event) =>
+                                        cursoForm.setData(
+                                            'nombre',
+                                            event.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError message={cursoForm.errors.nombre} />
+                            </div>
+                            <div>
+                                <Label htmlFor="area_conoc">Área de conocimiento</Label>
+                                <Input
+                                    id="area_conoc"
+                                    value={cursoForm.data.area_conoc}
+                                    onChange={(event) =>
+                                        cursoForm.setData(
+                                            'area_conoc',
+                                            event.target.value,
+                                        )
+                                    }
+                                    placeholder="Ej. Matemáticas, Comunicación"
+                                />
+                                <InputError
+                                    message={cursoForm.errors.area_conoc}
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="color">Color</Label>
+                                <Input
+                                    id="color"
+                                    type="color"
+                                    value={cursoForm.data.color}
+                                    onChange={(event) =>
+                                        cursoForm.setData('color', event.target.value)
+                                    }
+                                    className="h-10 w-full cursor-pointer"
+                                />
+                                <InputError message={cursoForm.errors.color} />
+                            </div>
+                        </div>
+                        <Button
+                            type="submit"
+                            className="mt-4 bg-[#ff7043] hover:bg-[#f4511e]"
+                            disabled={cursoForm.processing}
+                        >
+                            <Plus className="size-4" />
+                            Crear curso
+                        </Button>
+                    </form>
                 </section>
 
                 <section className="space-y-4">
@@ -255,6 +339,11 @@ export default function CatalogoAcademico({ areas, carreras }: PageProps) {
                             areas={areas}
                         />
                     ))}
+                </section>
+
+                <section className="space-y-4">
+                    <h2 className="text-lg font-semibold text-slate-900 mb-4">Cursos</h2>
+                    <CursosBlock cursos={cursos} />
                 </section>
             </main>
         </>
@@ -448,6 +537,101 @@ function CarreraRow({
                     type="button"
                     variant="outline"
                     onClick={guardarCarrera}
+                    disabled={form.processing}
+                >
+                    <Save className="size-4" />
+                    Guardar
+                </Button>
+            </TableCell>
+        </TableRow>
+    );
+}
+
+function CursosBlock({ cursos }: { cursos: CursoCatalogo[] }) {
+    return (
+        <article className="rounded-lg border bg-white">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Curso</TableHead>
+                        <TableHead className="w-56">Área de conocimiento</TableHead>
+                        <TableHead className="w-24">Color</TableHead>
+                        <TableHead className="w-32 text-right">Acción</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {cursos.length > 0 ? (
+                        cursos.map((curso) => (
+                            <CursoRow key={curso.id_curso} curso={curso} />
+                        ))
+                    ) : (
+                        <TableRow>
+                            <TableCell
+                                colSpan={4}
+                                className="py-6 text-center text-slate-500"
+                            >
+                                Todavía no hay cursos registrados.
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        </article>
+    );
+}
+
+function CursoRow({ curso }: { curso: CursoCatalogo }) {
+    const form = useForm({
+        nombre: curso.nombre,
+        area_conoc: curso.area_conoc ?? '',
+        color: curso.color,
+    });
+
+    const guardarCurso = (event: React.FormEvent) => {
+        event.preventDefault();
+        form.patch(updateCurso.url(curso.id_curso.toString()), {
+            preserveScroll: true,
+            onError: () => toast.error('No se pudo actualizar el curso.'),
+        });
+    };
+
+    return (
+        <TableRow>
+            <TableCell>
+                <Input
+                    value={form.data.nombre}
+                    onChange={(event) =>
+                        form.setData('nombre', event.target.value)
+                    }
+                />
+                <InputError message={form.errors.nombre} />
+            </TableCell>
+            <TableCell>
+                <Input
+                    value={form.data.area_conoc}
+                    onChange={(event) =>
+                        form.setData('area_conoc', event.target.value)
+                    }
+                    placeholder="Ej. Matemáticas, Comunicación"
+                />
+                <InputError message={form.errors.area_conoc} />
+            </TableCell>
+            <TableCell>
+                <Input
+                    type="color"
+                    value={form.data.color}
+                    onChange={(event) =>
+                        form.setData('color', event.target.value)
+                    }
+                    className="h-10 w-full cursor-pointer"
+                />
+                <InputError message={form.errors.color} />
+            </TableCell>
+            <TableCell className="text-right">
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={guardarCurso}
                     disabled={form.processing}
                 >
                     <Save className="size-4" />

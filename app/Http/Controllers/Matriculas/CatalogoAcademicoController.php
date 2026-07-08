@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Matriculas;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Matriculas\StoreAreaRequest;
 use App\Http\Requests\Matriculas\StoreCarreraRequest;
+use App\Http\Requests\Matriculas\StoreCursoRequest;
 use App\Http\Requests\Matriculas\UpdateAreaRequest;
 use App\Http\Requests\Matriculas\UpdateCarreraRequest;
+use App\Http\Requests\Matriculas\UpdateCursoRequest;
 use App\Http\Resources\Matriculas\AreaResource;
 use App\Http\Resources\Matriculas\CarreraResource;
+use App\Http\Resources\Matriculas\CursoResource;
 use App\Models\Area;
 use App\Models\Carrera;
+use App\Models\Curso;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -25,11 +29,16 @@ class CatalogoAcademicoController extends Controller
             ->orderBy('codigo')
             ->get();
 
+        $cursos = Curso::query()
+            ->orderBy('nombre')
+            ->get();
+
         return Inertia::render('matriculas/catalogo', [
             'areas' => AreaResource::collection($areas)->resolve(),
             'carreras' => CarreraResource::collection(
                 Carrera::query()->with('area')->orderBy('nombre')->get()
             )->resolve(),
+            'cursos' => CursoResource::collection($cursos)->resolve(),
         ]);
     }
 
@@ -59,5 +68,19 @@ class CatalogoAcademicoController extends Controller
         $carrera->update($request->validated());
 
         return redirect()->back()->with('success', 'Carrera actualizada correctamente.');
+    }
+
+    public function storeCurso(StoreCursoRequest $request): RedirectResponse
+    {
+        Curso::query()->create($request->validated());
+
+        return redirect()->back()->with('success', 'Curso creado correctamente.');
+    }
+
+    public function updateCurso(UpdateCursoRequest $request, Curso $curso): RedirectResponse
+    {
+        $curso->update($request->validated());
+
+        return redirect()->back()->with('success', 'Curso actualizado correctamente.');
     }
 }

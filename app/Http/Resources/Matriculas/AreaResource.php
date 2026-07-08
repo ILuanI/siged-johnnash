@@ -14,7 +14,8 @@ class AreaResource extends JsonResource
             'codigo' => $this->codigo,
             'nombre' => $this->nombre,
             'carreras_count' => $this->whenCounted('carreras'),
-            'carreras' => CarreraResource::collection($this->whenLoaded('carreras')),
+            'carreras' => $this->whenLoaded('carreras', fn () => CarreraResource::collection($this->carreras)->resolve()
+            ),
         ];
     }
 }

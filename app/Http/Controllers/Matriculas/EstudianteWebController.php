@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Matriculas;
 
+use App\Enums\EstadoCuota;
+use App\Enums\EstadoMatricula;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Matriculas\StoreAlumnoRequest;
 use App\Http\Requests\Matriculas\UpdateAlumnoCarreraRequest;
@@ -15,11 +17,9 @@ use App\Models\Carrera;
 use App\Models\ColegioProcedencia;
 use App\Services\Matriculas\AlumnoRegistroService;
 use App\Services\Matriculas\ConsolidadoAlumnoService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Database\Eloquent\Builder;
-use App\Enums\EstadoMatricula;
-use App\Enums\EstadoCuota;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -46,30 +46,30 @@ class EstudianteWebController extends Controller
                 });
             })
             ->when($filtroEstado === 'matriculados', function (Builder $query): void {
-                $query->whereHas('matriculas', fn($q) => $q->where('estado', EstadoMatricula::Vigente));
+                $query->whereHas('matriculas', fn ($q) => $q->where('estado', EstadoMatricula::Vigente));
             })
             ->when($filtroEstado === 'activos', function (Builder $query): void {
                 $query->where('estado', 'ACTIVO');
             })
             ->when($filtroEstado === 'al_dia', function (Builder $query): void {
-                $query->whereHas('matriculas', fn($q) => $q->where('estado', EstadoMatricula::Vigente))
-                      ->whereDoesntHave('matriculas.comprobantePago.cuotas', function ($q) {
-                          $q->where('estado', EstadoCuota::Vencida)
+                $query->whereHas('matriculas', fn ($q) => $q->where('estado', EstadoMatricula::Vigente))
+                    ->whereDoesntHave('matriculas.comprobantePago.cuotas', function ($q) {
+                        $q->where('estado', EstadoCuota::Vencida)
                             ->orWhere(function ($sq) {
                                 $sq->where('estado', EstadoCuota::Pendiente)
-                                   ->where('fecha_vencimiento', '<', now()->startOfDay());
+                                    ->where('fecha_vencimiento', '<', now()->startOfDay());
                             });
-                      });
+                    });
             })
             ->when($filtroEstado === 'vencidos', function (Builder $query): void {
-                $query->whereHas('matriculas', fn($q) => $q->where('estado', EstadoMatricula::Vigente))
-                      ->whereHas('matriculas.comprobantePago.cuotas', function ($q) {
-                          $q->where('estado', EstadoCuota::Vencida)
+                $query->whereHas('matriculas', fn ($q) => $q->where('estado', EstadoMatricula::Vigente))
+                    ->whereHas('matriculas.comprobantePago.cuotas', function ($q) {
+                        $q->where('estado', EstadoCuota::Vencida)
                             ->orWhere(function ($sq) {
                                 $sq->where('estado', EstadoCuota::Pendiente)
-                                   ->where('fecha_vencimiento', '<', now()->startOfDay());
+                                    ->where('fecha_vencimiento', '<', now()->startOfDay());
                             });
-                      });
+                    });
             })
             ->orderBy('apellidos', $sort)
             ->orderBy('nombres', $sort)

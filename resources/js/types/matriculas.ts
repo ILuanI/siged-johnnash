@@ -108,3 +108,12 @@ export type AreaCatalogo = AreaOption & {
     carreras_count?: number;
     carreras: CarreraOption[];
 };
+
+export type CursoOption = {
+    id_curso: number;
+    nombre: string;
+    area_conoc?: string | null;
+    color: string;
+};
+
+export type CursoCatalogo = CursoOption;
