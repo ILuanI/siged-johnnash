@@ -18,6 +18,7 @@ class EstadoCuentaController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->query('search');
+        $estado = $request->query('estado');
 
         $alumnos = Alumno::query()
             ->with(['matriculas' => function ($query) {
@@ -28,12 +29,43 @@ class EstadoCuentaController extends Controller
                     ->orWhere('apellidos', 'like', "%{$search}%")
                     ->orWhere('dni', 'like', "%{$search}%");
             })
+            ->when($estado, function ($query, $estado) {
+                match ($estado) {
+                    'vencido' => $query->whereHas('matriculas.comprobantePago.cuotas', function ($q) {
+                        $q->where('estado', 'VENCIDA')
+                            ->orWhere(fn ($q) => $q->where('estado', 'PENDIENTE')
+                                ->whereDate('fecha_vencimiento', '<', now()));
+                    }),
+                    'proximo_a_vencer' => $query
+                        ->whereHas('matriculas.comprobantePago.cuotas', function ($q) {
+                            $q->where('estado', 'PENDIENTE')
+                                ->whereDate('fecha_vencimiento', '>=', now())
+                                ->whereDate('fecha_vencimiento', '<=', now()->addDays(3));
+                        })
+                        ->whereDoesntHave('matriculas.comprobantePago.cuotas', function ($q) {
+                            $q->where('estado', 'VENCIDA')
+                                ->orWhere(fn ($q) => $q->where('estado', 'PENDIENTE')
+                                    ->whereDate('fecha_vencimiento', '<', now()));
+                        }),
+                    'al_dia' => $query
+                        ->whereHas('matriculas.comprobantePago.cuotas')
+                        ->whereDoesntHave('matriculas.comprobantePago.cuotas', function ($q) {
+                            $q->where('estado', 'VENCIDA')
+                                ->orWhere(fn ($q) => $q->where('estado', 'PENDIENTE')
+                                    ->whereDate('fecha_vencimiento', '<=', now()->addDays(3)));
+                        }),
+                    'sin_plan' => $query->whereHas('matriculas', function ($q) {
+                        $q->whereDoesntHave('comprobantePago');
+                    }),
+                    default => $query,
+                };
+            })
             ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('tesoreria/index', [
             'alumnos' => $alumnos,
-            'filters' => $request->only(['search']),
+            'filters' => $request->only(['search', 'estado']),
         ]);
     }
 

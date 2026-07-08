@@ -19,7 +19,7 @@ Este documento define cómo se organizan los **módulos funcionales** del sistem
 | **RI001** | Registro de alumnos | `alumno`, `apoderado`, `carrera`, `area` | ✅ Implementado (dentro de Matrículas) | `/matriculas/estudiantes/nuevo` | `POST /api/matriculas/estudiantes` |
 | **RI002** | Matrícula y ciclos | `matricula`, `ciclo`, `periodo_academico`, `turno`, `aula` | ✅ Implementado | `/matriculas/nueva` | `POST /api/matriculas` |
 | — | Consolidado del alumno | Agrega perfil + matrícula + placeholders | ✅ Implementado | Modal en `/matriculas/estudiantes?alumno={id}` | `GET /api/matriculas/estudiantes/{id}/consolidado` |
-| **RI003** | Cursos / docentes / horarios | `curso`, `docente`, `asignacion_docente`, `horario` | 🔶 Parcial (Cursos y Docentes listados; asignación/horarios pendientes) | `/cursos`, `/docentes` | — |
+| **RI003** | Cursos / docentes / horarios | `curso`, `docente` (`docentes`), `asignacion_docente`, `horario`, `aula`, `ciclo` | ✅ Implementado | `/cursos` (horario visual con cuadrícula semanal), `/docentes` | — |
 | **RI004** | Asistencia | `asistencia` | 🔶 Parcial (Lector implementado) | `/asistencias/lector` | — |
 | **RI005** | Pagos y cuotas | `comprobante_pago`, `cuota`, `pago` | 🔶 Parcial (Estado de cuenta implementado) | `/tesoreria/estado-cuenta` | — |
 | **RI006** | Notas / rendimiento | `examen`, `resultado_examen` | 🔶 Parcial (Cargar/consultar notas implementado) | `/notas`, `/notas/cargar`, `/notas/consulta` | — |
@@ -54,7 +54,7 @@ app/Http/Controllers/
 ├── Academico/
 │   └── ExamenController.php                 # Exámenes (backend notas)
 ├── Cursos/
-│   └── CursoController.php                  # Cursos (listado/gestión)
+│   └── CursoController.php                  # CRUD cursos + asignación docente + horarios + ciclos + aulas
 ├── Asistencias/
 │   └── LectorAsistenciaController.php       # Lector QR/Manual asistencia
 ├── Tesoreria/
@@ -128,144 +128,11 @@ resources/js/pages/
 
 ---
 
-## Módulo implementado: Matrículas (RI001 + RI002)
+## Modulos Implementados
 
-### Responsabilidad
-
-1. Registrar estudiantes nuevos (validación DNI, código autogenerado).
-2. Formalizar matrícula (periodo, ciclo, turno, aula → estado `MATRICULADO`).
-3. Exponer **consolidado** del alumno para el perfil y futuros sprints (asistencia, notas, pagos).
-
-### Backend — ubicación de archivos
-
-```text
-app/
-├── Enums/                          # EstadoAlumno, EstadoMatricula, EstadoCiclo, …
-├── Exceptions/BusinessRuleException.php
-├── Http/
-│   ├── Controllers/
-│   │   ├── Api/Matriculas/         # API JSON (consumo externo / móvil)
-│   │   └── Matriculas/             # Web Inertia
-│   ├── Requests/Matriculas/
-│   ├── Resources/Matriculas/
-│   └── Responses/ApiResponse.php
-├── Models/                         # Alumno, Matricula, Ciclo, PeriodoAcademico, …
-└── Services/Matriculas/
-    ├── AlumnoRegistroService.php
-    ├── MatriculaFormalizacionService.php
-    └── ConsolidadoAlumnoService.php
-
-routes/
-├── matriculas.php                  # Web (auth)
-├── api/matriculas.php              # API (incluido desde api.php)
-└── demo-matriculas.php             # Vistas Blade de prueba (temporal)
-
-database/
-├── migrations/                     # Esquema alineado a gpti_siged + extensiones
-├── factories/                      # Alumno, Matricula, Ciclo, …
-└── seeders/MatriculasCatalogoSeeder.php
-
-tests/Feature/Matriculas/         # Pest: API + páginas Inertia
-```
-
-### Rutas web (requieren `auth` + `verified`)
-
-| Método | URI | Nombre | Acción |
-|--------|-----|--------|--------|
-| GET | `/matriculas/estudiantes` | `matriculas.estudiantes.index` | Directorio + modal perfil (`?alumno=`) |
-| GET | `/matriculas/estudiantes/nuevo` | `matriculas.estudiantes.create` | Formulario registro |
-| POST | `/matriculas/estudiantes` | `matriculas.estudiantes.store` | Guardar alumno |
-| GET | `/matriculas/nueva` | `matriculas.nueva` | Formulario matrícula |
-| POST | `/matriculas/nueva` | `matriculas.store` | Formalizar matrícula |
-| GET | `/matriculas/catalogo` | `matriculas.catalogo` | Catálogo académico |
-
-### Rutas API (sin auth por ahora — definir Sanctum en sprint de seguridad)
-
-| Método | URI | Nombre |
-|--------|-----|--------|
-| POST | `/api/matriculas/estudiantes` | `matriculas.estudiantes.store` |
-| POST | `/api/matriculas` | `matriculas.store` |
-| GET | `/api/matriculas/estudiantes/{id}/consolidado` | `matriculas.estudiantes.consolidado` |
-
-### Frontend — ubicación de archivos
-
-```text
-resources/js/
-├── components/matriculas/
-│   ├── matriculas-sidebar.tsx      # Sidebar estilo prototipo Job Nash
-│   └── student-profile-modal.tsx   # Modal perfil (tabs Información / Pagos / Notas / Asistencia)
-├── layouts/matriculas-layout.tsx   # Layout del módulo (registrado en app.tsx)
-├── pages/matriculas/
-│   ├── estudiantes/index.tsx       # Directorio de estudiantes
-│   ├── estudiantes/create.tsx      # Registro
-│   ├── nueva.tsx                   # Formalización
-│   └── catalogo.tsx                # Catálogo académico
-├── types/matriculas.ts             # Tipos TS del consolidado y listados
-└── lib/matriculas.ts               # Helpers (edad, badges, fechas)
-```
-
----
-
-## Módulos transversales (ya en el starter)
-
-| Área | Backend | Frontend | Notas |
-|------|---------|----------|-------|
-| **Autenticación** | Fortify (`app/Actions/Fortify/`) | `resources/js/pages/auth/*` | Login, registro, 2FA, passkeys |
-| **Ajustes de cuenta** | `Settings/*Controller` | `resources/js/pages/settings/*` | Perfil, seguridad, apariencia |
-| **Shell general** | — | `dashboard`, `welcome`, `app-sidebar` | Dashboard con datos reales |
-
-Estos **no** siguen la carpeta `Matriculas/` porque vienen del Laravel React Starter Kit.
-
----
-
-## Convención para un módulo nuevo (plantilla)
-
-Al iniciar, por ejemplo, **Pagos (RI005)**:
-
-### 1. Rutas
-
-```text
-routes/pagos.php              → require en web.php (middleware auth)
-routes/api/pagos.php          → require en api.php
-```
-
-### 2. Backend
-
-```text
-app/Http/Controllers/Pagos/           # Web (Inertia)
-app/Http/Controllers/Api/Pagos/       # API JSON
-app/Services/Pagos/                   # Lógica de negocio
-app/Http/Requests/Pagos/              # Validación
-app/Http/Resources/Pagos/             # Respuestas API
-app/Models/                           # Solo modelos del dominio (Cuota, Pago, …)
-app/Enums/                            # Enums del dominio
-```
-
-### 3. Frontend
-
-```text
-resources/js/pages/pagos/
-resources/js/components/pagos/
-resources/js/types/pagos.ts
-resources/js/layouts/pagos-layout.tsx   # Opcional si el módulo tiene shell propio
-```
-
-### 4. Tests
-
-```text
-tests/Feature/Pagos/
-```
-
-### 5. Registro en `app.tsx`
-
-```typescript
-case name.startsWith('pagos/'):
-    return PagosLayout; // o AppLayout
-```
-
-### 6. Sidebar
-
-Actualizar `matriculas-sidebar.tsx` o crear un sidebar global cuando exista shell único del SIGED.
+Puedes navegar al archivo del modulo si quieres obtener más detalle. Cuando quieras documentar un nuevo avance en el modulo crea otro markdown en la misma carpeta.
+- Matrículas (RI001 + RI002) (docs\module\MATRICULAS.md)
+- Cursos / Docentes / Horarios (RI003) (docs\module\CURSOS.md)
 
 ---
 
@@ -293,11 +160,10 @@ Actualizar `matriculas-sidebar.tsx` o crear un sidebar global cuando exista shel
 ## Próximos módulos sugeridos (orden de sprint)
 
 1. **RI007** — Integrar roles del dominio (`rol`, `usuario`) con auth y policies.
-2. **RI003** — Completar Cursos: asignación docente, horarios, aulas (desbloquea asistencia y notas por asignación).
-3. **RI005** — Completar Pagos (completa pestaña del consolidado y tesorería).
-4. **RI004** — Completar Asistencia (reportes, justificativos, alertas).
-5. **RI006** — Completar Notas / simulacros (promedios, actas, reportes).
-6. **RI008 / RI009** — BI e IA deserción (dashboards, predicciones, alertas tempranas).
+2. **RI005** — Completar Pagos (completa pestaña del consolidado y tesorería).
+3. **RI004** — Completar Asistencia (reportes, justificativos, alertas).
+4. **RI006** — Completar Notas / simulacros (promedios, actas, reportes).
+5. **RI008 / RI009** — BI e IA deserción (dashboards, predicciones, alertas tempranas).
 
 ---
 

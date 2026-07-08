@@ -14,13 +14,26 @@ import {
     show as tesoreriaShow,
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 
+const FILTROS_ESTADO = [
+    { key: '', label: 'Todos', className: '' },
+    { key: 'al_dia', label: 'Al día', className: 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100' },
+    { key: 'proximo_a_vencer', label: 'Próximo a vencer', className: 'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100' },
+    { key: 'vencido', label: 'Vencido', className: 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100' },
+    { key: 'sin_plan', label: 'Sin plan', className: 'border-gray-300 bg-gray-50 text-gray-600 hover:bg-gray-100' },
+];
+
 export default function TesoreriaIndex({ alumnos, filters }: any) {
     const getInitials = useInitials();
     const [busqueda, setBusqueda] = useState(filters.search ?? '');
+    const estadoActivo = filters.estado ?? '';
 
     const buscar = (e: FormEvent) => {
         e.preventDefault();
-        router.get(tesoreriaIndex.url(), { search: busqueda || undefined });
+        router.get(tesoreriaIndex.url(), { search: busqueda || undefined, estado: estadoActivo || undefined });
+    };
+
+    const cambiarFiltro = (estado: string) => {
+        router.get(tesoreriaIndex.url(), { search: busqueda || undefined, estado: estado || undefined });
     };
 
     return (
@@ -48,6 +61,26 @@ export default function TesoreriaIndex({ alumnos, filters }: any) {
                         className="border-slate-200 bg-slate-50 pl-10"
                     />
                 </form>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                    {FILTROS_ESTADO.map((f) => {
+                        const activo = estadoActivo === f.key;
+                        return (
+                            <button
+                                key={f.key}
+                                onClick={() => cambiarFiltro(f.key)}
+                                className={cn(
+                                    'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                                    activo
+                                        ? f.className || 'border-slate-300 bg-slate-800 text-white hover:bg-slate-700'
+                                        : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50',
+                                )}
+                            >
+                                {f.label}
+                            </button>
+                        );
+                    })}
+                </div>
             </header>
 
             <div className="flex-1 px-8 py-6">
