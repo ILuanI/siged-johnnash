@@ -25,10 +25,8 @@ export async function confirmAction({
     icon = 'warning',
 }: ConfirmOptions): Promise<boolean> {
     try {
-        const specifier = 'sweetalert2';
-        const module = (await import(
-            /* @vite-ignore */ specifier
-        )) as SweetAlertModule;
+        await import('sweetalert2/dist/sweetalert2.min.css');
+        const module = (await import('sweetalert2')) as SweetAlertModule;
         const sweetAlert = module.default ?? module;
 
         if (typeof sweetAlert.fire === 'function') {
@@ -44,8 +42,8 @@ export async function confirmAction({
 
             return result.isConfirmed;
         }
-    } catch {
-        // SweetAlert2 is optional here; the project does not currently ship it.
+    } catch (e) {
+        console.error('Failed to load sweetalert2:', e);
     }
 
     return window.confirm([title, text].filter(Boolean).join('\n\n'));

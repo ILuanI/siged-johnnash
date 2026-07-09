@@ -2,7 +2,9 @@
 
 use App\Models\Alumno;
 use App\Models\Area;
+use App\Models\AsignacionDocente;
 use App\Models\Carrera;
+use App\Models\Curso;
 use App\Models\Rol;
 use App\Models\User;
 use Database\Seeders\MatriculasCatalogoSeeder;
@@ -103,4 +105,73 @@ test('admin can change student career after registration', function () {
         ->assertRedirect();
 
     expect($alumno->refresh()->id_carrera)->toBe($carreraNueva->id_carrera);
+});
+
+test('admin can delete area when it has no careers', function () {
+    $user = catalogoAdminUser();
+    $area = Area::factory()->create();
+
+    $this->actingAs($user)
+        ->delete(route('matriculas.areas.destroy', $area))
+        ->assertRedirect();
+
+    expect(Area::query()->where('id_area', $area->id_area)->exists())->toBeFalse();
+});
+
+test('admin cannot delete area when it has careers', function () {
+    $user = catalogoAdminUser();
+    $area = Area::factory()->create();
+    Carrera::factory()->create(['id_area' => $area->id_area]);
+
+    $this->actingAs($user)
+        ->delete(route('matriculas.areas.destroy', $area))
+        ->assertRedirect();
+
+    expect(Area::query()->where('id_area', $area->id_area)->exists())->toBeTrue();
+});
+
+test('admin can delete carrera when it has no students', function () {
+    $user = catalogoAdminUser();
+    $carrera = Carrera::factory()->create();
+
+    $this->actingAs($user)
+        ->delete(route('matriculas.carreras.destroy', $carrera))
+        ->assertRedirect();
+
+    expect(Carrera::query()->where('id_carrera', $carrera->id_carrera)->exists())->toBeFalse();
+});
+
+test('admin cannot delete carrera when it has students', function () {
+    $user = catalogoAdminUser();
+    $carrera = Carrera::factory()->create();
+    Alumno::factory()->create(['id_carrera' => $carrera->id_carrera]);
+
+    $this->actingAs($user)
+        ->delete(route('matriculas.carreras.destroy', $carrera))
+        ->assertRedirect();
+
+    expect(Carrera::query()->where('id_carrera', $carrera->id_carrera)->exists())->toBeTrue();
+});
+
+test('admin can delete curso when it has no assignments', function () {
+    $user = catalogoAdminUser();
+    $curso = Curso::factory()->create();
+
+    $this->actingAs($user)
+        ->delete(route('matriculas.cursos.destroy', $curso))
+        ->assertRedirect();
+
+    expect(Curso::query()->where('id_curso', $curso->id_curso)->exists())->toBeFalse();
+});
+
+test('admin cannot delete curso when it has teacher assignments', function () {
+    $user = catalogoAdminUser();
+    $curso = Curso::factory()->create();
+    AsignacionDocente::factory()->create(['id_curso' => $curso->id_curso]);
+
+    $this->actingAs($user)
+        ->delete(route('matriculas.cursos.destroy', $curso))
+        ->assertRedirect();
+
+    expect(Curso::query()->where('id_curso', $curso->id_curso)->exists())->toBeTrue();
 });

@@ -260,12 +260,6 @@ export default function EstudiantesIndex({
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        <Button asChild variant="outline">
-                            <Link href={catalogoIndex.url()}>
-                                <Settings2 className="size-4" />
-                                Catálogo académico
-                            </Link>
-                        </Button>
                         <Button
                             onClick={openCreateDialog}
                             className="bg-[#ff7043] hover:bg-[#f4511e]"

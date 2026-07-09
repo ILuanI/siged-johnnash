@@ -83,4 +83,37 @@ class CatalogoAcademicoController extends Controller
 
         return redirect()->back()->with('success', 'Curso actualizado correctamente.');
     }
+
+    public function destroyArea(Area $area): RedirectResponse
+    {
+        if ($area->carreras()->exists()) {
+            return redirect()->back()->with('error', 'No se puede eliminar el área porque tiene carreras asociadas.');
+        }
+
+        $area->delete();
+
+        return redirect()->back()->with('success', 'Área académica eliminada correctamente.');
+    }
+
+    public function destroyCarrera(Carrera $carrera): RedirectResponse
+    {
+        if ($carrera->alumnos()->exists()) {
+            return redirect()->back()->with('error', 'No se puede eliminar la carrera porque tiene alumnos registrados.');
+        }
+
+        $carrera->delete();
+
+        return redirect()->back()->with('success', 'Carrera eliminada correctamente.');
+    }
+
+    public function destroyCurso(Curso $curso): RedirectResponse
+    {
+        if ($curso->asignaciones()->exists()) {
+            return redirect()->back()->with('error', 'No se puede eliminar el curso porque tiene asignaciones de docentes.');
+        }
+
+        $curso->delete();
+
+        return redirect()->back()->with('success', 'Curso eliminado correctamente.');
+    }
 }

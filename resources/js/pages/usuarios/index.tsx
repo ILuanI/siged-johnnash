@@ -261,7 +261,7 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
                                                 <Pen className="size-4 text-slate-500" />
                                             </Button>
                                         )}
-                                        {puede('usuarios', 'eliminar') && (
+                                        {puede('usuarios', 'eliminar') && usuario.rol?.nombre !== 'Administrador' && (
                                             <Button
                                                 variant="ghost"
                                                 size="icon"

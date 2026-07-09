@@ -33,17 +33,26 @@ Route::middleware(['auth', 'verified', 'permiso'])
         Route::patch('areas/{area}', [CatalogoAcademicoController::class, 'updateArea'])
             ->name('areas.update');
 
+        Route::delete('areas/{area}', [CatalogoAcademicoController::class, 'destroyArea'])
+            ->name('areas.destroy');
+
         Route::post('carreras', [CatalogoAcademicoController::class, 'storeCarrera'])
             ->name('carreras.store');
 
         Route::patch('carreras/{carrera}', [CatalogoAcademicoController::class, 'updateCarrera'])
             ->name('carreras.update');
 
+        Route::delete('carreras/{carrera}', [CatalogoAcademicoController::class, 'destroyCarrera'])
+            ->name('carreras.destroy');
+
         Route::post('cursos', [CatalogoAcademicoController::class, 'storeCurso'])
             ->name('cursos.store');
 
         Route::patch('cursos/{curso}', [CatalogoAcademicoController::class, 'updateCurso'])
             ->name('cursos.update');
+
+        Route::delete('cursos/{curso}', [CatalogoAcademicoController::class, 'destroyCurso'])
+            ->name('cursos.destroy');
 
         Route::get('nueva', [MatriculaWebController::class, 'create'])
             ->name('nueva');

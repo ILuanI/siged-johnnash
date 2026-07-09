@@ -6,7 +6,6 @@ import {
     Search,
     ArrowDown,
     ArrowUp,
-    TriangleAlert,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
@@ -58,10 +57,6 @@ export default function DocentesIndex({ docentes, filters }: Props) {
     const getInitials = useInitials();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingDocente, setEditingDocente] = useState<Docente | null>(null);
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [docenteToDelete, setDocenteToDelete] = useState<Docente | null>(
-        null,
-    );
     const [searchQuery, setSearchQuery] = useState(filters?.search || '');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(
         filters?.sort || 'asc',
@@ -115,25 +110,22 @@ export default function DocentesIndex({ docentes, filters }: Props) {
         setIsDialogOpen(true);
     };
 
-    const confirmDelete = (docente: Docente) => {
-        setDocenteToDelete(docente);
-        setIsDeleteDialogOpen(true);
-    };
+    const confirmDelete = async (docente: Docente) => {
+        const confirmed = await confirmAction({
+            title: `Eliminar docente ${docente.nombres} ${docente.apellidos}`,
+            text: 'Esta acción no se puede deshacer.',
+            confirmButtonText: 'Eliminar',
+        });
 
-    const handleDelete = () => {
-        if (!docenteToDelete) {
-return;
-}
+        if (!confirmed) {
+            return;
+        }
 
-        router.delete(destroy.url({ docente: docenteToDelete.id }), {
+        router.delete(destroy.url({ docente: docente.id }), {
             onSuccess: () => {
                 toast.success('Docente eliminado exitosamente');
-                setIsDeleteDialogOpen(false);
-                setDocenteToDelete(null);
             },
-            onError: (errors) => {
-                setIsDeleteDialogOpen(false);
-
+            onError: (errors: any) => {
                 if (errors.error) {
                     toast.error(errors.error);
                 } else {
@@ -165,10 +157,7 @@ return;
                     ] as const;
                     fieldsOrder.forEach((field) => {
                         if (errs[field]) {
-                            toast.error(errs[field], {
-                                className:
-                                    'bg-rose-50 border-rose-200 text-rose-800',
-                            });
+                            toast.error(errs[field]);
                         }
                     });
                 },
@@ -191,10 +180,7 @@ return;
                     ] as const;
                     fieldsOrder.forEach((field) => {
                         if (errs[field]) {
-                            toast.error(errs[field], {
-                                className:
-                                    'bg-rose-50 border-rose-200 text-rose-800',
-                            });
+                            toast.error(errs[field]);
                         }
                     });
                 },
@@ -328,43 +314,7 @@ return;
                 )}
             </div>
 
-            <Dialog
-                open={isDeleteDialogOpen}
-                onOpenChange={setIsDeleteDialogOpen}
-            >
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-red-600">
-                            <TriangleAlert className="size-5" />
-                            Confirmar eliminación
-                        </DialogTitle>
-                        <DialogDescription className="pt-2">
-                            ¿Estás seguro de que deseas eliminar al docente{' '}
-                            <span className="font-bold text-slate-900">
-                                {docenteToDelete?.nombres}{' '}
-                                {docenteToDelete?.apellidos}
-                            </span>
-                            ? Esta acción no se puede deshacer.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="mt-4">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setIsDeleteDialogOpen(false)}
-                        >
-                            Cancelar
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="destructive"
-                            onClick={handleDelete}
-                        >
-                            Eliminar
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+
 
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">

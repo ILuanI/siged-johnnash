@@ -331,10 +331,7 @@ export default function CursosIndex({
                     ] as const;
                     fieldsOrder.forEach((field) => {
                         if (errs[field]) {
-                            toast.error(errs[field], {
-                                className:
-                                    'bg-rose-50 border-rose-200 text-rose-800',
-                            });
+                            toast.error(errs[field]);
                         }
                     });
                 },
@@ -374,10 +371,7 @@ export default function CursosIndex({
                     const fieldsOrder = ['nombre', 'capacidad'] as const;
                     fieldsOrder.forEach((field) => {
                         if (errs[field]) {
-                            toast.error(errs[field], {
-                                className:
-                                    'bg-rose-50 border-rose-200 text-rose-800',
-                            });
+                            toast.error(errs[field]);
                         }
                     });
                 },
@@ -476,10 +470,7 @@ export default function CursosIndex({
                 ] as const;
                 fieldsOrder.forEach((field) => {
                     if (errs[field]) {
-                        toast.error(errs[field], {
-                            className:
-                                'bg-rose-50 border-rose-200 text-rose-800',
-                        });
+                        toast.error(errs[field]);
                     }
                 });
             },

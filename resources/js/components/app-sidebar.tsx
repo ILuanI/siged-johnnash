@@ -51,7 +51,7 @@ const mainNavItems: (NavItem & { modulo: string })[] = [
         icon: BookOpen,
         modulo: 'estudiantes',
     },
-    { title: 'Cursos', href: '/cursos', icon: BookOpen, modulo: 'cursos' },
+    { title: 'Horario', href: '/cursos', icon: BookOpen, modulo: 'cursos' },
     {
         title: 'Asistencias',
         href: lectorAsistenciaIndex(),

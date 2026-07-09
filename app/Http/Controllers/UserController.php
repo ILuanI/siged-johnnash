@@ -97,6 +97,12 @@ class UserController extends Controller
             ]);
         }
 
+        if ($user->rol?->nombre === 'Administrador') {
+            return redirect()->back()->withErrors([
+                'usuario' => 'No puedes eliminar a un usuario con el rol de Administrador.',
+            ]);
+        }
+
         $user->delete();
 
         return redirect()->back()->with('success', 'Usuario eliminado exitosamente.');
