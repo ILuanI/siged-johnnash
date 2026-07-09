@@ -172,10 +172,9 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th width="7%">Código</th>
-                <th width="8%">DNI</th>
-                <th>Estudiante</th>
-                <th width="18%">Carrera / Área</th>
+                <th style="width: 5%">N°</th>
+                <th style="width: 10%">DNI</th>
+                <th style="width: 25%">Apellidos y Nombres</th>
                 <th width="8%">Turno</th>
                 <th width="5%" class="text-center">Clases</th>
                 <th width="12%" class="text-center">Asist / Tard / Falt</th>
@@ -186,7 +185,7 @@
         <tbody>
             @forelse($alumnos as $alumno)
                 <tr>
-                    <td class="bold">{{ $alumno['codigo'] }}</td>
+                    <td>{{ $loop->iteration }}</td>
                     <td>{{ $alumno['dni'] }}</td>
                     <td class="bold">{{ $alumno['nombre_completo'] }}</td>
                     <td>

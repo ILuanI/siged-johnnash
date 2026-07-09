@@ -12,6 +12,7 @@ import {
     ShieldCheck,
     Users,
 } from 'lucide-react';
+import { index as tesoreriaIndex } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -28,7 +29,6 @@ import { index as desercionIndex } from '@/routes/ia/desercion';
 import { nueva as nuevaMatricula } from '@/routes/matriculas';
 import { index as catalogoAcademicoIndex } from '@/routes/matriculas/catalogo';
 import { index as estudiantesIndex } from '@/routes/matriculas/estudiantes';
-import { index as tesoreriaIndex } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import type { NavItem } from '@/types';
 
 const mainNavItems: (NavItem & { modulo: string })[] = [

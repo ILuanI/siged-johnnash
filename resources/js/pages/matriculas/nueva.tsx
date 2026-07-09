@@ -134,7 +134,7 @@ export default function NuevaMatricula({
                                                 key={alumno.id_alumno}
                                                 value={alumno.id_alumno.toString()}
                                             >
-                                                {alumno.codigo} -{' '}
+                                                {alumno.dni} -{' '}
                                                 {alumno.apellidos},{' '}
                                                 {alumno.nombres} (
                                                 {alumno.estado})

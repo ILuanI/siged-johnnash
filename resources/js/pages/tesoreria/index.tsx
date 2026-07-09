@@ -1,25 +1,44 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Search } from 'lucide-react';
-import { useState, FormEvent } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { SemaforoPagos } from '@/components/pagos/SemaforoPagos';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useInitials } from '@/hooks/use-initials';
-import { estadoBadgeClass } from '@/lib/matriculas';
-import { cn } from '@/lib/utils';
+import type { FormEvent } from 'react';
+import { useState } from 'react';
 import {
     index as tesoreriaIndex,
     show as tesoreriaShow,
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
+import { SemaforoPagos } from '@/components/pagos/SemaforoPagos';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useInitials } from '@/hooks/use-initials';
+import { estadoBadgeClass } from '@/lib/matriculas';
+import { cn } from '@/lib/utils';
 
 const FILTROS_ESTADO = [
     { key: '', label: 'Todos', className: '' },
-    { key: 'al_dia', label: 'Al día', className: 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100' },
-    { key: 'proximo_a_vencer', label: 'Próximo a vencer', className: 'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100' },
-    { key: 'vencido', label: 'Vencido', className: 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100' },
-    { key: 'sin_plan', label: 'Sin plan', className: 'border-gray-300 bg-gray-50 text-gray-600 hover:bg-gray-100' },
+    {
+        key: 'al_dia',
+        label: 'Al día',
+        className:
+            'border-green-300 bg-green-50 text-green-700 hover:bg-green-100',
+    },
+    {
+        key: 'proximo_a_vencer',
+        label: 'Próximo a vencer',
+        className:
+            'border-yellow-300 bg-yellow-50 text-yellow-700 hover:bg-yellow-100',
+    },
+    {
+        key: 'vencido',
+        label: 'Vencido',
+        className: 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100',
+    },
+    {
+        key: 'sin_plan',
+        label: 'Sin plan',
+        className: 'border-gray-300 bg-gray-50 text-gray-600 hover:bg-gray-100',
+    },
 ];
 
 export default function TesoreriaIndex({ alumnos, filters }: any) {
@@ -29,11 +48,17 @@ export default function TesoreriaIndex({ alumnos, filters }: any) {
 
     const buscar = (e: FormEvent) => {
         e.preventDefault();
-        router.get(tesoreriaIndex.url(), { search: busqueda || undefined, estado: estadoActivo || undefined });
+        router.get(tesoreriaIndex.url(), {
+            search: busqueda || undefined,
+            estado: estadoActivo || undefined,
+        });
     };
 
     const cambiarFiltro = (estado: string) => {
-        router.get(tesoreriaIndex.url(), { search: busqueda || undefined, estado: estado || undefined });
+        router.get(tesoreriaIndex.url(), {
+            search: busqueda || undefined,
+            estado: estado || undefined,
+        });
     };
 
     return (
@@ -65,6 +90,7 @@ export default function TesoreriaIndex({ alumnos, filters }: any) {
                 <div className="mt-4 flex flex-wrap gap-2">
                     {FILTROS_ESTADO.map((f) => {
                         const activo = estadoActivo === f.key;
+
                         return (
                             <button
                                 key={f.key}
@@ -72,7 +98,8 @@ export default function TesoreriaIndex({ alumnos, filters }: any) {
                                 className={cn(
                                     'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
                                     activo
-                                        ? f.className || 'border-slate-300 bg-slate-800 text-white hover:bg-slate-700'
+                                        ? f.className ||
+                                              'border-slate-300 bg-slate-800 text-white hover:bg-slate-700'
                                         : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50',
                                 )}
                             >

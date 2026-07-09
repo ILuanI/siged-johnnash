@@ -24,7 +24,6 @@ import {
 
 interface AlumnoReportRow {
     id_alumno: number;
-    codigo: string;
     dni: string;
     nombres: string;
     apellidos: string;
@@ -404,10 +403,7 @@ export default function ReportesIndex({
                                     >
                                         <TableCell>
                                             <div className="font-mono text-xs font-semibold text-slate-900">
-                                                {row.codigo}
-                                            </div>
-                                            <div className="text-xs text-slate-400">
-                                                DNI {row.dni}
+                                                {row.dni}
                                             </div>
                                         </TableCell>
                                         <TableCell className="font-medium text-slate-900">

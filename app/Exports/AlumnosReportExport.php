@@ -26,7 +26,6 @@ class AlumnosReportExport implements FromCollection, ShouldAutoSize, WithHeading
     public function headings(): array
     {
         return [
-            'Código',
             'DNI',
             'Apellidos',
             'Nombres',
@@ -47,7 +46,6 @@ class AlumnosReportExport implements FromCollection, ShouldAutoSize, WithHeading
     public function map($row): array
     {
         return [
-            $row['codigo'],
             $row['dni'],
             $row['apellidos'],
             $row['nombres'],

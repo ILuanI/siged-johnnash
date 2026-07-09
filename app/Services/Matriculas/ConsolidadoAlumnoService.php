@@ -32,7 +32,6 @@ class ConsolidadoAlumnoService
         return [
             'perfil' => [
                 'id_alumno' => $alumno->id_alumno,
-                'codigo' => $alumno->codigo,
                 'nombres' => $alumno->nombres,
                 'apellidos' => $alumno->apellidos,
                 'nombre_completo' => trim("{$alumno->nombres} {$alumno->apellidos}"),

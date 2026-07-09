@@ -29,7 +29,11 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import type { AreaCatalogo, CarreraOption, CursoCatalogo } from '@/types/matriculas';
+import type {
+    AreaCatalogo,
+    CarreraOption,
+    CursoCatalogo,
+} from '@/types/matriculas';
 
 type PageProps = {
     areas: AreaCatalogo[];
@@ -37,7 +41,11 @@ type PageProps = {
     cursos: CursoCatalogo[];
 };
 
-export default function CatalogoAcademico({ areas, carreras, cursos }: PageProps) {
+export default function CatalogoAcademico({
+    areas,
+    carreras,
+    cursos,
+}: PageProps) {
     const areaForm = useForm({ codigo: '', nombre: '' });
     const carreraForm = useForm({
         nombre: '',
@@ -74,8 +82,7 @@ export default function CatalogoAcademico({ areas, carreras, cursos }: PageProps
         event.preventDefault();
         cursoForm.post(storeCurso.url(), {
             preserveScroll: true,
-            onSuccess: () =>
-                cursoForm.reset('nombre', 'area_conoc'),
+            onSuccess: () => cursoForm.reset('nombre', 'area_conoc'),
             onError: () => toast.error('Revisa los datos del curso.'),
         });
     };
@@ -290,7 +297,9 @@ export default function CatalogoAcademico({ areas, carreras, cursos }: PageProps
                                 <InputError message={cursoForm.errors.nombre} />
                             </div>
                             <div>
-                                <Label htmlFor="area_conoc">Área de conocimiento</Label>
+                                <Label htmlFor="area_conoc">
+                                    Área de conocimiento
+                                </Label>
                                 <Input
                                     id="area_conoc"
                                     value={cursoForm.data.area_conoc}
@@ -313,7 +322,10 @@ export default function CatalogoAcademico({ areas, carreras, cursos }: PageProps
                                     type="color"
                                     value={cursoForm.data.color}
                                     onChange={(event) =>
-                                        cursoForm.setData('color', event.target.value)
+                                        cursoForm.setData(
+                                            'color',
+                                            event.target.value,
+                                        )
                                     }
                                     className="h-10 w-full cursor-pointer"
                                 />
@@ -342,7 +354,9 @@ export default function CatalogoAcademico({ areas, carreras, cursos }: PageProps
                 </section>
 
                 <section className="space-y-4">
-                    <h2 className="text-lg font-semibold text-slate-900 mb-4">Cursos</h2>
+                    <h2 className="mb-4 text-lg font-semibold text-slate-900">
+                        Cursos
+                    </h2>
                     <CursosBlock cursos={cursos} />
                 </section>
             </main>
@@ -554,9 +568,13 @@ function CursosBlock({ cursos }: { cursos: CursoCatalogo[] }) {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Curso</TableHead>
-                        <TableHead className="w-56">Área de conocimiento</TableHead>
+                        <TableHead className="w-56">
+                            Área de conocimiento
+                        </TableHead>
                         <TableHead className="w-24">Color</TableHead>
-                        <TableHead className="w-32 text-right">Acción</TableHead>
+                        <TableHead className="w-32 text-right">
+                            Acción
+                        </TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>

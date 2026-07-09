@@ -16,7 +16,6 @@ import {
 import { index as portalPadresIndex } from '@/routes/portal-padres';
 
 type AlumnoPortal = {
-    codigo: string;
     dni: string;
     nombres: string;
     apellidos: string;
@@ -143,7 +142,7 @@ export default function PortalPadres({
                                     {alumno.apellidos}, {alumno.nombres}
                                 </h2>
                                 <p className="text-sm text-slate-500">
-                                    DNI {alumno.dni} · Código {alumno.codigo}
+                                    DNI {alumno.dni}
                                 </p>
                             </div>
                             <Badge

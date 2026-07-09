@@ -80,8 +80,7 @@ class ExamenController extends Controller
                 // Find student by code or DNI
                 $alumno = Alumno::query()
                     ->with(['carrera.area'])
-                    ->where('codigo', $identifier)
-                    ->orWhere('dni', $identifier)
+                    ->where('dni', $identifier)
                     ->first();
 
                 $nombres = $identifier;

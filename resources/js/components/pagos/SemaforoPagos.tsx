@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 const parseDate = (dateStr: string) => {
     const [y, m, d] = dateStr.split('T')[0].split('-');
+
     return new Date(Number(y), Number(m) - 1, Number(d));
 };
 
@@ -45,8 +46,12 @@ export function SemaforoPagos({ cuotas, className }: SemaforoPagosProps) {
     now.setHours(0, 0, 0, 0); // Start of today for accurate day comparisons
 
     const hasVencidas = pendientes.some((c) => {
-        if (c.estado === 'VENCIDA') return true;
+        if (c.estado === 'VENCIDA') {
+return true;
+}
+
         const vDate = parseDate(c.fecha_vencimiento);
+
         return vDate < now;
     });
 
@@ -66,6 +71,7 @@ export function SemaforoPagos({ cuotas, className }: SemaforoPagosProps) {
         const vDate = parseDate(c.fecha_vencimiento);
         const diffTime = vDate.getTime() - now.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
         return diffDays >= 0 && diffDays <= 3;
     });
 

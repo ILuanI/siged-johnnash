@@ -20,7 +20,6 @@ class AlumnoResource extends JsonResource
     {
         return [
             'id_alumno' => $this->id_alumno,
-            'codigo' => $this->codigo,
             'nombres' => $this->nombres,
             'apellidos' => $this->apellidos,
             'nombre_completo' => trim("{$this->nombres} {$this->apellidos}"),

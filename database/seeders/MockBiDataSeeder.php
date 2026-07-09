@@ -89,7 +89,6 @@ class MockBiDataSeeder extends Seeder
         // 7. Seed Alumnos & Apoderados & Matriculas & Cuotas & Pagos
         $studentsData = [
             [
-                'codigo' => 'ALU-2026-00001',
                 'nombres' => 'Joseph Luis',
                 'apellidos' => 'Rodríguez Bermúdez',
                 'dni' => '72717127',
@@ -106,7 +105,6 @@ class MockBiDataSeeder extends Seeder
                 'desercion' => ['probabilidad' => 0.85, 'factores' => ['Inasistencias', 'Bajo Rendimiento']],
             ],
             [
-                'codigo' => 'ALU-2026-00002',
                 'nombres' => 'María Fernanda',
                 'apellidos' => 'Palacios Gonzales',
                 'dni' => '71122334',
@@ -123,7 +121,6 @@ class MockBiDataSeeder extends Seeder
                 'desercion' => null,
             ],
             [
-                'codigo' => 'ALU-2026-00003',
                 'nombres' => 'Carlos Alberto',
                 'apellidos' => 'Soto Mayor',
                 'dni' => '74455667',
@@ -140,7 +137,6 @@ class MockBiDataSeeder extends Seeder
                 'desercion' => ['probabilidad' => 0.45, 'factores' => ['Deuda pendiente']],
             ],
             [
-                'codigo' => 'ALU-2026-00004',
                 'nombres' => 'Gabriela Sofía',
                 'apellidos' => 'Quispe Vega',
                 'dni' => '78899001',
@@ -157,7 +153,6 @@ class MockBiDataSeeder extends Seeder
                 'desercion' => ['probabilidad' => 0.90, 'factores' => ['Inasistencias continuas', 'Caída brusca en notas', 'Deuda vencida']],
             ],
             [
-                'codigo' => 'ALU-2026-00005',
                 'nombres' => 'Eduardo',
                 'apellidos' => 'Mendoza Silva',
                 'dni' => '75566778',
@@ -174,7 +169,6 @@ class MockBiDataSeeder extends Seeder
                 'desercion' => null,
             ],
             [
-                'codigo' => 'ALU-2026-00006',
                 'nombres' => 'Luis Angel',
                 'apellidos' => 'Campos Flores',
                 'dni' => '71122338',
@@ -191,7 +185,6 @@ class MockBiDataSeeder extends Seeder
                 'desercion' => ['probabilidad' => 0.88, 'factores' => ['Notas muy bajas', 'Tardanzas', 'Morosidad']],
             ],
             [
-                'codigo' => 'ALU-2026-00007',
                 'nombres' => 'Ana Lucia',
                 'apellidos' => 'Torres Vargas',
                 'dni' => '74455889',
@@ -208,7 +201,6 @@ class MockBiDataSeeder extends Seeder
                 'desercion' => null,
             ],
             [
-                'codigo' => 'ALU-2026-00008',
                 'nombres' => 'Diego',
                 'apellidos' => 'Castillo Rojas',
                 'dni' => '72233445',
@@ -226,7 +218,6 @@ class MockBiDataSeeder extends Seeder
                 'matriculado' => true,
             ],
             [
-                'codigo' => 'ALU-2026-00009',
                 'nombres' => 'Valeria',
                 'apellidos' => 'Gomez Paz',
                 'dni' => '79988776',
@@ -244,7 +235,6 @@ class MockBiDataSeeder extends Seeder
                 'matriculado' => true,
             ],
             [
-                'codigo' => 'ALU-2026-00010',
                 'nombres' => 'Martin',
                 'apellidos' => 'Rios Cuadros',
                 'dni' => '75554443',
@@ -262,7 +252,6 @@ class MockBiDataSeeder extends Seeder
                 'matriculado' => true,
             ],
             [
-                'codigo' => 'ALU-2026-00011',
                 'nombres' => 'Sofia',
                 'apellidos' => 'Perez Alarcon',
                 'dni' => '71112223',
@@ -280,7 +269,6 @@ class MockBiDataSeeder extends Seeder
                 'matriculado' => false,
             ],
             [
-                'codigo' => 'ALU-2026-00012',
                 'nombres' => 'Joaquin',
                 'apellidos' => 'Salazar Loo',
                 'dni' => '72223334',
@@ -298,7 +286,6 @@ class MockBiDataSeeder extends Seeder
                 'matriculado' => false,
             ],
             [
-                'codigo' => 'ALU-2026-00013',
                 'nombres' => 'Pedro',
                 'apellidos' => 'Suarez Vertiz',
                 'dni' => '74445556',
@@ -326,7 +313,6 @@ class MockBiDataSeeder extends Seeder
             $isMatriculado = $s['matriculado'] ?? true;
 
             $alumno = Alumno::create([
-                'codigo' => $s['dni'],
                 'nombres' => $s['nombres'],
                 'apellidos' => $s['apellidos'],
                 'dni' => $s['dni'],

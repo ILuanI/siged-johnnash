@@ -66,7 +66,6 @@ class ConsultaNotasController extends Controller
             'alumno' => $alumno ? [
                 'nombres' => $alumno->nombres,
                 'apellidos' => $alumno->apellidos,
-                'codigo' => $alumno->codigo,
                 'dni' => $alumno->dni,
                 'carrera' => $alumno->carrera?->nombre,
                 'area' => $alumno->carrera?->area?->nombre,

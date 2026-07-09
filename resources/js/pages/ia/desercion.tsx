@@ -46,7 +46,6 @@ type PrediccionPrioritaria = {
     fecha_calculo: string | null;
     alumno: {
         id_alumno: number;
-        codigo: string;
         dni: string | null;
         nombre_completo: string;
         telefono: string | null;

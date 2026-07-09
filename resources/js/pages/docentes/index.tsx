@@ -121,7 +121,10 @@ export default function DocentesIndex({ docentes, filters }: Props) {
     };
 
     const handleDelete = () => {
-        if (!docenteToDelete) return;
+        if (!docenteToDelete) {
+return;
+}
+
         router.delete(destroy.url({ docente: docenteToDelete.id }), {
             onSuccess: () => {
                 toast.success('Docente eliminado exitosamente');
@@ -130,6 +133,7 @@ export default function DocentesIndex({ docentes, filters }: Props) {
             },
             onError: (errors) => {
                 setIsDeleteDialogOpen(false);
+
                 if (errors.error) {
                     toast.error(errors.error);
                 } else {

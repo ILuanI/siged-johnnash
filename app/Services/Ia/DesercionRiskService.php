@@ -321,7 +321,6 @@ class DesercionRiskService
             'fecha_calculo' => $prediccion->fecha_calculo?->toDateTimeString(),
             'alumno' => $alumno ? [
                 'id_alumno' => $alumno->id_alumno,
-                'codigo' => $alumno->codigo,
                 'dni' => $alumno->dni,
                 'nombre_completo' => trim("{$alumno->nombres} {$alumno->apellidos}"),
                 'telefono' => $alumno->telefono,

@@ -12,6 +12,9 @@ Route::middleware(['auth', 'verified', 'permiso'])
         Route::get('estudiantes', [EstudianteWebController::class, 'index'])
             ->name('estudiantes.index');
 
+        Route::get('estudiantes/{alumno}/pdf', [EstudianteWebController::class, 'downloadPdf'])
+            ->name('estudiantes.pdf');
+
         Route::get('estudiantes/nuevo', [EstudianteWebController::class, 'create'])
             ->name('estudiantes.create');
 

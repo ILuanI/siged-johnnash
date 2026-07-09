@@ -11,11 +11,13 @@ import {
     Activity,
     Clock,
     DollarSign,
+    Download,
 } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import SemaforoPagos from '@/components/SemaforoPagos';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -221,9 +223,9 @@ export default function DashboardBi({
 
     const selectStudent = (alumnoId: number) => {
         setShowSuggestions(false);
+        setSearchQuery('');
         router.get(dashboard.url(), {
             id_ciclo: cycleId,
-            q: searchQuery,
             alumno: alumnoId,
         });
     };
@@ -232,6 +234,7 @@ export default function DashboardBi({
         setSearchQuery('');
         router.get(dashboard.url(), {
             id_ciclo: cycleId,
+            alumno: filters.alumno,
         });
     };
 
@@ -425,7 +428,7 @@ export default function DashboardBi({
                 {consolidado ? (
                     <div className="grid gap-6 lg:grid-cols-3">
                         {/* Columna Izquierda: Ficha Central y Contactos */}
-                        <div className="space-y-6 lg:col-span-1">
+                        <div className="flex flex-col gap-6 lg:col-span-1">
                             {/* Ficha Físcial/Académica */}
                             <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
                                 <div className="h-2 bg-[#ff7043]" />
@@ -438,15 +441,10 @@ export default function DashboardBi({
                                             )}
                                         </AvatarFallback>
                                     </Avatar>
-
                                     <h3 className="text-xl leading-snug font-bold text-slate-900">
                                         {consolidado.perfil.apellidos},{' '}
                                         {consolidado.perfil.nombres}
-                                    </h3>
-                                    <p className="mt-1 font-mono text-sm font-semibold text-[#ff7043]">
-                                        Código: {consolidado.perfil.codigo}
-                                    </p>
-
+                                    </h3>{' '}
                                     <div className="mt-4 flex flex-wrap justify-center gap-2">
                                         <Badge
                                             className="border-slate-200 bg-slate-100 font-semibold text-slate-700 hover:bg-slate-100"
@@ -461,66 +459,63 @@ export default function DashboardBi({
                                             {consolidado.perfil.estado}
                                         </Badge>
                                     </div>
-
-                                    <div className="mt-6 w-full space-y-3 border-t border-slate-100 pt-4 text-left text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="font-medium text-slate-400">
-                                                Carrera:
-                                            </span>
-                                            <span className="text-right font-semibold text-slate-800">
-                                                {consolidado.perfil.carrera
-                                                    ?.nombre ?? 'N/A'}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="font-medium text-slate-400">
-                                                Área:
-                                            </span>
-                                            <span className="font-semibold text-slate-800">
-                                                {consolidado.perfil.carrera
-                                                    ?.area?.nombre ?? 'N/A'}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="font-medium text-slate-400">
-                                                Modalidad:
-                                            </span>
-                                            <span className="font-semibold text-slate-800">
-                                                {consolidado.matricula_actual
-                                                    ?.modalidad ?? 'N/A'}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="font-medium text-slate-400">
-                                                Aula / Turno:
-                                            </span>
-                                            <span className="font-semibold text-slate-800">
-                                                {consolidado.matricula_actual
-                                                    ?.aula?.nombre ??
-                                                    'N/A'}{' '}
-                                                (
-                                                {consolidado.matricula_actual
-                                                    ?.turno?.nombre ?? 'N/A'}
-                                                )
-                                            </span>
-                                        </div>
+                                    <div className="mt-6 w-full space-y-3 border-t border-slate-100 pt-4 text-center">
+                                        <Button
+                                            variant="outline"
+                                            className="w-full text-[#1a237e] hover:bg-[#1a237e]/5 hover:text-[#1a237e]"
+                                            asChild
+                                        >
+                                            <a href={`/matriculas/estudiantes/${consolidado.perfil.id_alumno}/pdf`} target="_blank" rel="noreferrer">
+                                                <Download className="mr-2 size-4" />
+                                                Descargar Perfil 360°
+                                            </a>
+                                        </Button>
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            {/* Contactos Alumno y Apoderado */}
-                            <Card className="border-slate-200 bg-white shadow-sm">
+                            {/* Detalles Académicos y Contacto */}
+                            <Card className="flex flex-1 flex-col border-slate-200 bg-white shadow-sm">
                                 <CardHeader className="border-b border-slate-50 pb-3">
                                     <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
-                                        <Phone className="size-4.5 text-slate-400" />
-                                        Información de Contacto
+                                        <BookOpen className="size-4.5 text-slate-400" />
+                                        Información Académica y Contacto
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4 pt-4 text-sm">
-                                    {/* Alumno */}
+                                    {/* Académico */}
                                     <div>
                                         <span className="mb-1 block text-xs font-bold tracking-wider text-[#ff7043] uppercase">
-                                            Estudiante
+                                            Detalles de Matrícula
+                                        </span>
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-2 text-slate-700">
+                                                <span className="font-medium text-slate-400">Carrera/Área:</span>
+                                                <span className="font-semibold text-slate-800">
+                                                    {consolidado.perfil.carrera?.nombre ?? 'N/A'} (
+                                                    {consolidado.perfil.carrera?.area?.nombre ?? 'N/A'})
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-slate-700">
+                                                <span className="font-medium text-slate-400">Modalidad:</span>
+                                                <span className="font-semibold text-slate-800">
+                                                    {consolidado.matricula_actual?.modalidad ?? 'N/A'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-slate-700">
+                                                <span className="font-medium text-slate-400">Aula/Turno:</span>
+                                                <span className="font-semibold text-slate-800">
+                                                    {consolidado.matricula_actual?.aula?.nombre ?? 'N/A'} (
+                                                    {consolidado.matricula_actual?.turno?.nombre ?? 'N/A'})
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Alumno */}
+                                    <div className="border-t border-slate-100 pt-3">
+                                        <span className="mb-1 block text-xs font-bold tracking-wider text-[#ff7043] uppercase">
+                                            Contacto del Estudiante
                                         </span>
                                         <div className="space-y-1.5">
                                             <div className="flex items-center gap-2 text-slate-700">
@@ -578,7 +573,7 @@ export default function DashboardBi({
                         </div>
 
                         {/* Columna Derecha: Finanzas, Asistencia y Rendimiento */}
-                        <div className="space-y-6 lg:col-span-2">
+                        <div className="flex flex-col gap-6 lg:col-span-2">
                             {/* Semáforo Financiero */}
                             <Card className="border-slate-200 bg-white shadow-sm">
                                 <CardHeader className="flex flex-row items-center justify-between border-b border-slate-50 pb-3">

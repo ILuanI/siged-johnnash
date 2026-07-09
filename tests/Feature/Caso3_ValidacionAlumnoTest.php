@@ -14,7 +14,6 @@ describe('Caso 3: Validación de Datos de Alumno', function () {
         $apoderado = Apoderado::factory()->create();
 
         $alumno = Alumno::create([
-            'codigo' => '12345678',
             'nombres' => 'Juan Carlos',
             'apellidos' => 'Pérez López',
             'dni' => '12345678',
@@ -28,7 +27,6 @@ describe('Caso 3: Validación de Datos de Alumno', function () {
 
         expect($alumno->id_alumno)->not->toBeNull()
             ->and($alumno->dni)->toBe('12345678')
-            ->and($alumno->codigo)->toBe('12345678')
             ->and($alumno->estado)->toBe(EstadoAlumno::Activo);
 
         $this->assertDatabaseHas('alumno', [
@@ -48,7 +46,6 @@ describe('Caso 3: Validación de Datos de Alumno', function () {
         // Intentar crear otro con el mismo DNI
         try {
             Alumno::create([
-                'codigo' => '12345678',
                 'nombres' => 'Otro Alumno',
                 'apellidos' => 'Otro Apellido',
                 'dni' => '12345678',
@@ -63,18 +60,6 @@ describe('Caso 3: Validación de Datos de Alumno', function () {
         } catch (Exception $e) {
             expect($e)->toBeInstanceOf(Exception::class);
         }
-    });
-
-    test('el código del alumno debe ser su DNI', function () {
-        $carrera = Carrera::factory()->create();
-
-        $alumno = Alumno::factory()->create([
-            'dni' => '87654321',
-            'codigo' => '87654321',
-            'id_carrera' => $carrera->id_carrera,
-        ]);
-
-        expect($alumno->codigo)->toBe($alumno->dni);
     });
 
     test('teléfono debe tener formato válido', function () {

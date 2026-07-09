@@ -32,7 +32,6 @@ import {
 interface AlumnoInfo {
     nombres: string;
     apellidos: string;
-    codigo: string;
     dni: string;
     carrera: string;
     area: string;
@@ -221,12 +220,9 @@ export default function NotasConsulta({
                                         <BookOpen className="mt-0.5 size-5 shrink-0 text-slate-400" />
                                         <div>
                                             <span className="block text-xs font-medium text-slate-400">
-                                                Código / Ciclo
+                                                Ciclo
                                             </span>
-                                            <span className="font-mono font-semibold text-slate-900">
-                                                {alumno.codigo}
-                                            </span>
-                                            <span className="block text-xs text-slate-500">
+                                            <span className="font-semibold text-slate-900">
                                                 {alumno.ciclo}
                                             </span>
                                         </div>

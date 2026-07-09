@@ -10,7 +10,6 @@ class PortalAlumnoResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'codigo' => $this->codigo,
             'dni' => $this->dni,
             'nombres' => $this->nombres,
             'apellidos' => $this->apellidos,

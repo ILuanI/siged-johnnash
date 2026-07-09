@@ -4,6 +4,7 @@ import {
     Brain,
     Cake,
     CreditCard,
+    Download,
     GraduationCap,
     IdCard,
     Pencil,
@@ -115,6 +116,20 @@ export function StudentProfileModal({
                     >
                         {perfil.estado ?? 'SIN ESTADO'}
                     </Badge>
+                </div>
+                
+                <div className="mt-2 text-center sm:absolute sm:top-6 sm:right-10 sm:mt-0">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-[#1a237e] hover:bg-[#1a237e]/5 hover:text-[#1a237e]"
+                        asChild
+                    >
+                        <a href={`/matriculas/estudiantes/${perfil.id_alumno}/pdf`} target="_blank" rel="noreferrer">
+                            <Download className="mr-2 size-4" />
+                            Descargar Perfil 360°
+                        </a>
+                    </Button>
                 </div>
 
                 <div className="flex border-b px-2">

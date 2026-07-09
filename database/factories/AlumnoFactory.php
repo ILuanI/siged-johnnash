@@ -21,7 +21,6 @@ class AlumnoFactory extends Factory
         $dni = fake()->unique()->numerify('########');
 
         return [
-            'codigo' => $dni,
             'nombres' => fake()->firstName(),
             'apellidos' => fake()->lastName().' '.fake()->lastName(),
             'dni' => $dni,

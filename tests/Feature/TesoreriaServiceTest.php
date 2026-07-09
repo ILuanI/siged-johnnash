@@ -42,6 +42,6 @@ test('aplaza una cuota vencida y la devuelve a pendiente', function () {
 
     $cuota = app(CuotaScheduleService::class)->aplazar($cuota, 10);
 
-    expect($cuota->estado)->toBe('PENDIENTE')
+    expect($cuota->estado->value)->toBe('PENDIENTE')
         ->and($cuota->fecha_vencimiento->toDateString())->toBe('2026-06-11');
 });

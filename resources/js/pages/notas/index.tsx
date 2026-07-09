@@ -167,11 +167,9 @@ export default function NotasIndex({ examenes }: Props) {
                                                             >
                                                                 <span className="font-semibold text-slate-900">
                                                                     Área{' '}
-                                                                    {metrica
-                                                                        .area
+                                                                    {metrica.area
                                                                         ?.codigo ??
-                                                                        'N/A'}
-                                                                    :
+                                                                        'S/D'}
                                                                 </span>
                                                                 <span className="font-medium text-emerald-600">
                                                                     Max:{' '}

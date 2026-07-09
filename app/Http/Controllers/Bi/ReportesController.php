@@ -32,8 +32,7 @@ class ReportesController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('alumno.nombres', 'like', "%{$search}%")
                     ->orWhere('alumno.apellidos', 'like', "%{$search}%")
-                    ->orWhere('alumno.dni', 'like', "%{$search}%")
-                    ->orWhere('alumno.codigo', 'like', "%{$search}%");
+                    ->orWhere('alumno.dni', 'like', "{$search}%");
             });
         }
 
@@ -84,7 +83,6 @@ class ReportesController extends Controller
 
             return [
                 'id_alumno' => $alumno->id_alumno,
-                'codigo' => $alumno->codigo,
                 'dni' => $alumno->dni,
                 'nombres' => $alumno->nombres,
                 'apellidos' => $alumno->apellidos,

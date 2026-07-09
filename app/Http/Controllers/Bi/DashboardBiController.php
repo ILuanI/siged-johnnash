@@ -88,15 +88,16 @@ class DashboardBiController extends Controller
         $studentList = [];
         if ($q !== '') {
             $studentList = Alumno::query()
-                ->where('nombres', 'like', "%{$q}%")
-                ->orWhere('apellidos', 'like', "%{$q}%")
-                ->orWhere('dni', 'like', "%{$q}%")
-                ->orWhere('codigo', 'like', "%{$q}%")
+                ->where(function ($query) use ($q) {
+                    $query->where('nombres', 'like', "%{$q}%")
+                        ->orWhere('apellidos', 'like', "%{$q}%")
+                        ->orWhere('dni', 'like', "{$q}%");
+                })
                 ->limit(8)
                 ->get()
                 ->map(fn ($std) => [
                     'id_alumno' => $std->id_alumno,
-                    'label' => "{$std->apellidos}, {$std->nombres} ({$std->dni})",
+                    'label' => "{$std->apellidos}, {$std->nombres} - {$std->dni}",
                 ]);
         }
 

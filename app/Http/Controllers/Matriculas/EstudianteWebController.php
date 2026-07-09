@@ -22,6 +22,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class EstudianteWebController extends Controller
 {
@@ -41,8 +42,7 @@ class EstudianteWebController extends Controller
                 $query->where(function ($q) use ($busqueda): void {
                     $q->where('nombres', 'like', "%{$busqueda}%")
                         ->orWhere('apellidos', 'like', "%{$busqueda}%")
-                        ->orWhere('dni', 'like', "%{$busqueda}%")
-                        ->orWhere('codigo', 'like', "%{$busqueda}%");
+                        ->orWhere('dni', 'like', "%{$busqueda}%");
                 });
             })
             ->when($filtroEstado === 'matriculados', function (Builder $query): void {
@@ -76,7 +76,7 @@ class EstudianteWebController extends Controller
             ->with(['matriculas' => function ($q) {
                 $q->latest('fecha_matricula')->with(['comprobantePago.cuotas']);
             }])
-            ->get(['id_alumno', 'codigo', 'nombres', 'apellidos', 'dni', 'estado', 'telefono']);
+            ->get(['id_alumno', 'nombres', 'apellidos', 'dni', 'estado', 'telefono']);
 
         $consolidado = null;
         $alumnoId = $request->integer('alumno') ?: null;
@@ -119,5 +119,14 @@ class EstudianteWebController extends Controller
         $alumno->update($request->validated());
 
         return redirect()->back()->with('success', 'Carrera del alumno actualizada correctamente.');
+    }
+
+    public function downloadPdf(Alumno $alumno)
+    {
+        $consolidado = $this->consolidadoAlumnoService->obtener($alumno->id_alumno);
+        
+        $pdf = Pdf::loadView('reports.perfil360_pdf', compact('consolidado'));
+        
+        return $pdf->download("perfil_360_{$alumno->dni}.pdf");
     }
 }

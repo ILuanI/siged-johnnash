@@ -1,6 +1,5 @@
 export type EstudianteListItem = {
     id_alumno: number;
-    codigo: string;
     nombres: string;
     apellidos: string;
     dni: string | null;
@@ -17,7 +16,6 @@ export type EstudianteListItem = {
 export type ConsolidadoAlumno = {
     perfil: {
         id_alumno: number;
-        codigo: string;
         nombres: string;
         apellidos: string;
         nombre_completo: string;

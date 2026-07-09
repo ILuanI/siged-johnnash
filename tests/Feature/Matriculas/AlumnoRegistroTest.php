@@ -6,7 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-test('registra un alumno nuevo con código autogenerado', function () {
+test('registra un alumno nuevo', function () {
     $response = $this->postJson('/api/matriculas/estudiantes', [
         'nombres' => 'Juan Carlos',
         'apellidos' => 'Pérez López',
@@ -17,8 +17,7 @@ test('registra un alumno nuevo con código autogenerado', function () {
         ->assertCreated()
         ->assertJsonPath('success', true)
         ->assertJsonPath('data.nombres', 'Juan Carlos')
-        ->assertJsonPath('data.estado', EstadoAlumno::Activo->value)
-        ->assertJsonPath('data.codigo', '72345678');
+        ->assertJsonPath('data.estado', EstadoAlumno::Activo->value);
 
     $this->assertDatabaseHas('alumno', ['dni' => '72345678']);
 });

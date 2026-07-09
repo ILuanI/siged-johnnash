@@ -16,7 +16,7 @@ class StoreAlumnoRequest extends FormRequest
     {
         if ($this->filled('dni')) {
             $this->merge([
-                'codigo' => $this->input('dni'),
+                'dni' => trim((string) $this->input('dni')),
             ]);
         }
 
@@ -31,7 +31,6 @@ class StoreAlumnoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'codigo' => ['required', 'digits:8', Rule::unique('alumno', 'codigo')],
             'nombres' => ['required', 'string', 'max:80'],
             'apellidos' => ['required', 'string', 'max:80'],
             'dni' => ['required', 'digits:8', Rule::unique('alumno', 'dni')],
@@ -53,8 +52,6 @@ class StoreAlumnoRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'codigo.unique' => 'El código de alumno ya existe.',
-            'codigo.digits' => 'El código del alumno debe ser el DNI de 8 dígitos.',
             'nombres.required' => 'El nombre del alumno es obligatorio.',
             'apellidos.required' => 'El apellido del alumno es obligatorio.',
             'dni.required' => 'El DNI del alumno es obligatorio.',

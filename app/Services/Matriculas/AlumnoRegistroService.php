@@ -28,7 +28,6 @@ class AlumnoRegistroService
             }
 
             return Alumno::query()->create([
-                'codigo' => $datos['dni'],
                 'nombres' => $datos['nombres'],
                 'apellidos' => $datos['apellidos'],
                 'dni' => $datos['dni'],

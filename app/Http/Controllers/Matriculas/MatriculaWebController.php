@@ -29,7 +29,7 @@ class MatriculaWebController extends Controller
             ->doesntHave('matriculaVigente')
             ->orderBy('apellidos')
             ->orderBy('nombres')
-            ->get(['id_alumno', 'codigo', 'nombres', 'apellidos', 'dni', 'estado', 'telefono']);
+            ->get(['id_alumno', 'nombres', 'apellidos', 'dni', 'estado', 'telefono']);
 
         return Inertia::render('matriculas/nueva', [
             'alumnos' => array_values(AlumnoResource::collection($alumnos)->resolve(request())),
