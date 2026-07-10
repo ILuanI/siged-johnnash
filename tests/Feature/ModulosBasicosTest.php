@@ -29,7 +29,9 @@ test('modulo ia desercion: puede almacenar predicciones de riesgo', function () 
         'nivel_riesgo' => 'ALTO',
     ]);
 
+    $prediccion->refresh();
+
     expect($prediccion->riesgo_pct)->toEqual(85.50)
         ->and($prediccion->nivel_riesgo)->toEqual('ALTO')
-        ->and($prediccion->prioritario)->toBeTrue();
+        ->and((bool) $prediccion->prioritario)->toBeTrue();
 });

@@ -22,7 +22,7 @@ class EstadoCuentaController extends Controller
 
         $alumnos = Alumno::query()
             ->with(['matriculas' => function ($query) {
-                $query->latest('fecha_matricula')->with(['comprobantePago.cuotas']);
+                $query->latest('fecha_matricula')->with(['ciclo', 'comprobantePago.cuotas.pagos']);
             }])
             ->when($search, function ($query, $search) {
                 $query->where('nombres', 'like', "%{$search}%")

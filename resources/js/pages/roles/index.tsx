@@ -49,6 +49,9 @@ interface Props {
         total: number;
     };
     modulos: Record<string, string>;
+    filters: {
+        search?: string;
+    };
 }
 
 function crearPermisosVacios(modulos: Record<string, string>): PermisosMap {
@@ -60,10 +63,20 @@ function crearPermisosVacios(modulos: Record<string, string>): PermisosMap {
     );
 }
 
-export default function RolesIndex({ roles, modulos }: Props) {
+export default function RolesIndex({ roles, modulos, filters }: Props) {
     const { puede } = usePermisos();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingRol, setEditingRol] = useState<Rol | null>(null);
+    const [searchQuery, setSearchQuery] = useState(filters?.search || '');
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+        router.get(
+            '/roles',
+            { search: e.target.value },
+            { preserveState: true, replace: true },
+        );
+    };
 
     const permisosVacios = useMemo(
         () => crearPermisosVacios(modulos),
@@ -194,11 +207,15 @@ export default function RolesIndex({ roles, modulos }: Props) {
             </header>
 
             <div className="flex-1 px-8 py-6">
-                <div className="mb-4 flex max-w-md items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm text-slate-500 dark:bg-background">
-                    <Search className="size-4 shrink-0" />
-                    <span>
-                        Asigna vistas y permisos de edición o eliminación
-                    </span>
+                <div className="mb-4 relative max-w-md">
+                    <Search className="absolute top-2.5 left-2.5 size-4 text-slate-400" />
+                    <Input
+                        type="text"
+                        placeholder="Buscar roles por nombre o descripción..."
+                        className="pl-9"
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                    />
                 </div>
 
                 {roles.data.length === 0 ? (

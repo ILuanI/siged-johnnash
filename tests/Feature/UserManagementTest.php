@@ -110,7 +110,8 @@ test('authenticated users cannot deactivate themselves', function () {
 
 test('authenticated users can delete usuarios but not themselves', function () {
     $admin = User::factory()->create();
-    $usuario = User::factory()->create();
+    $rolNoAdmin = Rol::query()->where('nombre', '!=', 'Administrador')->firstOrFail();
+    $usuario = User::factory()->create(['id_rol' => $rolNoAdmin->id_rol]);
 
     $this->actingAs($admin)
         ->delete(route('usuarios.destroy', $usuario))
@@ -134,4 +135,31 @@ test('inactive users cannot authenticate', function () {
     ]);
 
     $this->assertGuest();
+});
+
+test('authenticated users can search usuarios by name or email', function () {
+    $this->withoutVite();
+
+    $rol = Rol::query()->where('nombre', 'Administrador')->firstOrFail();
+    $admin = User::factory()->create(['id_rol' => $rol->id_rol, 'name' => 'Admin User']);
+    $user1 = User::factory()->create(['name' => 'John Doe', 'email' => 'john@example.com', 'id_rol' => $rol->id_rol]);
+    $user2 = User::factory()->create(['name' => 'Jane Smith', 'email' => 'jane@example.com', 'id_rol' => $rol->id_rol]);
+
+    // Search by name
+    $this->actingAs($admin)
+        ->get(route('usuarios.index', ['search' => 'John']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('usuarios/index')
+            ->has('usuarios.data', 1)
+            ->where('usuarios.data.0.name', 'John Doe'));
+
+    // Search by email
+    $this->actingAs($admin)
+        ->get(route('usuarios.index', ['search' => 'jane@example.com']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('usuarios/index')
+            ->has('usuarios.data', 1)
+            ->where('usuarios.data.0.name', 'Jane Smith'));
 });

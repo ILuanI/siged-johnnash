@@ -66,13 +66,26 @@ interface Props {
         total: number;
     };
     roles: RolOption[];
+    filters: {
+        search?: string;
+    };
 }
 
-export default function UsuariosIndex({ usuarios, roles }: Props) {
+export default function UsuariosIndex({ usuarios, roles, filters }: Props) {
     const getInitials = useInitials();
     const { puede } = usePermisos();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
+    const [searchQuery, setSearchQuery] = useState(filters?.search || '');
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+        router.get(
+            '/usuarios',
+            { search: e.target.value },
+            { preserveState: true, replace: true },
+        );
+    };
 
     const { data, setData, processing, errors, reset, clearErrors } = useForm({
         name: '',
@@ -188,9 +201,15 @@ export default function UsuariosIndex({ usuarios, roles }: Props) {
             </header>
 
             <div className="flex-1 px-8 py-6">
-                <div className="mb-4 flex max-w-md items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm text-slate-500 dark:bg-background">
-                    <Search className="size-4 shrink-0" />
-                    <span>Listado de cuentas internas de la academia</span>
+                <div className="mb-4 relative max-w-md">
+                    <Search className="absolute top-2.5 left-2.5 size-4 text-slate-400" />
+                    <Input
+                        type="text"
+                        placeholder="Buscar usuarios por nombre o correo..."
+                        className="pl-9"
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                    />
                 </div>
 
                 {usuarios.data.length === 0 ? (

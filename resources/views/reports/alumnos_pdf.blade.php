@@ -160,11 +160,11 @@
         <div class="filters-title">Filtros aplicados</div>
         <table class="filters-grid">
             <tr>
-                <td>Búsqueda: <span>{{ $filters['q'] ?: 'Ninguna' }}</span></td>
-                <td>Turno: <span>{{ $filters['turno'] }}</span></td>
-                <td>Área: <span>{{ $filters['area'] }}</span></td>
-                <td>Min. Tardanzas: <span>{{ $filters['tardanzas_count'] ?: '0' }}</span></td>
-                <td>Min. Faltas: <span>{{ $filters['faltas_count'] ?: '0' }}</span></td>
+                <td>Búsqueda: <span>{{ !empty($filters['q']) ? $filters['q'] : 'Ninguna' }}</span></td>
+                <td>Turno: <span>{{ !empty($filters['turno']) ? $filters['turno'] : 'Todos' }}</span></td>
+                <td>Área: <span>{{ !empty($filters['area']) ? $filters['area'] : 'Todas' }}</span></td>
+                <td>Min. Tardanzas: <span>{{ !empty($filters['tardanzas_count']) ? $filters['tardanzas_count'] : '0' }}</span></td>
+                <td>Min. Faltas: <span>{{ !empty($filters['faltas_count']) ? $filters['faltas_count'] : '0' }}</span></td>
             </tr>
         </table>
     </div>

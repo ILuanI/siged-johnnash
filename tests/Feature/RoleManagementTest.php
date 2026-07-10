@@ -130,3 +130,29 @@ test('administrador role has full access to usuarios', function () {
         ->get(route('usuarios.index'))
         ->assertOk();
 });
+
+test('authenticated users can search roles by name or description', function () {
+    $this->withoutVite();
+
+    $admin = User::factory()->create();
+    Rol::factory()->create(['nombre' => 'Secretaria', 'descripcion' => 'Atención al público']);
+    Rol::factory()->create(['nombre' => 'Coordinador', 'descripcion' => 'Control de docentes']);
+
+    // Search by name
+    $this->actingAs($admin)
+        ->get(route('roles.index', ['search' => 'Secretaria']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('roles/index')
+            ->has('roles.data', 1)
+            ->where('roles.data.0.nombre', 'Secretaria'));
+
+    // Search by description
+    $this->actingAs($admin)
+        ->get(route('roles.index', ['search' => 'Control']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('roles/index')
+            ->has('roles.data', 1)
+            ->where('roles.data.0.nombre', 'Coordinador'));
+});

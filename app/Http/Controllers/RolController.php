@@ -14,13 +14,21 @@ class RolController extends Controller
 {
     public function index(): Response
     {
+        $search = request('search');
+
+        $query = Rol::query()
+            ->select(['id_rol', 'nombre', 'descripcion', 'created_at'])
+            ->with('permisos')
+            ->withCount('usuarios')
+            ->orderBy('nombre');
+
+        if ($search) {
+            $query->where('nombre', 'like', "%{$search}%")
+                ->orWhere('descripcion', 'like', "%{$search}%");
+        }
+
         return Inertia::render('roles/index', [
-            'roles' => Rol::query()
-                ->select(['id_rol', 'nombre', 'descripcion', 'created_at'])
-                ->with('permisos')
-                ->withCount('usuarios')
-                ->orderBy('nombre')
-                ->paginate(10)
+            'roles' => $query->paginate(10)
                 ->through(fn (Rol $rol) => [
                     'id_rol' => $rol->id_rol,
                     'nombre' => $rol->nombre,
@@ -28,8 +36,12 @@ class RolController extends Controller
                     'usuarios_count' => $rol->usuarios_count,
                     'created_at' => $rol->created_at,
                     'permisos' => $rol->permisosPorModulo(),
-                ]),
+                ])
+                ->withQueryString(),
             'modulos' => ModulosSistema::labels(),
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
 
