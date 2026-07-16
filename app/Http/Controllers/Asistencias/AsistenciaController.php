@@ -3,7 +3,14 @@
 namespace App\Http\Controllers\Asistencias;
 
 use App\Http\Controllers\Controller;
+use App\Models\Alumno;
+use App\Models\Area;
+use App\Models\Carrera;
+use App\Models\Ciclo;
+use App\Models\Curso;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 
 class AsistenciaController extends Controller
 {
@@ -13,15 +20,15 @@ class AsistenciaController extends Controller
         $periodo = $request->input('periodo', 'semana'); // dia, semana, mes, personalizado
         $fecha_inicio_req = $request->input('fecha_inicio');
         $fecha_fin_req = $request->input('fecha_fin');
-        
+
         $id_area = $request->input('id_area');
         $id_carrera = $request->input('id_carrera');
         $id_ciclo = $request->input('id_ciclo');
         $id_curso = $request->input('id_curso');
 
         if ($periodo === 'personalizado' && $fecha_inicio_req && $fecha_fin_req) {
-            $fechaInicio = \Carbon\Carbon::parse($fecha_inicio_req)->startOfDay();
-            $fechaFin = \Carbon\Carbon::parse($fecha_fin_req)->endOfDay();
+            $fechaInicio = Carbon::parse($fecha_inicio_req)->startOfDay();
+            $fechaFin = Carbon::parse($fecha_fin_req)->endOfDay();
         } else {
             $fechaInicio = now()->startOfWeek();
             $fechaFin = now()->endOfWeek();
@@ -35,7 +42,7 @@ class AsistenciaController extends Controller
             }
         }
 
-        $query = \App\Models\Alumno::query()
+        $query = Alumno::query()
             ->with(['asistencias' => function ($q) use ($fechaInicio, $fechaFin, $id_curso) {
                 $q->whereBetween('fecha', [$fechaInicio->format('Y-m-d'), $fechaFin->format('Y-m-d')]);
                 if ($id_curso) {
@@ -63,20 +70,20 @@ class AsistenciaController extends Controller
         if ($busqueda) {
             $query->where(function ($q) use ($busqueda) {
                 $q->where('dni', 'like', "%{$busqueda}%")
-                  ->orWhere('nombres', 'like', "%{$busqueda}%")
-                  ->orWhere('apellidos', 'like', "%{$busqueda}%");
+                    ->orWhere('nombres', 'like', "%{$busqueda}%")
+                    ->orWhere('apellidos', 'like', "%{$busqueda}%");
             });
         }
 
         $alumnos = $query->paginate(20)->withQueryString();
 
-        return \Inertia\Inertia::render('asistencias/index', [
+        return Inertia::render('asistencias/index', [
             'alumnos' => $alumnos,
             'catalogos' => [
-                'areas' => \App\Models\Area::orderBy('nombre')->get(),
-                'carreras' => \App\Models\Carrera::orderBy('nombre')->get(),
-                'ciclos' => \App\Models\Ciclo::orderBy('nombre')->get(),
-                'cursos' => \App\Models\Curso::orderBy('nombre')->get(),
+                'areas' => Area::orderBy('nombre')->get(),
+                'carreras' => Carrera::orderBy('nombre')->get(),
+                'ciclos' => Ciclo::orderBy('nombre')->get(),
+                'cursos' => Curso::orderBy('nombre')->get(),
             ],
             'filtros' => [
                 'busqueda' => $busqueda,

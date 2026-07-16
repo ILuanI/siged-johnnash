@@ -6,6 +6,7 @@ use App\Exports\AlumnosReportExport;
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
 use App\Models\Area;
+use App\Models\Curso;
 use App\Models\Turno;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -58,33 +59,49 @@ class ReportesController extends Controller
         $query->withCount([
             'asistencias as total_asistencias' => function ($q) use ($fechaInicio, $fechaFin, $request) {
                 $q->where('asistencia.estado', 'ASISTIO');
-                if ($fechaInicio) $q->whereDate('fecha', '>=', $fechaInicio);
-                if ($fechaFin) $q->whereDate('fecha', '<=', $fechaFin);
+                if ($fechaInicio) {
+                    $q->whereDate('fecha', '>=', $fechaInicio);
+                }
+                if ($fechaFin) {
+                    $q->whereDate('fecha', '<=', $fechaFin);
+                }
                 if ($request->filled('id_curso')) {
-                    $q->whereHas('asignacionDocente', fn($ad) => $ad->where('id_curso', $request->integer('id_curso')));
+                    $q->whereHas('asignacionDocente', fn ($ad) => $ad->where('id_curso', $request->integer('id_curso')));
                 }
             },
             'asistencias as total_tardanzas' => function ($q) use ($fechaInicio, $fechaFin, $request) {
                 $q->where('asistencia.estado', 'TARDANZA');
-                if ($fechaInicio) $q->whereDate('fecha', '>=', $fechaInicio);
-                if ($fechaFin) $q->whereDate('fecha', '<=', $fechaFin);
+                if ($fechaInicio) {
+                    $q->whereDate('fecha', '>=', $fechaInicio);
+                }
+                if ($fechaFin) {
+                    $q->whereDate('fecha', '<=', $fechaFin);
+                }
                 if ($request->filled('id_curso')) {
-                    $q->whereHas('asignacionDocente', fn($ad) => $ad->where('id_curso', $request->integer('id_curso')));
+                    $q->whereHas('asignacionDocente', fn ($ad) => $ad->where('id_curso', $request->integer('id_curso')));
                 }
             },
             'asistencias as total_faltas' => function ($q) use ($fechaInicio, $fechaFin, $request) {
                 $q->where('asistencia.estado', 'FALTO');
-                if ($fechaInicio) $q->whereDate('fecha', '>=', $fechaInicio);
-                if ($fechaFin) $q->whereDate('fecha', '<=', $fechaFin);
+                if ($fechaInicio) {
+                    $q->whereDate('fecha', '>=', $fechaInicio);
+                }
+                if ($fechaFin) {
+                    $q->whereDate('fecha', '<=', $fechaFin);
+                }
                 if ($request->filled('id_curso')) {
-                    $q->whereHas('asignacionDocente', fn($ad) => $ad->where('id_curso', $request->integer('id_curso')));
+                    $q->whereHas('asignacionDocente', fn ($ad) => $ad->where('id_curso', $request->integer('id_curso')));
                 }
             },
             'asistencias as total_clases' => function ($q) use ($fechaInicio, $fechaFin, $request) {
-                if ($fechaInicio) $q->whereDate('fecha', '>=', $fechaInicio);
-                if ($fechaFin) $q->whereDate('fecha', '<=', $fechaFin);
+                if ($fechaInicio) {
+                    $q->whereDate('fecha', '>=', $fechaInicio);
+                }
+                if ($fechaFin) {
+                    $q->whereDate('fecha', '<=', $fechaFin);
+                }
                 if ($request->filled('id_curso')) {
-                    $q->whereHas('asignacionDocente', fn($ad) => $ad->where('id_curso', $request->integer('id_curso')));
+                    $q->whereHas('asignacionDocente', fn ($ad) => $ad->where('id_curso', $request->integer('id_curso')));
                 }
             },
         ]);
@@ -92,8 +109,12 @@ class ReportesController extends Controller
         $query->withAvg(['resultadosExamen as promedio_notas' => function ($q) use ($fechaInicio, $fechaFin) {
             if ($fechaInicio || $fechaFin) {
                 $q->whereHas('examen', function ($eq) use ($fechaInicio, $fechaFin) {
-                    if ($fechaInicio) $eq->whereDate('fecha', '>=', $fechaInicio);
-                    if ($fechaFin) $eq->whereDate('fecha', '<=', $fechaFin);
+                    if ($fechaInicio) {
+                        $eq->whereDate('fecha', '>=', $fechaInicio);
+                    }
+                    if ($fechaFin) {
+                        $eq->whereDate('fecha', '<=', $fechaFin);
+                    }
                 });
             }
         }], 'puntaje_total');
@@ -165,7 +186,7 @@ class ReportesController extends Controller
             'estudiantes' => $estudiantesPaginated,
             'turnos' => Turno::all(),
             'areas' => Area::all(),
-            'cursos' => \App\Models\Curso::all(),
+            'cursos' => Curso::all(),
             'filters' => [
                 'tipo_reporte' => $tipoReporte,
                 'q' => $request->string('q')->trim()->toString(),

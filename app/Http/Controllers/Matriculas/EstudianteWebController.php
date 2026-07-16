@@ -17,12 +17,12 @@ use App\Models\Carrera;
 use App\Models\ColegioProcedencia;
 use App\Services\Matriculas\AlumnoRegistroService;
 use App\Services\Matriculas\ConsolidadoAlumnoService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class EstudianteWebController extends Controller
 {
@@ -124,9 +124,9 @@ class EstudianteWebController extends Controller
     public function downloadPdf(Alumno $alumno)
     {
         $consolidado = $this->consolidadoAlumnoService->obtener($alumno->id_alumno);
-        
+
         $pdf = Pdf::loadView('reports.perfil360_pdf', compact('consolidado'));
-        
+
         return $pdf->download("perfil_360_{$alumno->dni}.pdf");
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Tesoreria;
 use App\Enums\EstadoCuota;
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
+use App\Models\Configuracion;
 use App\Models\Cuota;
 use App\Models\Pago;
 use App\Services\Tesoreria\CuotaScheduleService;
@@ -21,7 +22,7 @@ class EstadoCuentaController extends Controller
         $estado = $request->query('estado');
 
         $alumnos = Alumno::query()
-            ->with(['matriculas' => function ($query) {
+            ->with(['apoderado', 'matriculas' => function ($query) {
                 $query->latest('fecha_matricula')->with(['ciclo', 'comprobantePago.cuotas.pagos']);
             }])
             ->when($search, function ($query, $search) {
@@ -63,15 +64,22 @@ class EstadoCuentaController extends Controller
             ->paginate(10)
             ->withQueryString();
 
+        $vencido = Configuracion::where('clave', 'whatsapp_msg_vencido')->value('valor');
+        $proximoVencer = Configuracion::where('clave', 'whatsapp_msg_proximo_a_vencer')->value('valor');
+
         return Inertia::render('tesoreria/index', [
             'alumnos' => $alumnos,
             'filters' => $request->only(['search', 'estado']),
+            'whatsapp_templates' => [
+                'vencido' => $vencido,
+                'proximo_a_vencer' => $proximoVencer,
+            ],
         ]);
     }
 
     public function show(Alumno $alumno): Response
     {
-        $alumno->load(['matriculas' => function ($query) {
+        $alumno->load(['apoderado', 'matriculas' => function ($query) {
             $query->latest('fecha_matricula')->with(['ciclo', 'comprobantePago.cuotas.pagos']);
         }]);
 
@@ -119,5 +127,25 @@ class EstadoCuentaController extends Controller
         }
 
         return back()->with('success', 'Pago registrado exitosamente.');
+    }
+
+    public function updateWhatsappTemplates(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'vencido' => ['required', 'string', 'max:1000'],
+            'proximo_a_vencer' => ['required', 'string', 'max:1000'],
+        ]);
+
+        Configuracion::updateOrCreate(
+            ['clave' => 'whatsapp_msg_vencido'],
+            ['valor' => $validated['vencido']],
+        );
+
+        Configuracion::updateOrCreate(
+            ['clave' => 'whatsapp_msg_proximo_a_vencer'],
+            ['valor' => $validated['proximo_a_vencer']],
+        );
+
+        return back()->with('success', 'Plantillas de WhatsApp actualizadas.');
     }
 }

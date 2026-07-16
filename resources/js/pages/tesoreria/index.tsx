@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { Pencil, Search } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import {
     index as tesoreriaIndex,
     pagar as tesoreriaPagar,
     prorrogar as tesoreriaProrrogar,
+    updateWhatsappTemplates as tesoreriaUpdateTemplates,
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import { SemaforoPagos } from '@/components/pagos/SemaforoPagos';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -30,7 +31,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useInitials } from '@/hooks/use-initials';
-import { estadoBadgeClass } from '@/lib/matriculas';
+import { estadoBadgeClass, getPaymentStatus, getWhatsAppUrl } from '@/lib/matriculas';
 import { cn } from '@/lib/utils';
 
 const FILTROS_ESTADO = [
@@ -310,11 +311,208 @@ function CuotaItem({ cuota }: { cuota: any }) {
     );
 }
 
-export default function TesoreriaIndex({ alumnos, filters }: any) {
+function ConfigWhatsAppDialog({ plantillas, open, onOpenChange }: {
+    plantillas: { vencido: string; proximo_a_vencer: string };
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
+    const [vencido, setVencido] = useState(plantillas.vencido);
+    const [proximoVencer, setProximoVencer] = useState(plantillas.proximo_a_vencer);
+    const [processing, setProcessing] = useState(false);
+
+    const handleSave = (e: FormEvent) => {
+        e.preventDefault();
+        setProcessing(true);
+        router.put(
+            tesoreriaUpdateTemplates.url(),
+            { vencido, proximo_a_vencer: proximoVencer },
+            {
+                onSuccess: () => {
+                    onOpenChange(false);
+                    toast.success('Plantillas de WhatsApp actualizadas');
+                },
+                onFinish: () => setProcessing(false),
+            },
+        );
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle className="text-lg font-bold text-slate-900">
+                        Plantillas de WhatsApp
+                    </DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSave} className="space-y-4">
+                    <div className="space-y-2">
+                        <Label className="text-red-600 font-semibold">Estado: VENCIDO</Label>
+                        <textarea
+                            value={vencido}
+                            onChange={(e) => setVencido(e.target.value)}
+                            rows={4}
+                            className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm focus:ring-2 focus:ring-[#1a237e]/20 focus:outline-none"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label className="text-yellow-600 font-semibold">Estado: PRÓXIMO A VENCER</Label>
+                        <textarea
+                            value={proximoVencer}
+                            onChange={(e) => setProximoVencer(e.target.value)}
+                            rows={4}
+                            className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm focus:ring-2 focus:ring-[#1a237e]/20 focus:outline-none"
+                        />
+                    </div>
+                    <p className="text-xs text-slate-400">
+                        Usa {'{nombre}'}, {'{apellidos}'} y {'{dni}'} como variables que se reemplazarán automáticamente.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                            Cancelar
+                        </Button>
+                        <Button type="submit" disabled={processing} size="sm" className="bg-[#1a237e] hover:bg-[#0d1557]">
+                            {processing ? 'Guardando...' : 'Guardar'}
+                        </Button>
+                    </div>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function WhatsAppDialog({ estudiante, cuotas, plantillas, open, onOpenChange }: {
+    estudiante: any;
+    cuotas: any[];
+    plantillas: { vencido: string; proximo_a_vencer: string };
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+}) {
+    const paymentStatus = getPaymentStatus(cuotas);
+    const statusLabel = paymentStatus === 'vencido' ? 'VENCIDO' : 'PRÓXIMO A VENCER';
+    const apoderado = estudiante.apoderado;
+
+    const plantillaBase = paymentStatus === 'vencido' ? plantillas.vencido : plantillas.proximo_a_vencer;
+
+    const [telefonoSeleccionado, setTelefonoSeleccionado] = useState(
+        estudiante.telefono || apoderado?.telefono || '',
+    );
+    const [mensaje, setMensaje] = useState(
+        plantillaBase.replace(/\{nombre\}/g, estudiante.nombres).replace(/\{apellidos\}/g, estudiante.apellidos).replace(/\{dni\}/g, estudiante.dni || ''),
+    );
+
+    const opcionesTelefono: { label: string; value: string }[] = [];
+    if (estudiante.telefono) {
+        opcionesTelefono.push({
+            label: `Alumno: ${estudiante.telefono}`,
+            value: estudiante.telefono,
+        });
+    }
+    if (apoderado?.telefono) {
+        opcionesTelefono.push({
+            label: `Apoderado (${apoderado.nombres}): ${apoderado.telefono}`,
+            value: apoderado.telefono,
+        });
+    }
+
+    const handleEnviar = () => {
+        const url = getWhatsAppUrl(telefonoSeleccionado, mensaje);
+        if (url) {
+            window.open(url, '_blank');
+        }
+        onOpenChange(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="text-lg font-bold text-slate-900">
+                        Enviar WhatsApp
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div>
+                        <p className="text-sm text-slate-600">
+                            <strong>Alumno:</strong> {estudiante.apellidos}, {estudiante.nombres}
+                        </p>
+                        <p className="text-sm text-slate-600">
+                            <strong>Estado:</strong>{' '}
+                            <span className={paymentStatus === 'vencido' ? 'font-semibold text-red-600' : 'font-semibold text-yellow-600'}>
+                                {statusLabel}
+                            </span>
+                        </p>
+                    </div>
+
+                    {opcionesTelefono.length === 0 ? (
+                        <p className="text-sm text-red-500">
+                            Este alumno no tiene teléfono registrado ni apoderado con teléfono.
+                        </p>
+                    ) : (
+                        <>
+                            <div className="space-y-2">
+                                <Label>Enviar a</Label>
+                                <Select
+                                    value={telefonoSeleccionado}
+                                    onValueChange={setTelefonoSeleccionado}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {opcionesTelefono.map((opt) => (
+                                            <SelectItem key={opt.value} value={opt.value}>
+                                                {opt.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Mensaje personalizado</Label>
+                                <textarea
+                                    value={mensaje}
+                                    onChange={(e) => setMensaje(e.target.value)}
+                                    rows={5}
+                                    className="w-full rounded-lg border border-slate-200 bg-white p-3 text-sm focus:ring-2 focus:ring-[#1a237e]/20 focus:outline-none"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => onOpenChange(false)}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    className="bg-[#25D366] hover:bg-[#1ebe5c] text-white gap-2"
+                                    onClick={handleEnviar}
+                                >
+                                    <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                    </svg>
+                                    Enviar WhatsApp
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }: any) {
     const getInitials = useInitials();
     const [busqueda, setBusqueda] = useState(filters.search ?? '');
     const [activeAlumnoId, setActiveAlumnoId] = useState<number | null>(null);
+    const [whatsAppAlumno, setWhatsAppAlumno] = useState<any | null>(null);
+    const [configWhatsAppOpen, setConfigWhatsAppOpen] = useState(false);
     const estadoActivo = filters.estado ?? '';
+    const plantillas = whatsapp_templates ?? { vencido: '', proximo_a_vencer: '' };
 
     // Filtros ultra rápidos con debouncing en cliente
     useEffect(() => {
@@ -378,6 +576,15 @@ export default function TesoreriaIndex({ alumnos, filters }: any) {
                             Monitor de deudas y pagos
                         </p>
                     </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="cursor-pointer gap-2"
+                        onClick={() => setConfigWhatsAppOpen(true)}
+                    >
+                        <Pencil className="size-3.5" />
+                        Plantillas WhatsApp
+                    </Button>
                 </div>
 
                 <form onSubmit={buscar} className="relative mt-5 max-w-xl">
@@ -448,7 +655,7 @@ export default function TesoreriaIndex({ alumnos, filters }: any) {
                                                     : 'Sin DNI'}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-2">
                                             <div className="flex flex-col items-end gap-1">
                                                 <Badge
                                                     className={cn(
@@ -470,6 +677,21 @@ export default function TesoreriaIndex({ alumnos, filters }: any) {
                                                     </span>
                                                 )}
                                             </div>
+                                            {['vencido', 'proximo_a_vencer'].includes(
+                                                getPaymentStatus(cuotas),
+                                            ) && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="cursor-pointer text-[#25D366] border-[#25D366] hover:bg-[#25D366]/10"
+                                                    onClick={() => setWhatsAppAlumno(estudiante)}
+                                                    title="Enviar WhatsApp"
+                                                >
+                                                    <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
+                                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                                    </svg>
+                                                </Button>
+                                            )}
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -613,6 +835,26 @@ export default function TesoreriaIndex({ alumnos, filters }: any) {
                     )}
                 </DialogContent>
             </Dialog>
+
+            {whatsAppAlumno && (
+                <WhatsAppDialog
+                    estudiante={whatsAppAlumno}
+                    cuotas={whatsAppAlumno.matriculas?.[0]?.comprobante_pago?.cuotas || []}
+                    plantillas={plantillas}
+                    open={true}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setWhatsAppAlumno(null);
+                        }
+                    }}
+                />
+            )}
+
+            <ConfigWhatsAppDialog
+                plantillas={plantillas}
+                open={configWhatsAppOpen}
+                onOpenChange={setConfigWhatsAppOpen}
+            />
         </>
     );
 }
