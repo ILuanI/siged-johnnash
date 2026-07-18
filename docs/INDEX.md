@@ -39,7 +39,7 @@
 ---
 ## Cómo usar este índice
 
-Antes de tocar código, discriminá según tu tarea:
+Antes de tocar código, discriminá según tu tarea. Si tienes el contexto necesario puedes omitir ver la doc. Aunque te doy una guía, tu tienes la decisión de que consultar:
 
 | Tarea | Leer |
 |---|---|
