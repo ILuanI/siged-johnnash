@@ -421,92 +421,98 @@ export default function NuevaMatricula({
                             </div>
                         </div>
 
-                        {data.tipo_pago === 'CREDITO' && (
-                            <div className="grid gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:grid-cols-4">
-                                <div>
-                                    <Label htmlFor="cuotas_matricula">
-                                        Cuotas Matrícula
-                                    </Label>
-                                    <Input
-                                        id="cuotas_matricula"
-                                        type="number"
-                                        min="1"
-                                        max="4"
-                                        value={data.cuotas_matricula}
-                                        onChange={(e) =>
-                                            setData(
-                                                'cuotas_matricula',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError
-                                        message={errors.cuotas_matricula}
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="cuotas_simulacro">
-                                        Cuotas Simulacro
-                                    </Label>
-                                    <Input
-                                        id="cuotas_simulacro"
-                                        type="number"
-                                        min="1"
-                                        max="4"
-                                        value={data.cuotas_simulacro}
-                                        onChange={(e) =>
-                                            setData(
-                                                'cuotas_simulacro',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError
-                                        message={errors.cuotas_simulacro}
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="fecha_primera_cuota">
-                                        Primer vencimiento
-                                    </Label>
-                                    <Input
-                                        id="fecha_primera_cuota"
-                                        type="date"
-                                        value={data.fecha_primera_cuota}
-                                        onChange={(e) =>
-                                            setData(
-                                                'fecha_primera_cuota',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError
-                                        message={errors.fecha_primera_cuota}
-                                    />
-                                </div>
-                                <div>
-                                    <Label htmlFor="dias_entre_cuotas">
-                                        Días entre cuotas
-                                    </Label>
-                                    <Input
-                                        id="dias_entre_cuotas"
-                                        type="number"
-                                        min="1"
-                                        max="365"
-                                        value={data.dias_entre_cuotas}
-                                        onChange={(e) =>
-                                            setData(
-                                                'dias_entre_cuotas',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError
-                                        message={errors.dias_entre_cuotas}
-                                    />
-                                </div>
+                        <div className="grid gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:grid-cols-4">
+                            <div>
+                                <Label htmlFor="cuotas_matricula">
+                                    Cuotas Matrícula
+                                </Label>
+                                <Input
+                                    id="cuotas_matricula"
+                                    type="number"
+                                    min="1"
+                                    max="4"
+                                    value={data.cuotas_matricula}
+                                    onChange={(e) =>
+                                        setData(
+                                            'cuotas_matricula',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={errors.cuotas_matricula}
+                                />
                             </div>
-                        )}
+                            <div>
+                                <Label htmlFor="cuotas_simulacro">
+                                    Cuotas Simulacro
+                                </Label>
+                                <Input
+                                    id="cuotas_simulacro"
+                                    type="number"
+                                    min="1"
+                                    max="4"
+                                    value={data.cuotas_simulacro}
+                                    onChange={(e) =>
+                                        setData(
+                                            'cuotas_simulacro',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError
+                                    message={errors.cuotas_simulacro}
+                                />
+                            </div>
+                            {data.tipo_pago === 'CREDITO' && (
+                                <>
+                                    <div>
+                                        <Label htmlFor="fecha_primera_cuota">
+                                            Primer vencimiento
+                                        </Label>
+                                        <Input
+                                            id="fecha_primera_cuota"
+                                            type="date"
+                                            value={data.fecha_primera_cuota}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'fecha_primera_cuota',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.fecha_primera_cuota
+                                            }
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="dias_entre_cuotas">
+                                            Días entre cuotas
+                                        </Label>
+                                        <Input
+                                            id="dias_entre_cuotas"
+                                            type="number"
+                                            min="1"
+                                            max="365"
+                                            value={data.dias_entre_cuotas}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'dias_entre_cuotas',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={
+                                                errors.dias_entre_cuotas
+                                            }
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
 
                         <div className="flex gap-3 pt-2">
                             <Button
