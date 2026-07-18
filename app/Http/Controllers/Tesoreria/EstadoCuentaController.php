@@ -35,25 +35,25 @@ class EstadoCuentaController extends Controller
                     'vencido' => $query->whereHas('matriculas.comprobantesPago.cuotas', function ($q) {
                         $q->where('estado', 'VENCIDA')
                             ->orWhere(fn ($q) => $q->where('estado', 'PENDIENTE')
-                                ->whereDate('fecha_vencimiento', '<', now()));
+                                ->whereDate('fecha_vencimiento', '<', today()));
                     }),
                     'proximo_a_vencer' => $query
                         ->whereHas('matriculas.comprobantesPago.cuotas', function ($q) {
                             $q->where('estado', 'PENDIENTE')
-                                ->whereDate('fecha_vencimiento', '>=', now())
-                                ->whereDate('fecha_vencimiento', '<=', now()->addDays(3));
+                                ->whereDate('fecha_vencimiento', '>=', today())
+                                ->whereDate('fecha_vencimiento', '<=', today()->addDays(3));
                         })
                         ->whereDoesntHave('matriculas.comprobantesPago.cuotas', function ($q) {
                             $q->where('estado', 'VENCIDA')
                                 ->orWhere(fn ($q) => $q->where('estado', 'PENDIENTE')
-                                    ->whereDate('fecha_vencimiento', '<', now()));
+                                    ->whereDate('fecha_vencimiento', '<', today()));
                         }),
                     'al_dia' => $query
                         ->whereHas('matriculas.comprobantesPago.cuotas')
                         ->whereDoesntHave('matriculas.comprobantesPago.cuotas', function ($q) {
                             $q->where('estado', 'VENCIDA')
                                 ->orWhere(fn ($q) => $q->where('estado', 'PENDIENTE')
-                                    ->whereDate('fecha_vencimiento', '<=', now()->addDays(3)));
+                                    ->whereDate('fecha_vencimiento', '<=', today()->addDays(3)));
                         }),
                     'sin_plan' => $query->whereHas('matriculas', function ($q) {
                         $q->whereDoesntHave('comprobantesPago');
