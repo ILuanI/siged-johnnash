@@ -88,6 +88,56 @@ class EstadoCuentaController extends Controller
         ]);
     }
 
+    public function pagarComprobante(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'cuota_ids' => ['required', 'array', 'min:1'],
+            'cuota_ids.*' => ['required', 'integer', 'exists:cuota,id_cuota'],
+            'metodo_pago' => ['required', 'string', 'max:50'],
+        ]);
+
+        $processed = 0;
+        $errors = [];
+
+        foreach ($validated['cuota_ids'] as $cuotaId) {
+            $cuota = Cuota::query()->find($cuotaId);
+
+            if (! $cuota || $cuota->estado === EstadoCuota::Pagada) {
+                $errors[] = "Cuota #{$cuotaId} ya está pagada o no existe.";
+
+                continue;
+            }
+
+            $totalPagado = $cuota->pagos()->sum('monto');
+            $restante = $cuota->monto - $totalPagado;
+
+            if ($restante <= 0) {
+                $errors[] = "Cuota #{$cuotaId} no tiene saldo pendiente.";
+
+                continue;
+            }
+
+            Pago::create([
+                'id_cuota' => $cuota->id_cuota,
+                'monto' => $restante,
+                'fecha_pago' => now()->toDateString(),
+                'metodo_pago' => $validated['metodo_pago'],
+                'user_id' => auth()->id(),
+            ]);
+
+            $cuota->update(['estado' => EstadoCuota::Pagada]);
+            $cuota->comprobantePago?->decrement('saldo_pendiente', $cuota->monto);
+            $processed++;
+        }
+
+        $message = "{$processed} cuota(s) pagada(s) correctamente.";
+        if (! empty($errors)) {
+            $message .= ' '.implode(' ', $errors);
+        }
+
+        return back()->with('success', $message);
+    }
+
     public function prorrogar(Cuota $cuota, Request $request, CuotaScheduleService $cuotaScheduleService): RedirectResponse
     {
         $validated = $request->validate([

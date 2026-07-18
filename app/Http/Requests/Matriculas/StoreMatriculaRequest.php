@@ -33,6 +33,8 @@ class StoreMatriculaRequest extends FormRequest
             'cuotas_simulacro' => ['nullable', 'integer', 'min:1', 'max:4'],
             'fecha_primera_cuota' => ['nullable', 'date'],
             'dias_entre_cuotas' => ['nullable', 'integer', 'min:1', 'max:365'],
+            'pagar_ahora' => ['boolean', 'nullable'],
+            'metodo_pago' => ['nullable', 'string', 'max:50', 'required_if:pagar_ahora,true'],
         ];
     }
 
@@ -47,6 +49,7 @@ class StoreMatriculaRequest extends FormRequest
             'id_periodo.exists' => 'El periodo académico indicado no existe.',
             'id_turno.exists' => 'El turno indicado no existe.',
             'id_aula.exists' => 'El aula indicada no existe.',
+            'metodo_pago.required_if' => 'El método de pago es obligatorio si desea pagar ahora.',
         ];
     }
 }

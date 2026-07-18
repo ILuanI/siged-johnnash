@@ -9,6 +9,16 @@
 - `app/Services/Matriculas/MatriculaFormalizacionService.php`: crea un `ComprobantePago` por cada concepto (MATRICULA, SIMULACRO, CARNET) con sus cuotas correspondientes.
 - Regla: CARNET siempre 1 cuota. MATRICULA y SIMULACRO usan `cuotas_matricula` y `cuotas_simulacro` de la matrícula.
 
+### 1.5. Pago de primera cuota desde la formalización
+
+**Frontend**
+- `resources/js/pages/matriculas/nueva.tsx`: botón "Guardar y Pagar 1ra Cuota" + selector de método de pago en el comprobante preview.
+- `handleSaveAndPay()`: usa `transform()` para enviar `pagar_ahora: true` junto con los datos de la matrícula.
+
+**Backend**
+- `MatriculaWebController::store()`: si `pagar_ahora = true`, después de formalizar itera los comprobantes y paga la 1ra cuota de MATRICULA + SIMULACRO, y todas las cuotas de CARNET.
+- Redirige a `tesoreria.estado-cuenta.show` en lugar de la lista de estudiantes.
+
 ### 2. Consulta de estado de cuenta
 
 **Frontend**
@@ -66,6 +76,11 @@ Matrícula formalizada
   → ComprobantePago (MATRICULA) + cuotas
   → ComprobantePago (SIMULACRO) + cuotas
   → ComprobantePago (CARNET) + 1 cuota
+
+[Opcional] Pago desde matrícula nueva
+  → POST /matriculas/nueva { pagar_ahora: true, metodo_pago }
+  → Paga 1ra cuota MATRICULA + 1ra cuota SIMULACRO + CARNET completo
+  → Redirige a estado de cuenta del alumno
 
 Usuario ve estado de cuenta
   → GET /tesoreria/estado-cuenta

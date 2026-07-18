@@ -1,6 +1,5 @@
 import { Head, router, Link } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
-import type { FormEvent } from 'react';
+import { ArrowLeft, Minus, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -8,6 +7,8 @@ import {
     pagar as tesoreriaPagar,
     prorrogar as tesoreriaProrrogar,
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
+import { ComprobantePago } from '@/components/pagos/ComprobantePago';
+import type { ComprobanteCuotaItem } from '@/components/pagos/ComprobantePago';
 import { SemaforoPagos } from '@/components/pagos/SemaforoPagos';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,6 @@ function formatCurrency(amount: string | number) {
 
 function parseDate(dateStr: string) {
     const [y, m, d] = dateStr.split('T')[0].split('-');
-
     return new Date(Number(y), Number(m) - 1, Number(d));
 }
 
@@ -64,41 +64,27 @@ const CONCEPTO_LABEL: Record<string, string> = {
     EXTRAORDINARIO: 'Extraordinario',
 };
 
-function CuotaItem({ cuota }: { cuota: any }) {
-    const [openPago, setOpenPago] = useState(false);
+function CuotaItem({
+    cuota,
+    isSelected,
+    onAdd,
+    onRemove,
+}: {
+    cuota: any;
+    isSelected: boolean;
+    onAdd: () => void;
+    onRemove: () => void;
+}) {
     const [openProrroga, setOpenProrroga] = useState(false);
-    const [montoPago, setMontoPago] = useState(cuota.monto);
-    const [metodoPago, setMetodoPago] = useState('EFECTIVO');
     const [diasProrroga, setDiasProrroga] = useState('7');
     const [processing, setProcessing] = useState(false);
 
-    const handlePago = (e: FormEvent) => {
-        e.preventDefault();
-        setProcessing(true);
-        router.post(
-            tesoreriaPagar.url({ cuota: cuota.id_cuota }),
-            {
-                monto: montoPago,
-                metodo_pago: metodoPago,
-            },
-            {
-                onSuccess: () => {
-                    setOpenPago(false);
-                    toast.success('Pago registrado correctamente');
-                },
-                onFinish: () => setProcessing(false),
-            },
-        );
-    };
-
-    const handleProrroga = (e: FormEvent) => {
+    const handleProrroga = (e: React.FormEvent) => {
         e.preventDefault();
         setProcessing(true);
         router.post(
             tesoreriaProrrogar.url({ cuota: cuota.id_cuota }),
-            {
-                dias: diasProrroga,
-            },
+            { dias: diasProrroga },
             {
                 onSuccess: () => {
                     setOpenProrroga(false);
@@ -111,14 +97,15 @@ function CuotaItem({ cuota }: { cuota: any }) {
 
     const isPagada = cuota.estado === 'PAGADA';
     const totalPagado =
-        cuota.pagos?.reduce(
-            (sum: number, p: any) => sum + Number(p.monto),
-            0,
-        ) || 0;
+        cuota.pagos?.reduce((sum: number, p: any) => sum + Number(p.monto), 0) || 0;
     const restante = Math.max(0, Number(cuota.monto) - totalPagado);
 
     return (
-        <div className="flex items-center justify-between border-b py-4 last:border-0">
+        <div
+            className={`flex items-center justify-between border-b py-3 last:border-0 ${
+                isSelected ? 'bg-orange-50' : ''
+            }`}
+        >
             <div>
                 <p className="font-semibold text-slate-800">
                     Cuota {cuota.numero_cuota}
@@ -136,16 +123,16 @@ function CuotaItem({ cuota }: { cuota: any }) {
                 <p className="text-sm text-slate-500">
                     Vence: {formatDate(parseDate(cuota.fecha_vencimiento))}
                 </p>
-                {cuota.pagos && cuota.pagos.length > 0 && (
+                {totalPagado > 0 && (
                     <div className="mt-1 text-xs text-slate-400">
                         Abonado: {formatCurrency(totalPagado)}
                     </div>
                 )}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
                 <div className="text-right">
                     <p className="font-bold text-slate-900">
-                        {formatCurrency(cuota.monto)}
+                        {formatCurrency(restante > 0 ? restante : cuota.monto)}
                     </p>
                     <Badge
                         variant="outline"
@@ -162,84 +149,29 @@ function CuotaItem({ cuota }: { cuota: any }) {
                 </div>
 
                 {!isPagada && (
-                    <div className="flex gap-2">
-                        {/* PAGO MODAL */}
-                        <Dialog open={openPago} onOpenChange={setOpenPago}>
-                            <DialogTrigger asChild>
-                                <Button
-                                    size="sm"
-                                    className="bg-[#4caf50] hover:bg-[#43a047]"
-                                >
-                                    Pagar
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>
-                                        Registrar Pago - Cuota{' '}
-                                        {cuota.numero_cuota}
-                                    </DialogTitle>
-                                </DialogHeader>
-                                <form
-                                    onSubmit={handlePago}
-                                    className="space-y-4"
-                                >
-                                    <div className="space-y-2">
-                                        <Label>
-                                            Monto a Pagar (Restante:{' '}
-                                            {formatCurrency(restante)})
-                                        </Label>
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            max={restante}
-                                            value={montoPago}
-                                            onChange={(e) =>
-                                                setMontoPago(e.target.value)
-                                            }
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Método de Pago</Label>
-                                        <Select
-                                            value={metodoPago}
-                                            onValueChange={setMetodoPago}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="EFECTIVO">
-                                                    Efectivo
-                                                </SelectItem>
-                                                <SelectItem value="TRANSFERENCIA">
-                                                    Transferencia / Yape / Plin
-                                                </SelectItem>
-                                                <SelectItem value="TARJETA">
-                                                    Tarjeta de Débito/Crédito
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <Button
-                                        type="submit"
-                                        disabled={processing}
-                                        className="w-full"
-                                    >
-                                        {processing
-                                            ? 'Procesando...'
-                                            : 'Confirmar Pago'}
-                                    </Button>
-                                </form>
-                            </DialogContent>
-                        </Dialog>
-
-                        {/* PRORROGA MODAL */}
-                        <Dialog
-                            open={openProrroga}
-                            onOpenChange={setOpenProrroga}
+                    <div className="flex gap-1">
+                        <Button
+                            size="sm"
+                            variant={isSelected ? 'destructive' : 'default'}
+                            onClick={isSelected ? onRemove : onAdd}
+                            className={
+                                isSelected
+                                    ? 'bg-red-500 hover:bg-red-600'
+                                    : 'bg-[#4caf50] hover:bg-[#43a047]'
+                            }
                         >
+                            {isSelected ? (
+                                <>
+                                    <Minus className="mr-1 h-3 w-3" /> Quitar
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="mr-1 h-3 w-3" /> Agregar
+                                </>
+                            )}
+                        </Button>
+
+                        <Dialog open={openProrroga} onOpenChange={setOpenProrroga}>
                             <DialogTrigger asChild>
                                 <Button size="sm" variant="outline">
                                     Prorrogar
@@ -264,7 +196,9 @@ function CuotaItem({ cuota }: { cuota: any }) {
                                             min="1"
                                             value={diasProrroga}
                                             onChange={(e) =>
-                                                setDiasProrroga(e.target.value)
+                                                setDiasProrroga(
+                                                    e.target.value,
+                                                )
                                             }
                                             required
                                         />
@@ -282,7 +216,6 @@ function CuotaItem({ cuota }: { cuota: any }) {
                                                                   diasProrroga,
                                                               ),
                                                       );
-
                                                       return formatDate(d);
                                                   })()
                                                 : '...'}
@@ -306,15 +239,17 @@ function CuotaItem({ cuota }: { cuota: any }) {
 }
 
 export default function EstadoCuentaShow({ alumno }: any) {
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const lastMatricula = alumno.matriculas?.[0];
     const comprobantes = lastMatricula?.comprobantes_pago || [];
-    const cuotas = comprobantes.flatMap((c: any) =>
-        (c.cuotas || []).map((cu: any) => ({
-            ...cu,
-            concepto: c.concepto,
-            comprobante_numero: c.numero,
-        })),
-    );
+    const cuotas: (ComprobanteCuotaItem & { estado: string })[] =
+        comprobantes.flatMap((c: any) =>
+            (c.cuotas || []).map((cu: any) => ({
+                ...cu,
+                concepto: c.concepto,
+                comprobante_numero: c.numero,
+            })),
+        );
     const costoTotal = comprobantes.reduce(
         (sum: number, c: any) => sum + Number(c.costo_total),
         0,
@@ -324,14 +259,28 @@ export default function EstadoCuentaShow({ alumno }: any) {
         0,
     );
 
+    const selectedCuotas = cuotas.filter((c) => selectedIds.has(c.id_cuota));
+
+    const toggleCuota = (id: number) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
     return (
-        <div className="mx-auto max-w-4xl p-8">
+        <div className="mx-auto max-w-7xl p-4 sm:p-8">
             <Head title={`Estado de Cuenta - ${alumno.nombres}`} />
 
-            <div className="mb-6">
+            <div className="mb-4">
                 <Link
                     href={tesoreriaIndex.url()}
-                    className="mb-4 flex items-center text-sm text-slate-500 hover:text-slate-800"
+                    className="mb-3 flex items-center text-sm text-slate-500 hover:text-slate-800"
                 >
                     <ArrowLeft className="mr-1 h-4 w-4" />
                     Volver a Tesorería
@@ -346,88 +295,118 @@ export default function EstadoCuentaShow({ alumno }: any) {
                             {alumno.dni ? ` · DNI: ${alumno.dni}` : ''}
                         </p>
                     </div>
-                    {cuotas.length > 0 && (
-                        <SemaforoPagos
-                            cuotas={cuotas}
-                            className="px-3 py-1 text-sm"
-                        />
-                    )}
+                    <div className="flex items-center gap-2">
+                        {cuotas.length > 0 && (
+                            <SemaforoPagos
+                                cuotas={cuotas}
+                                className="px-3 py-1 text-sm"
+                            />
+                        )}
+                    </div>
                 </div>
             </div>
 
             {comprobantes.length > 0 ? (
-                <div className="space-y-6">
-                    <div className="grid gap-6 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+                    <div className="lg:col-span-2">
+                        <ComprobantePago
+                            selectedCuotas={selectedCuotas}
+                            onRemove={(id) => toggleCuota(id)}
+                            onClear={() => setSelectedIds(new Set())}
+                            alumno={alumno}
+                            cicloNombre={lastMatricula?.ciclo?.nombre}
+                            modalidad={lastMatricula?.modalidad}
+                            tipoPago={lastMatricula?.tipo_pago}
+                            fechaMatricula={lastMatricula?.fecha_matricula}
+                        />
+                    </div>
+
+                    <div className="space-y-4 lg:col-span-3">
+                        <div className="grid gap-3 sm:grid-cols-3">
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-xs font-medium text-slate-500 uppercase">
+                                        Costo Total
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-xl font-bold">
+                                        {formatCurrency(costoTotal)}
+                                    </div>
+                                    <p className="mt-1 text-[10px] text-slate-400">
+                                        Matrícula{' '}
+                                        {lastMatricula?.ciclo?.nombre}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-xs font-medium text-slate-500 uppercase">
+                                        Saldo Pendiente
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-xl font-bold text-slate-900">
+                                        {formatCurrency(saldoPendiente)}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-xs font-medium text-slate-500 uppercase">
+                                        Estado
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Badge
+                                        variant={
+                                            saldoPendiente <= 0
+                                                ? 'default'
+                                                : 'secondary'
+                                        }
+                                    >
+                                        {saldoPendiente <= 0
+                                            ? 'PAGADO COMPLETAMENTE'
+                                            : 'CON DEUDA'}
+                                    </Badge>
+                                </CardContent>
+                            </Card>
+                        </div>
+
                         <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-slate-500">
-                                    Costo Total
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base font-semibold">
+                                    Plan de Cuotas
                                 </CardTitle>
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">
-                                    {formatCurrency(costoTotal)}
-                                </div>
-                                <p className="mt-1 text-xs text-slate-400">
-                                    Matrícula {lastMatricula.ciclo.nombre}
-                                </p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-slate-500">
-                                    Saldo Pendiente
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-slate-900">
-                                    {formatCurrency(saldoPendiente)}
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-slate-500">
-                                    Estado
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <Badge
-                                    variant={
-                                        saldoPendiente <= 0
-                                            ? 'default'
-                                            : 'secondary'
-                                    }
-                                >
-                                    {saldoPendiente <= 0
-                                        ? 'PAGADO COMPLETAMENTE'
-                                        : 'CON DEUDA'}
-                                </Badge>
+                            <CardContent className="pt-0">
+                                {cuotas.length > 0 ? (
+                                    <div className="divide-y">
+                                        {cuotas.map((cuota: any) => (
+                                            <CuotaItem
+                                                key={cuota.id_cuota}
+                                                cuota={cuota}
+                                                isSelected={selectedIds.has(
+                                                    cuota.id_cuota,
+                                                )}
+                                                onAdd={() =>
+                                                    toggleCuota(cuota.id_cuota)
+                                                }
+                                                onRemove={() =>
+                                                    toggleCuota(cuota.id_cuota)
+                                                }
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="py-4 text-center text-sm text-slate-500">
+                                        No se generaron cuotas para esta
+                                        matrícula.
+                                    </p>
+                                )}
                             </CardContent>
                         </Card>
                     </div>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Plan de Cuotas</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {cuotas.length > 0 ? (
-                                <div className="divide-y">
-                                    {cuotas.map((cuota: any) => (
-                                        <CuotaItem
-                                            key={cuota.id_cuota}
-                                            cuota={cuota}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="py-4 text-center text-sm text-slate-500">
-                                    No se generaron cuotas para esta matrícula.
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
                 </div>
             ) : (
                 <Card>

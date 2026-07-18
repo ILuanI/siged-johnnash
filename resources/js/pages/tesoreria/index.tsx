@@ -1,14 +1,16 @@
 import { Head, router } from '@inertiajs/react';
-import { Pencil, Search } from 'lucide-react';
+import { Minus, Pencil, Plus, Search } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import {
     index as tesoreriaIndex,
-    pagar as tesoreriaPagar,
+    show as tesoreriaShow,
     prorrogar as tesoreriaProrrogar,
     updateWhatsappTemplates as tesoreriaUpdateTemplates,
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
+import { ComprobantePago } from '@/components/pagos/ComprobantePago';
+import type { ComprobanteCuotaItem } from '@/components/pagos/ComprobantePago';
 import { SemaforoPagos } from '@/components/pagos/SemaforoPagos';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -94,32 +96,20 @@ const CONCEPTO_LABEL: Record<string, string> = {
     EXTRAORDINARIO: 'Extraordinario',
 };
 
-function CuotaItem({ cuota }: { cuota: any }) {
-    const [openPago, setOpenPago] = useState(false);
+function CuotaItem({
+    cuota,
+    isSelected,
+    onAdd,
+    onRemove,
+}: {
+    cuota: any;
+    isSelected: boolean;
+    onAdd: () => void;
+    onRemove: () => void;
+}) {
     const [openProrroga, setOpenProrroga] = useState(false);
-    const [montoPago, setMontoPago] = useState(cuota.monto);
-    const [metodoPago, setMetodoPago] = useState('EFECTIVO');
     const [diasProrroga, setDiasProrroga] = useState('7');
     const [processing, setProcessing] = useState(false);
-
-    const handlePago = (e: FormEvent) => {
-        e.preventDefault();
-        setProcessing(true);
-        router.post(
-            tesoreriaPagar.url({ cuota: cuota.id_cuota }),
-            {
-                monto: montoPago,
-                metodo_pago: metodoPago,
-            },
-            {
-                onSuccess: () => {
-                    setOpenPago(false);
-                    toast.success('Pago registrado correctamente');
-                },
-                onFinish: () => setProcessing(false),
-            },
-        );
-    };
 
     const handleProrroga = (e: FormEvent) => {
         e.preventDefault();
@@ -148,7 +138,11 @@ function CuotaItem({ cuota }: { cuota: any }) {
     const restante = Math.max(0, Number(cuota.monto) - totalPagado);
 
     return (
-        <div className="flex items-center justify-between border-b py-4 last:border-0">
+        <div
+            className={`flex items-center justify-between border-b py-4 last:border-0 ${
+                isSelected ? 'bg-orange-50' : ''
+            }`}
+        >
             <div>
                 <p className="font-semibold text-slate-800">
                     Cuota {cuota.numero_cuota}
@@ -166,25 +160,25 @@ function CuotaItem({ cuota }: { cuota: any }) {
                 <p className="text-sm text-slate-500">
                     Vence: {formatDate(parseDate(cuota.fecha_vencimiento))}
                 </p>
-                {cuota.pagos && cuota.pagos.length > 0 && (
+                {totalPagado > 0 && (
                     <div className="mt-1 text-xs text-slate-400">
                         Abonado: {formatCurrency(totalPagado)}
                     </div>
                 )}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
                 <div className="text-right">
                     <p className="font-bold text-slate-900">
-                        {formatCurrency(cuota.monto)}
+                        {formatCurrency(restante > 0 ? restante : cuota.monto)}
                     </p>
                     <Badge
                         variant="outline"
                         className={
                             isPagada
-                                ? 'bg-green-100 text-green-700 border-green-200'
+                                ? 'bg-green-100 text-green-700'
                                 : cuota.estado === 'VENCIDA'
-                                  ? 'bg-red-100 text-red-700 border-red-200'
-                                  : 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                  ? 'bg-red-100 text-red-700'
+                                  : 'bg-yellow-100 text-yellow-700'
                         }
                     >
                         {cuota.estado}
@@ -192,86 +186,31 @@ function CuotaItem({ cuota }: { cuota: any }) {
                 </div>
 
                 {!isPagada && (
-                    <div className="flex gap-2">
-                        {/* PAGO MODAL */}
-                        <Dialog open={openPago} onOpenChange={setOpenPago}>
-                            <DialogTrigger asChild>
-                                <Button
-                                    size="sm"
-                                    className="bg-[#4caf50] hover:bg-[#43a047] cursor-pointer text-white"
-                                >
-                                    Pagar
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>
-                                        Registrar Pago - Cuota{' '}
-                                        {cuota.numero_cuota}
-                                    </DialogTitle>
-                                </DialogHeader>
-                                <form
-                                    onSubmit={handlePago}
-                                    className="space-y-4"
-                                >
-                                    <div className="space-y-2">
-                                        <Label>
-                                            Monto a Pagar (Restante:{' '}
-                                            {formatCurrency(restante)})
-                                        </Label>
-                                        <Input
-                                            type="number"
-                                            step="0.01"
-                                            max={restante}
-                                            value={montoPago}
-                                            onChange={(e) =>
-                                                setMontoPago(e.target.value)
-                                            }
-                                            required
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>Método de Pago</Label>
-                                        <Select
-                                            value={metodoPago}
-                                            onValueChange={setMetodoPago}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="EFECTIVO">
-                                                    Efectivo
-                                                </SelectItem>
-                                                <SelectItem value="TRANSFERENCIA">
-                                                    Transferencia / Yape / Plin
-                                                </SelectItem>
-                                                <SelectItem value="TARJETA">
-                                                    Tarjeta de Débito/Crédito
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <Button
-                                        type="submit"
-                                        disabled={processing}
-                                        className="w-full bg-[#ff7043] hover:bg-[#f4511e]"
-                                    >
-                                        {processing
-                                            ? 'Procesando...'
-                                            : 'Confirmar Pago'}
-                                    </Button>
-                                </form>
-                            </DialogContent>
-                        </Dialog>
-
-                        {/* PRORROGA MODAL */}
-                        <Dialog
-                            open={openProrroga}
-                            onOpenChange={setOpenProrroga}
+                    <div className="flex gap-1">
+                        <Button
+                            size="sm"
+                            variant={isSelected ? 'destructive' : 'default'}
+                            onClick={isSelected ? onRemove : onAdd}
+                            className={
+                                isSelected
+                                    ? 'bg-red-500 hover:bg-red-600'
+                                    : 'bg-[#4caf50] hover:bg-[#43a047]'
+                            }
                         >
+                            {isSelected ? (
+                                <>
+                                    <Minus className="mr-1 h-3 w-3" /> Quitar
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="mr-1 h-3 w-3" /> Agregar
+                                </>
+                            )}
+                        </Button>
+
+                        <Dialog open={openProrroga} onOpenChange={setOpenProrroga}>
                             <DialogTrigger asChild>
-                                <Button size="sm" variant="outline" className="cursor-pointer">
+                                <Button size="sm" variant="outline">
                                     Prorrogar
                                 </Button>
                             </DialogTrigger>
@@ -294,7 +233,9 @@ function CuotaItem({ cuota }: { cuota: any }) {
                                             min="1"
                                             value={diasProrroga}
                                             onChange={(e) =>
-                                                setDiasProrroga(e.target.value)
+                                                setDiasProrroga(
+                                                    e.target.value,
+                                                )
                                             }
                                             required
                                         />
@@ -312,7 +253,6 @@ function CuotaItem({ cuota }: { cuota: any }) {
                                                                   diasProrroga,
                                                               ),
                                                       );
-
                                                       return formatDate(d);
                                                   })()
                                                 : '...'}
@@ -321,7 +261,7 @@ function CuotaItem({ cuota }: { cuota: any }) {
                                     <Button
                                         type="submit"
                                         disabled={processing}
-                                        className="w-full bg-[#ff7043] hover:bg-[#f4511e]"
+                                        className="w-full"
                                     >
                                         Confirmar Prórroga
                                     </Button>
@@ -535,6 +475,7 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
     const [activeAlumnoId, setActiveAlumnoId] = useState<number | null>(null);
     const [whatsAppAlumno, setWhatsAppAlumno] = useState<any | null>(null);
     const [configWhatsAppOpen, setConfigWhatsAppOpen] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const estadoActivo = filters.estado ?? '';
     const plantillas = whatsapp_templates ?? { vencido: '', proximo_a_vencer: '' };
 
@@ -584,10 +525,11 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
     );
     const lastMatricula = activeAlumno?.matriculas?.[0];
     const comprobantes = lastMatricula?.comprobantes_pago || [];
-    const cuotas = comprobantes.flatMap((c: any) =>
+    const cuotas: (ComprobanteCuotaItem & { estado: string })[] = comprobantes.flatMap((c: any) =>
         (c.cuotas || []).map((cu: any) => ({
             ...cu,
             concepto: c.concepto,
+            comprobante_numero: c.numero,
         })),
     );
     const costoTotal = comprobantes.reduce(
@@ -598,6 +540,19 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
         (sum: number, c: any) => sum + Number(c.saldo_pendiente),
         0,
     );
+
+    const selectedCuotas = cuotas.filter((c) => selectedIds.has(c.id_cuota));
+    const toggleCuota = (id: number) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
 
     return (
         <>
@@ -613,15 +568,26 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                             Monitor de deudas y pagos
                         </p>
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="cursor-pointer gap-2"
-                        onClick={() => setConfigWhatsAppOpen(true)}
-                    >
-                        <Pencil className="size-3.5" />
-                        Plantillas WhatsApp
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer gap-2"
+                            onClick={() => router.visit('/tesoreria/pago-extraordinario/nuevo')}
+                        >
+                            <Plus className="size-3.5" />
+                            Pago Extraordinario
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer gap-2"
+                            onClick={() => setConfigWhatsAppOpen(true)}
+                        >
+                            <Pencil className="size-3.5" />
+                            Plantillas WhatsApp
+                        </Button>
+                    </div>
                 </div>
 
                 <form onSubmit={buscar} className="relative mt-5 max-w-xl">
@@ -838,20 +804,18 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                 onOpenChange={(open) => {
                     if (!open) {
                         setActiveAlumnoId(null);
+                        setSelectedIds(new Set());
                     }
                 }}
             >
-                <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-slate-900">
-                            Estado de Cuenta
-                        </DialogTitle>
-                    </DialogHeader>
-
+                <DialogContent className="sm:max-w-[1400px] max-h-[90vh] overflow-y-auto">
                     {activeAlumno && (
-                        <div className="space-y-6 pt-4">
-                            <div className="flex items-center justify-between border-b pb-4">
+                        <div className="pt-2">
+                            <div className="mb-4 flex items-center justify-between border-b pb-3">
                                 <div>
+                                    <DialogTitle className="text-xl font-bold text-slate-900">
+                                        Estado de Cuenta
+                                    </DialogTitle>
                                     <h3 className="text-lg font-semibold text-slate-900">
                                         {activeAlumno.apellidos}, {activeAlumno.nombres}
                                     </h3>
@@ -859,98 +823,153 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                         {activeAlumno.dni ? `DNI: ${activeAlumno.dni}` : 'Sin DNI'}
                                     </p>
                                 </div>
-                                {cuotas.length > 0 && (
-                                    <SemaforoPagos
-                                        cuotas={cuotas}
-                                        className="px-3 py-1 text-sm"
-                                    />
-                                )}
+                                <div className="flex items-center gap-2">
+                                    {cuotas.length > 0 && (
+                                        <SemaforoPagos
+                                            cuotas={cuotas}
+                                            className="px-3 py-1 text-sm"
+                                        />
+                                    )}
+                                    {activeAlumno.matriculas?.[0] && (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() =>
+                                                router.visit(
+                                                    tesoreriaShow.url({
+                                                        alumno: activeAlumnoId!,
+                                                    }),
+                                                )
+                                            }
+                                        >
+                                            Ver página completa
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
 
                             {comprobantes.length > 0 ? (
-                                <div className="space-y-6">
-                                    <div className="grid gap-4 sm:grid-cols-3">
+                                <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+                                    <div className="lg:col-span-2">
+                                        <ComprobantePago
+                                            selectedCuotas={selectedCuotas}
+                                            onRemove={(id) => toggleCuota(id)}
+                                            onClear={() =>
+                                                setSelectedIds(new Set())
+                                            }
+                                            alumno={activeAlumno}
+                                            cicloNombre={
+                                                lastMatricula?.ciclo?.nombre
+                                            }
+                                            modalidad={lastMatricula?.modalidad}
+                                            tipoPago={lastMatricula?.tipo_pago}
+                                            fechaMatricula={
+                                                lastMatricula?.fecha_matricula
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="space-y-4 lg:col-span-3">
+                                        <div className="grid gap-3 sm:grid-cols-3">
+                                            <Card>
+                                                <CardHeader className="pb-2">
+                                                    <CardTitle className="text-xs font-semibold text-slate-400 uppercase">
+                                                        Costo Total
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div className="text-xl font-bold">
+                                                        {formatCurrency(costoTotal)}
+                                                    </div>
+                                                    <p className="mt-1 text-[10px] text-slate-400">
+                                                        Matrícula {lastMatricula?.ciclo?.nombre}
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+                                            <Card>
+                                                <CardHeader className="pb-2">
+                                                    <CardTitle className="text-xs font-semibold text-slate-400 uppercase">
+                                                        Saldo Pendiente
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div className="text-xl font-bold text-slate-900">
+                                                        {formatCurrency(saldoPendiente)}
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                            <Card>
+                                                <CardHeader className="pb-2">
+                                                    <CardTitle className="text-xs font-semibold text-slate-400 uppercase">
+                                                        Estado
+                                                    </CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <Badge
+                                                        variant={
+                                                            saldoPendiente <= 0
+                                                                ? 'default'
+                                                                : 'secondary'
+                                                        }
+                                                        className={cn(
+                                                            'rounded-full text-xs uppercase',
+                                                            saldoPendiente <= 0
+                                                                ? 'bg-green-100 text-green-700 border-green-200'
+                                                                : 'bg-red-100 text-red-700 border-red-200'
+                                                        )}
+                                                    >
+                                                        {saldoPendiente <= 0
+                                                            ? 'PAGADO COMPLETAMENTE'
+                                                            : 'CON DEUDA'}
+                                                    </Badge>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+
                                         <Card>
-                                            <CardHeader className="pb-2">
-                                                <CardTitle className="text-xs font-semibold text-slate-400 uppercase">
-                                                    Costo Total
+                                            <CardHeader className="pb-3">
+                                                <CardTitle className="text-base font-semibold">
+                                                    Plan de Cuotas
                                                 </CardTitle>
                                             </CardHeader>
-                                            <CardContent>
-                                                <div className="text-xl font-bold">
-                                                    {formatCurrency(costoTotal)}
-                                                </div>
-                                                <p className="mt-1 text-[10px] text-slate-400">
-                                                    Matrícula {lastMatricula?.ciclo?.nombre}
-                                                </p>
-                                            </CardContent>
-                                        </Card>
-                                        <Card>
-                                            <CardHeader className="pb-2">
-                                                <CardTitle className="text-xs font-semibold text-slate-400 uppercase">
-                                                    Saldo Pendiente
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <div className="text-xl font-bold text-slate-900">
-                                                    {formatCurrency(saldoPendiente)}
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                        <Card>
-                                            <CardHeader className="pb-2">
-                                                <CardTitle className="text-xs font-semibold text-slate-400 uppercase">
-                                                    Estado
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <Badge
-                                                    variant={
-                                                        saldoPendiente <= 0
-                                                            ? 'default'
-                                                            : 'secondary'
-                                                    }
-                                                    className={cn(
-                                                        'rounded-full text-xs uppercase',
-                                                        saldoPendiente <= 0
-                                                            ? 'bg-green-100 text-green-700 border-green-200'
-                                                            : 'bg-red-100 text-red-700 border-red-200'
-                                                    )}
-                                                >
-                                                    {saldoPendiente <= 0
-                                                        ? 'PAGADO COMPLETAMENTE'
-                                                        : 'CON DEUDA'}
-                                                </Badge>
+                                            <CardContent className="pt-0">
+                                                {cuotas.length > 0 ? (
+                                                    <div className="divide-y">
+                                                        {cuotas.map((cuota: any) => (
+                                                            <CuotaItem
+                                                                key={cuota.id_cuota}
+                                                                cuota={cuota}
+                                                                isSelected={selectedIds.has(
+                                                                    cuota.id_cuota,
+                                                                )}
+                                                                onAdd={() =>
+                                                                    toggleCuota(
+                                                                        cuota.id_cuota,
+                                                                    )
+                                                                }
+                                                                onRemove={() =>
+                                                                    toggleCuota(
+                                                                        cuota.id_cuota,
+                                                                    )
+                                                                }
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="py-4 text-center text-sm text-slate-500">
+                                                        No se generaron cuotas
+                                                        para esta matrícula.
+                                                    </p>
+                                                )}
                                             </CardContent>
                                         </Card>
                                     </div>
-
-                                    <Card>
-                                        <CardHeader className="pb-3 border-b">
-                                            <CardTitle className="text-base font-semibold">Plan de Cuotas</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="pt-0">
-                                            {cuotas.length > 0 ? (
-                                                <div className="divide-y">
-                                                    {cuotas.map((cuota: any) => (
-                                                        <CuotaItem
-                                                            key={cuota.id_cuota}
-                                                            cuota={cuota}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            ) : (
-                                                <p className="py-6 text-center text-sm text-slate-400">
-                                                    No se generaron cuotas para esta matrícula.
-                                                </p>
-                                            )}
-                                        </CardContent>
-                                    </Card>
                                 </div>
                             ) : (
                                 <Card>
-                                    <CardContent className="p-8 text-center text-slate-400 text-sm">
-                                        No hay comprobantes ni plan de pago registrado para la matrícula actual de este alumno.
+                                    <CardContent className="p-12 text-center text-slate-500">
+                                        No hay comprobantes ni plan de pago registrado para la
+                                        matrícula actual de este alumno.
                                     </CardContent>
                                 </Card>
                             )}

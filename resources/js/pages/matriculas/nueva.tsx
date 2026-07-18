@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Printer, Save, Wallet } from 'lucide-react';
 import { index as estudiantesIndex } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
 import { store as storeMatricula } from '@/actions/App/Http/Controllers/Matriculas/MatriculaWebController';
 import InputError from '@/components/input-error';
@@ -59,7 +59,7 @@ export default function NuevaMatricula({
     const turnosList = asArray(turnos);
     const aulasList = asArray(aulas);
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, transform } = useForm({
         id_alumno: '',
         id_periodo: '',
         id_ciclo: '',
@@ -75,6 +75,8 @@ export default function NuevaMatricula({
         cuotas_simulacro: '1',
         fecha_primera_cuota: new Date().toISOString().split('T')[0],
         dias_entre_cuotas: '30',
+        pagar_ahora: false,
+        metodo_pago: 'EFECTIVO',
     });
 
     const selectedAlumno = alumnosList.find(
@@ -96,6 +98,18 @@ export default function NuevaMatricula({
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(storeMatricula.url());
+    };
+
+    const handleSaveAndPay = () => {
+        transform((formData) => ({
+            ...formData,
+            pagar_ahora: true,
+        }));
+        post(storeMatricula.url());
+    };
+
+    const handlePrint = () => {
+        window.print();
     };
 
     return (
@@ -534,10 +548,11 @@ export default function NuevaMatricula({
                         <div className="flex gap-3 pt-2">
                             <Button
                                 type="submit"
+                                variant="outline"
                                 disabled={processing}
-                                className="bg-[#ff7043] hover:bg-[#f4511e]"
                             >
-                                Formalizar matrícula
+                                <Save className="mr-1 size-4" />
+                                Solo Guardar Matrícula
                             </Button>
                             <Button type="button" variant="outline" asChild>
                                 <Link href={estudiantesIndex.url()}>
@@ -807,9 +822,96 @@ export default function NuevaMatricula({
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Payment controls — hidden when printing */}
+                        <div className="mt-6 border-t border-gray-200 pt-4 not-printable">
+                            <div className="mb-3 flex items-center gap-3">
+                                <Label
+                                    htmlFor="metodo_pago"
+                                    className="whitespace-nowrap text-sm font-semibold"
+                                >
+                                    Método de pago:
+                                </Label>
+                                <Select
+                                    value={data.metodo_pago}
+                                    onValueChange={(val) =>
+                                        setData('metodo_pago', val)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        className="w-64"
+                                        id="metodo_pago"
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="EFECTIVO">
+                                            Efectivo
+                                        </SelectItem>
+                                        <SelectItem value="YAPE/PLIN/TRANSFERENCIA">
+                                            Yape / Plin / Transferencia
+                                        </SelectItem>
+                                        <SelectItem value="TARJETA">
+                                            Tarjeta
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex flex-wrap gap-3">
+                                <Button
+                                    type="button"
+                                    disabled={processing}
+                                    className="bg-[#ff7043] hover:bg-[#f4511e]"
+                                    onClick={handleSaveAndPay}
+                                >
+                                    <Wallet className="mr-1 size-4" />
+                                    Guardar y Pagar 1ra Cuota
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handlePrint}
+                                >
+                                    <Printer className="mr-1 size-4" />
+                                    Descargar
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <style>{`
+                @media print {
+                    body * {
+                        visibility: hidden;
+                    }
+                    .not-printable {
+                        display: none !important;
+                    }
+                    header,
+                    form {
+                        display: none !important;
+                    }
+                    .grid > div:last-child {
+                        position: absolute !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                        padding: 0.5in !important;
+                    }
+                    .grid > div:last-child * {
+                        visibility: visible;
+                    }
+                    .grid > div:last-child .min-w-\\[600px\\] {
+                        min-width: auto !important;
+                    }
+                }
+            `}</style>
         </>
     );
 }
