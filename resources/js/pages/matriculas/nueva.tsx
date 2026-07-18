@@ -553,11 +553,12 @@ export default function NuevaMatricula({
                             {/* Cabecera */}
                             <div className="mb-4 flex items-start justify-between border-b-2 border-black pb-4">
                                 <div className="flex items-center gap-2">
-                                    <div className="mr-2 text-5xl leading-none font-bold text-orange-500 italic">
-                                        ħ
-                                        <span className="text-4xl text-[#00a2e8]">
-                                            ◿
-                                        </span>
+                                    <div className="mr-2 flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                                        <img
+                                            src="/images/logo-cuadrada.png"
+                                            alt="Logo John Nash"
+                                            className="h-full w-full object-cover"
+                                        />
                                     </div>
                                     <div>
                                         <h2 className="text-3xl leading-none font-black tracking-wider text-[#00a2e8]">
@@ -603,7 +604,7 @@ export default function NuevaMatricula({
                                             e-mail:
                                         </span>{' '}
                                         <span className="text-blue-600 underline">
-                                            academiajn18@gmail.com
+                                            academiaprejohnnash@gmail.com
                                         </span>
                                     </p>
                                 </div>
