@@ -1,0 +1,1 @@
+Al matricularte pagas por concepto de matricula, simulacros y carnet

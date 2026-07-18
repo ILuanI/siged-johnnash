@@ -1,0 +1,1 @@
+hay ingresos por cada seminario
