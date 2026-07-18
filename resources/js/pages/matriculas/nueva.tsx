@@ -89,6 +89,10 @@ export default function NuevaMatricula({
     const costoCar = parseFloat(data.costo_carnet) || 0;
     const costoTotal = costoMat + costoSin + costoCar;
 
+    const cuotasMat = data.tipo_pago === 'CREDITO' ? Number(data.cuotas_matricula || 1) : 1;
+    const cuotasSin = data.tipo_pago === 'CREDITO' ? Number(data.cuotas_simulacro || 1) : 1;
+    const pagoPorCuotaTotal = (costoMat / cuotasMat) + (costoSin / cuotasSin) + costoCar;
+
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(storeMatricula.url());
@@ -328,16 +332,23 @@ export default function NuevaMatricula({
                                     >
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="CONTADO">
-                                            Contado
-                                        </SelectItem>
-                                        <SelectItem value="CREDITO">
-                                            Crédito
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.tipo_pago} />
+                                <SelectContent>
+                                    <SelectItem value="CONTADO">
+                                        Contado
+                                    </SelectItem>
+                                    <SelectItem value="CREDITO">
+                                        Crédito
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.tipo_pago} />
+                            {data.tipo_pago === 'CONTADO' && (
+                                <p className="mt-1 text-xs text-slate-400">
+                                    Seleccione <strong>Crédito</strong> para
+                                    configurar el número de cuotas y
+                                    vencimientos.
+                                </p>
+                            )}
                             </div>
                             <div>
                                 <Label htmlFor="costo_matricula">
@@ -421,98 +432,104 @@ export default function NuevaMatricula({
                             </div>
                         </div>
 
-                        <div className="grid gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:grid-cols-4">
-                            <div>
-                                <Label htmlFor="cuotas_matricula">
-                                    Cuotas Matrícula
-                                </Label>
-                                <Input
-                                    id="cuotas_matricula"
-                                    type="number"
-                                    min="1"
-                                    max="4"
-                                    value={data.cuotas_matricula}
-                                    onChange={(e) =>
-                                        setData(
-                                            'cuotas_matricula',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={errors.cuotas_matricula}
-                                />
+                        {data.tipo_pago === 'CREDITO' && (
+                            <div className="grid gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:grid-cols-4">
+                                <div>
+                                    <Label
+                                        htmlFor="cuotas_matricula"
+                                        className="whitespace-nowrap"
+                                    >
+                                        Cuotas Matrícula
+                                    </Label>
+                                    <Input
+                                        id="cuotas_matricula"
+                                        type="number"
+                                        min="1"
+                                        max="4"
+                                        value={data.cuotas_matricula}
+                                        onChange={(e) =>
+                                            setData(
+                                                'cuotas_matricula',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors.cuotas_matricula}
+                                    />
+                                </div>
+                                <div>
+                                    <Label
+                                        htmlFor="cuotas_simulacro"
+                                        className="whitespace-nowrap"
+                                    >
+                                        Cuotas Simulacro
+                                    </Label>
+                                    <Input
+                                        id="cuotas_simulacro"
+                                        type="number"
+                                        min="1"
+                                        max="4"
+                                        value={data.cuotas_simulacro}
+                                        onChange={(e) =>
+                                            setData(
+                                                'cuotas_simulacro',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors.cuotas_simulacro}
+                                    />
+                                </div>
+                                <div>
+                                    <Label
+                                        htmlFor="fecha_primera_cuota"
+                                        className="whitespace-nowrap"
+                                    >
+                                        Primer vencimiento
+                                    </Label>
+                                    <Input
+                                        id="fecha_primera_cuota"
+                                        type="date"
+                                        value={data.fecha_primera_cuota}
+                                        onChange={(e) =>
+                                            setData(
+                                                'fecha_primera_cuota',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors.fecha_primera_cuota}
+                                    />
+                                </div>
+                                <div>
+                                    <Label
+                                        htmlFor="dias_entre_cuotas"
+                                        className="whitespace-nowrap"
+                                    >
+                                        Días entre cuotas
+                                    </Label>
+                                    <Input
+                                        id="dias_entre_cuotas"
+                                        type="number"
+                                        min="1"
+                                        max="365"
+                                        value={data.dias_entre_cuotas}
+                                        onChange={(e) =>
+                                            setData(
+                                                'dias_entre_cuotas',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors.dias_entre_cuotas}
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <Label htmlFor="cuotas_simulacro">
-                                    Cuotas Simulacro
-                                </Label>
-                                <Input
-                                    id="cuotas_simulacro"
-                                    type="number"
-                                    min="1"
-                                    max="4"
-                                    value={data.cuotas_simulacro}
-                                    onChange={(e) =>
-                                        setData(
-                                            'cuotas_simulacro',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={errors.cuotas_simulacro}
-                                />
-                            </div>
-                            {data.tipo_pago === 'CREDITO' && (
-                                <>
-                                    <div>
-                                        <Label htmlFor="fecha_primera_cuota">
-                                            Primer vencimiento
-                                        </Label>
-                                        <Input
-                                            id="fecha_primera_cuota"
-                                            type="date"
-                                            value={data.fecha_primera_cuota}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'fecha_primera_cuota',
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
-                                        <InputError
-                                            message={
-                                                errors.fecha_primera_cuota
-                                            }
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="dias_entre_cuotas">
-                                            Días entre cuotas
-                                        </Label>
-                                        <Input
-                                            id="dias_entre_cuotas"
-                                            type="number"
-                                            min="1"
-                                            max="365"
-                                            value={data.dias_entre_cuotas}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'dias_entre_cuotas',
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
-                                        <InputError
-                                            message={
-                                                errors.dias_entre_cuotas
-                                            }
-                                        />
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                        )}
 
                         <div className="flex gap-3 pt-2">
                             <Button
@@ -775,15 +792,15 @@ export default function NuevaMatricula({
                                     )}
                                     <tr>
                                         <td className="h-8 border border-black bg-gray-200/50 p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border-r border-b border-l border-black p-1">
-                                            S/ -
-                                        </td>
-                                        <td className="border-b border-black bg-gray-100 p-1 font-bold text-red-600">
+                                        <td className="border border-black bg-gray-100 p-1 text-left font-bold text-red-600">
                                             Total
                                         </td>
-                                        <td className="border-r border-b border-l border-black bg-green-50/50 p-1 font-bold">
+                                        <td className="border border-black p-1 font-bold">
                                             S/ {costoTotal.toFixed(2)}
+                                        </td>
+                                        <td className="border-b border-black p-1"></td>
+                                        <td className="border-r border-b border-l border-black bg-green-50/50 p-1 font-bold">
+                                            S/ {pagoPorCuotaTotal.toFixed(2)}
                                         </td>
                                     </tr>
                                 </tbody>
