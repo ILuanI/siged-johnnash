@@ -80,6 +80,20 @@ function formatDate(date: Date) {
     }).format(date);
 }
 
+const CONCEPTO_BADGE: Record<string, string> = {
+    MATRICULA: 'bg-orange-100 text-orange-700 border-orange-200',
+    SIMULACRO: 'bg-blue-100 text-blue-700 border-blue-200',
+    CARNET: 'bg-purple-100 text-purple-700 border-purple-200',
+    EXTRAORDINARIO: 'bg-gray-100 text-gray-700 border-gray-200',
+};
+
+const CONCEPTO_LABEL: Record<string, string> = {
+    MATRICULA: 'Matrícula',
+    SIMULACRO: 'Simulacro',
+    CARNET: 'Carnet',
+    EXTRAORDINARIO: 'Extraordinario',
+};
+
 function CuotaItem({ cuota }: { cuota: any }) {
     const [openPago, setOpenPago] = useState(false);
     const [openProrroga, setOpenProrroga] = useState(false);
@@ -138,6 +152,16 @@ function CuotaItem({ cuota }: { cuota: any }) {
             <div>
                 <p className="font-semibold text-slate-800">
                     Cuota {cuota.numero_cuota}
+                    {cuota.concepto && (
+                        <span
+                            className={`ml-2 inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                                CONCEPTO_BADGE[cuota.concepto] ??
+                                'bg-gray-100 text-gray-700 border-gray-200'
+                            }`}
+                        >
+                            {CONCEPTO_LABEL[cuota.concepto] ?? cuota.concepto}
+                        </span>
+                    )}
                 </p>
                 <p className="text-sm text-slate-500">
                     Vence: {formatDate(parseDate(cuota.fecha_vencimiento))}
@@ -559,8 +583,21 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
         (a: any) => a.id_alumno === activeAlumnoId
     );
     const lastMatricula = activeAlumno?.matriculas?.[0];
-    const comprobante = lastMatricula?.comprobante_pago;
-    const cuotas = comprobante?.cuotas || [];
+    const comprobantes = lastMatricula?.comprobantes_pago || [];
+    const cuotas = comprobantes.flatMap((c: any) =>
+        (c.cuotas || []).map((cu: any) => ({
+            ...cu,
+            concepto: c.concepto,
+        })),
+    );
+    const costoTotal = comprobantes.reduce(
+        (sum: number, c: any) => sum + Number(c.costo_total),
+        0,
+    );
+    const saldoPendiente = comprobantes.reduce(
+        (sum: number, c: any) => sum + Number(c.saldo_pendiente),
+        0,
+    );
 
     return (
         <>
@@ -632,7 +669,7 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                         {alumnos.data.map((estudiante: any) => {
                             const lastMatricula = estudiante.matriculas?.[0];
                             const cuotas =
-                                lastMatricula?.comprobante_pago?.cuotas || [];
+                                (lastMatricula?.comprobantes_pago || []).flatMap((c: any) => c.cuotas || []);
 
                             return (
                                 <li key={estudiante.id_alumno}>
@@ -744,7 +781,7 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                 )}
                             </div>
 
-                            {comprobante ? (
+                            {comprobantes.length > 0 ? (
                                 <div className="space-y-6">
                                     <div className="grid gap-4 sm:grid-cols-3">
                                         <Card>
@@ -755,7 +792,7 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                             </CardHeader>
                                             <CardContent>
                                                 <div className="text-xl font-bold">
-                                                    {formatCurrency(comprobante.costo_total)}
+                                                    {formatCurrency(costoTotal)}
                                                 </div>
                                                 <p className="mt-1 text-[10px] text-slate-400">
                                                     Matrícula {lastMatricula?.ciclo?.nombre}
@@ -770,7 +807,7 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                             </CardHeader>
                                             <CardContent>
                                                 <div className="text-xl font-bold text-slate-900">
-                                                    {formatCurrency(comprobante.saldo_pendiente)}
+                                                    {formatCurrency(saldoPendiente)}
                                                 </div>
                                             </CardContent>
                                         </Card>
@@ -783,18 +820,18 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                             <CardContent>
                                                 <Badge
                                                     variant={
-                                                        Number(comprobante.saldo_pendiente) === 0
+                                                        saldoPendiente <= 0
                                                             ? 'default'
                                                             : 'secondary'
                                                     }
                                                     className={cn(
                                                         'rounded-full text-xs uppercase',
-                                                        Number(comprobante.saldo_pendiente) === 0
+                                                        saldoPendiente <= 0
                                                             ? 'bg-green-100 text-green-700 border-green-200'
                                                             : 'bg-red-100 text-red-700 border-red-200'
                                                     )}
                                                 >
-                                                    {Number(comprobante.saldo_pendiente) === 0
+                                                    {saldoPendiente <= 0
                                                         ? 'PAGADO COMPLETAMENTE'
                                                         : 'CON DEUDA'}
                                                 </Badge>
@@ -839,7 +876,7 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
             {whatsAppAlumno && (
                 <WhatsAppDialog
                     estudiante={whatsAppAlumno}
-                    cuotas={whatsAppAlumno.matriculas?.[0]?.comprobante_pago?.cuotas || []}
+                    cuotas={(whatsAppAlumno.matriculas?.[0]?.comprobantes_pago || []).flatMap((c: any) => c.cuotas || [])}
                     plantillas={plantillas}
                     open={true}
                     onOpenChange={(open) => {

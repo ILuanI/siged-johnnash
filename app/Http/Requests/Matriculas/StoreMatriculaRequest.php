@@ -26,14 +26,11 @@ class StoreMatriculaRequest extends FormRequest
             'fecha_matricula' => ['nullable', 'date'],
             'modalidad' => ['nullable', Rule::in(['PRESENCIAL', 'VIRTUAL'])],
             'tipo_pago' => ['nullable', Rule::in(['CONTADO', 'CREDITO'])],
-            'costo_total' => ['nullable', 'numeric', 'min:0'],
-            'numero_cuotas' => [
-                'nullable',
-                'integer',
-                'min:2',
-                'max:4',
-                Rule::requiredIf($this->input('tipo_pago') === 'CREDITO'),
-            ],
+            'costo_matricula' => ['nullable', 'numeric', 'min:0'],
+            'costo_simulacro' => ['nullable', 'numeric', 'min:0'],
+            'costo_carnet' => ['nullable', 'numeric', 'min:0'],
+            'cuotas_matricula' => ['nullable', 'integer', 'min:1', 'max:4'],
+            'cuotas_simulacro' => ['nullable', 'integer', 'min:1', 'max:4'],
             'fecha_primera_cuota' => ['nullable', 'date'],
             'dias_entre_cuotas' => ['nullable', 'integer', 'min:1', 'max:365'],
         ];
@@ -50,7 +47,6 @@ class StoreMatriculaRequest extends FormRequest
             'id_periodo.exists' => 'El periodo académico indicado no existe.',
             'id_turno.exists' => 'El turno indicado no existe.',
             'id_aula.exists' => 'El aula indicada no existe.',
-            'numero_cuotas.required' => 'Indica el número de cuotas para una matrícula al crédito.',
         ];
     }
 }

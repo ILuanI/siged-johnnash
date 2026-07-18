@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ConceptoPago;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,8 @@ class ComprobantePago extends Model
         'id_matricula',
         'numero',
         'tipo',
+        'concepto',
+        'descripcion',
         'fecha_emision',
         'costo_total',
         'saldo_pendiente',
@@ -32,6 +35,7 @@ class ComprobantePago extends Model
             'fecha_emision' => 'date',
             'costo_total' => 'decimal:2',
             'saldo_pendiente' => 'decimal:2',
+            'concepto' => ConceptoPago::class,
         ];
     }
 

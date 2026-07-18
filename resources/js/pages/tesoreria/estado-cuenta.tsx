@@ -50,6 +50,20 @@ function formatDate(date: Date) {
     }).format(date);
 }
 
+const CONCEPTO_BADGE: Record<string, string> = {
+    MATRICULA: 'bg-orange-100 text-orange-700 border-orange-200',
+    SIMULACRO: 'bg-blue-100 text-blue-700 border-blue-200',
+    CARNET: 'bg-purple-100 text-purple-700 border-purple-200',
+    EXTRAORDINARIO: 'bg-gray-100 text-gray-700 border-gray-200',
+};
+
+const CONCEPTO_LABEL: Record<string, string> = {
+    MATRICULA: 'Matrícula',
+    SIMULACRO: 'Simulacro',
+    CARNET: 'Carnet',
+    EXTRAORDINARIO: 'Extraordinario',
+};
+
 function CuotaItem({ cuota }: { cuota: any }) {
     const [openPago, setOpenPago] = useState(false);
     const [openProrroga, setOpenProrroga] = useState(false);
@@ -108,6 +122,16 @@ function CuotaItem({ cuota }: { cuota: any }) {
             <div>
                 <p className="font-semibold text-slate-800">
                     Cuota {cuota.numero_cuota}
+                    {cuota.concepto && (
+                        <span
+                            className={`ml-2 inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                                CONCEPTO_BADGE[cuota.concepto] ??
+                                'bg-gray-100 text-gray-700 border-gray-200'
+                            }`}
+                        >
+                            {CONCEPTO_LABEL[cuota.concepto] ?? cuota.concepto}
+                        </span>
+                    )}
                 </p>
                 <p className="text-sm text-slate-500">
                     Vence: {formatDate(parseDate(cuota.fecha_vencimiento))}
@@ -283,8 +307,22 @@ function CuotaItem({ cuota }: { cuota: any }) {
 
 export default function EstadoCuentaShow({ alumno }: any) {
     const lastMatricula = alumno.matriculas?.[0];
-    const comprobante = lastMatricula?.comprobante_pago;
-    const cuotas = comprobante?.cuotas || [];
+    const comprobantes = lastMatricula?.comprobantes_pago || [];
+    const cuotas = comprobantes.flatMap((c: any) =>
+        (c.cuotas || []).map((cu: any) => ({
+            ...cu,
+            concepto: c.concepto,
+            comprobante_numero: c.numero,
+        })),
+    );
+    const costoTotal = comprobantes.reduce(
+        (sum: number, c: any) => sum + Number(c.costo_total),
+        0,
+    );
+    const saldoPendiente = comprobantes.reduce(
+        (sum: number, c: any) => sum + Number(c.saldo_pendiente),
+        0,
+    );
 
     return (
         <div className="mx-auto max-w-4xl p-8">
@@ -317,7 +355,7 @@ export default function EstadoCuentaShow({ alumno }: any) {
                 </div>
             </div>
 
-            {comprobante ? (
+            {comprobantes.length > 0 ? (
                 <div className="space-y-6">
                     <div className="grid gap-6 md:grid-cols-3">
                         <Card>
@@ -328,7 +366,7 @@ export default function EstadoCuentaShow({ alumno }: any) {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">
-                                    {formatCurrency(comprobante.costo_total)}
+                                    {formatCurrency(costoTotal)}
                                 </div>
                                 <p className="mt-1 text-xs text-slate-400">
                                     Matrícula {lastMatricula.ciclo.nombre}
@@ -343,9 +381,7 @@ export default function EstadoCuentaShow({ alumno }: any) {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-slate-900">
-                                    {formatCurrency(
-                                        comprobante.saldo_pendiente,
-                                    )}
+                                    {formatCurrency(saldoPendiente)}
                                 </div>
                             </CardContent>
                         </Card>
@@ -358,13 +394,12 @@ export default function EstadoCuentaShow({ alumno }: any) {
                             <CardContent>
                                 <Badge
                                     variant={
-                                        Number(comprobante.saldo_pendiente) ===
-                                        0
+                                        saldoPendiente <= 0
                                             ? 'default'
                                             : 'secondary'
                                     }
                                 >
-                                    {Number(comprobante.saldo_pendiente) === 0
+                                    {saldoPendiente <= 0
                                         ? 'PAGADO COMPLETAMENTE'
                                         : 'CON DEUDA'}
                                 </Badge>

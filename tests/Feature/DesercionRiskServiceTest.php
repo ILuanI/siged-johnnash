@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ConceptoPago;
 use App\Enums\EstadoMatricula;
 use App\Enums\TipoPagoMatricula;
 use App\Models\Asistencia;
@@ -48,6 +49,7 @@ test('calculates high dropout risk from attendance grades and overdue payments',
 
     $comprobante = ComprobantePago::query()->create([
         'id_matricula' => $matricula->id_matricula,
+        'concepto' => ConceptoPago::Matricula,
         'numero' => 'TST-0001',
         'tipo' => 'BOLETA',
         'fecha_emision' => today()->subMonth(),

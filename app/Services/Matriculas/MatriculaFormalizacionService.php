@@ -2,6 +2,7 @@
 
 namespace App\Services\Matriculas;
 
+use App\Enums\ConceptoPago;
 use App\Enums\EstadoAlumno;
 use App\Enums\EstadoCiclo;
 use App\Enums\EstadoMatricula;
@@ -66,7 +67,12 @@ class MatriculaFormalizacionService
             throw new BusinessRuleException('El alumno ya tiene una matrícula vigente en este ciclo.');
         }
 
-        return DB::transaction(function () use ($datos, $alumno, $ciclo): Matricula {
+        return DB::transaction(function () use ($datos, $alumno): Matricula {
+            $costoMatricula = (float) ($datos['costo_matricula'] ?? 0);
+            $costoSimulacro = (float) ($datos['costo_simulacro'] ?? 0);
+            $costoCarnet = (float) ($datos['costo_carnet'] ?? 0);
+            $costoTotal = $costoMatricula + $costoSimulacro + $costoCarnet;
+
             $matricula = Matricula::query()->create([
                 'id_alumno' => $datos['id_alumno'],
                 'id_ciclo' => $datos['id_ciclo'],
@@ -76,14 +82,36 @@ class MatriculaFormalizacionService
                 'fecha_matricula' => $datos['fecha_matricula'] ?? now()->toDateString(),
                 'modalidad' => $datos['modalidad'] ?? ModalidadMatricula::Presencial,
                 'tipo_pago' => $datos['tipo_pago'] ?? TipoPagoMatricula::Contado,
-                'costo_total' => $datos['costo_total'] ?? $ciclo->costo_base,
+                'costo_total' => $costoTotal,
+                'costo_matricula' => $costoMatricula,
+                'costo_simulacro' => $costoSimulacro,
+                'costo_carnet' => $costoCarnet,
+                'cuotas_matricula' => (int) ($datos['cuotas_matricula'] ?? 1),
+                'cuotas_simulacro' => (int) ($datos['cuotas_simulacro'] ?? 1),
                 'estado' => EstadoMatricula::Vigente,
             ]);
 
             $alumno->update(['estado' => EstadoAlumno::Matriculado]);
-            $this->planPagoMatriculaService->generar($matricula, $datos);
 
-            return $matricula->load(['ciclo', 'periodo', 'turno', 'aula', 'alumno', 'comprobantePago.cuotas']);
+            $fechaPrimera = $datos['fecha_primera_cuota'] ?? null;
+            $diasEntre = isset($datos['dias_entre_cuotas']) ? (int) $datos['dias_entre_cuotas'] : null;
+
+            $conceptos = [
+                [ConceptoPago::Matricula, $costoMatricula, (int) ($datos['cuotas_matricula'] ?? 1)],
+                [ConceptoPago::Simulacro, $costoSimulacro, (int) ($datos['cuotas_simulacro'] ?? 1)],
+                [ConceptoPago::Carnet, $costoCarnet, 1],
+            ];
+
+            foreach ($conceptos as [$concepto, $costo, $cuotas]) {
+                if ($costo > 0) {
+                    $this->planPagoMatriculaService->generar(
+                        $matricula, $concepto, $costo, $cuotas,
+                        $fechaPrimera, $diasEntre,
+                    );
+                }
+            }
+
+            return $matricula->load(['ciclo', 'periodo', 'turno', 'aula', 'alumno', 'comprobantesPago.cuotas']);
         });
     }
 }

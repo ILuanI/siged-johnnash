@@ -67,9 +67,12 @@ export default function NuevaMatricula({
         id_aula: '',
         modalidad: 'PRESENCIAL',
         tipo_pago: 'CONTADO',
-        costo_total: '',
+        costo_matricula: '',
+        costo_simulacro: '',
+        costo_carnet: '',
         fecha_matricula: new Date().toISOString().split('T')[0],
-        numero_cuotas: '2',
+        cuotas_matricula: '1',
+        cuotas_simulacro: '1',
         fecha_primera_cuota: new Date().toISOString().split('T')[0],
         dias_entre_cuotas: '30',
     });
@@ -80,7 +83,11 @@ export default function NuevaMatricula({
     const selectedCiclo = ciclosList.find(
         (c) => c.id_ciclo.toString() === data.id_ciclo,
     );
-    const costoFinal = data.costo_total || selectedCiclo?.costo_base || '0.00';
+
+    const costoMat = parseFloat(data.costo_matricula) || 0;
+    const costoSin = parseFloat(data.costo_simulacro) || 0;
+    const costoCar = parseFloat(data.costo_carnet) || 0;
+    const costoTotal = costoMat + costoSin + costoCar;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -103,7 +110,7 @@ export default function NuevaMatricula({
                     Nueva matrícula
                 </h1>
                 <p className="text-sm text-slate-500">
-                    Periodo, ciclo, aula y plan de pago.
+                    Periodo, ciclo, aula y desglose de costos.
                 </p>
             </header>
 
@@ -195,11 +202,11 @@ export default function NuevaMatricula({
                                         setData((prev) => ({
                                             ...prev,
                                             id_ciclo: val,
-                                            costo_total: c
+                                            costo_matricula: c
                                                 ? Number(c.costo_base).toFixed(
                                                       2,
                                                   )
-                                                : prev.costo_total,
+                                                : prev.costo_matricula,
                                         }));
                                     }}
                                 >
@@ -333,18 +340,67 @@ export default function NuevaMatricula({
                                 <InputError message={errors.tipo_pago} />
                             </div>
                             <div>
-                                <Label htmlFor="costo_total">Costo total</Label>
+                                <Label htmlFor="costo_matricula">
+                                    Costo Matrícula
+                                </Label>
                                 <Input
-                                    id="costo_total"
+                                    id="costo_matricula"
                                     type="number"
                                     step="0.01"
-                                    placeholder="Usa el costo del ciclo si queda vacío"
-                                    value={data.costo_total}
+                                    min="0"
+                                    placeholder="0.00"
+                                    value={data.costo_matricula}
                                     onChange={(e) =>
-                                        setData('costo_total', e.target.value)
+                                        setData(
+                                            'costo_matricula',
+                                            e.target.value,
+                                        )
                                     }
                                 />
-                                <InputError message={errors.costo_total} />
+                                <InputError message={errors.costo_matricula} />
+                            </div>
+                            <div>
+                                <Label htmlFor="costo_simulacro">
+                                    Costo Simulacros
+                                </Label>
+                                <Input
+                                    id="costo_simulacro"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    value={data.costo_simulacro}
+                                    onChange={(e) =>
+                                        setData(
+                                            'costo_simulacro',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError message={errors.costo_simulacro} />
+                            </div>
+                            <div>
+                                <Label htmlFor="costo_carnet">
+                                    Costo Carnet
+                                </Label>
+                                <Input
+                                    id="costo_carnet"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    value={data.costo_carnet}
+                                    onChange={(e) =>
+                                        setData('costo_carnet', e.target.value)
+                                    }
+                                />
+                                <InputError message={errors.costo_carnet} />
+                            </div>
+                            <div>
+                                <Label>Costo Total</Label>
+                                <div className="flex h-10 items-center rounded-md border bg-slate-50 px-3 text-sm font-bold text-slate-900">
+                                    S/ {costoTotal.toFixed(2)}
+                                </div>
                             </div>
                             <div>
                                 <Label htmlFor="fecha_matricula">
@@ -366,26 +422,47 @@ export default function NuevaMatricula({
                         </div>
 
                         {data.tipo_pago === 'CREDITO' && (
-                            <div className="grid gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:grid-cols-3">
+                            <div className="grid gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:grid-cols-4">
                                 <div>
-                                    <Label htmlFor="numero_cuotas">
-                                        Cuotas
+                                    <Label htmlFor="cuotas_matricula">
+                                        Cuotas Matrícula
                                     </Label>
                                     <Input
-                                        id="numero_cuotas"
+                                        id="cuotas_matricula"
                                         type="number"
-                                        min="2"
+                                        min="1"
                                         max="4"
-                                        value={data.numero_cuotas}
+                                        value={data.cuotas_matricula}
                                         onChange={(e) =>
                                             setData(
-                                                'numero_cuotas',
+                                                'cuotas_matricula',
                                                 e.target.value,
                                             )
                                         }
                                     />
                                     <InputError
-                                        message={errors.numero_cuotas}
+                                        message={errors.cuotas_matricula}
+                                    />
+                                </div>
+                                <div>
+                                    <Label htmlFor="cuotas_simulacro">
+                                        Cuotas Simulacro
+                                    </Label>
+                                    <Input
+                                        id="cuotas_simulacro"
+                                        type="number"
+                                        min="1"
+                                        max="4"
+                                        value={data.cuotas_simulacro}
+                                        onChange={(e) =>
+                                            setData(
+                                                'cuotas_simulacro',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors.cuotas_simulacro}
                                     />
                                 </div>
                                 <div>
@@ -585,11 +662,11 @@ export default function NuevaMatricula({
                                 </div>
                             </div>
 
-                            {/* Tabla */}
+                            {/* Tabla de desglose */}
                             <table className="mb-2 w-full border-collapse border border-black text-center text-xs">
                                 <thead>
                                     <tr className="bg-gray-100 text-red-600">
-                                        <th className="w-24 border border-black p-1 font-bold">
+                                        <th className="w-16 border border-black p-1 font-bold">
                                             Código
                                         </th>
                                         <th className="border border-black p-1 font-bold">
@@ -598,51 +675,100 @@ export default function NuevaMatricula({
                                         <th className="w-20 border border-black p-1 font-bold">
                                             Costo
                                         </th>
-                                        <th className="w-20 border border-black p-1 font-bold">
+                                        <th className="w-16 border border-black p-1 font-bold">
                                             N° cuotas
                                         </th>
                                         <th className="w-24 border border-black p-1 font-bold">
-                                            Pago
+                                            Pago por cuota
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {costoMat > 0 && (
+                                        <tr>
+                                            <td className="h-8 border border-black bg-gray-200/50 p-1">
+                                                {selectedCiclo?.id_ciclo || ''}
+                                            </td>
+                                            <td className="border border-black bg-orange-200/50 p-1 px-4 text-left">
+                                                Matrícula
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                S/ {costoMat.toFixed(2)}
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                {data.tipo_pago === 'CREDITO'
+                                                    ? data.cuotas_matricula
+                                                    : '1'}
+                                            </td>
+                                            <td className="border border-black bg-green-50/50 p-1">
+                                                <div className="mx-1 flex h-5 items-center justify-center border border-green-700 bg-white">
+                                                    {data.tipo_pago ===
+                                                    'CREDITO'
+                                                        ? (
+                                              costoMat /
+                                              Number(
+                                                  data.cuotas_matricula || 1,
+                                              )
+                                          ).toFixed(2)
+                                                        : costoMat.toFixed(2)}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                    {costoSim > 0 && (
+                                        <tr>
+                                            <td className="h-8 border border-black bg-gray-200/50 p-1">
+                                                {selectedCiclo?.id_ciclo || ''}
+                                            </td>
+                                            <td className="border border-black bg-blue-200/50 p-1 px-4 text-left">
+                                                Simulacros
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                S/ {costoSim.toFixed(2)}
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                {data.tipo_pago === 'CREDITO'
+                                                    ? data.cuotas_simulacro
+                                                    : '1'}
+                                            </td>
+                                            <td className="border border-black bg-green-50/50 p-1">
+                                                <div className="mx-1 flex h-5 items-center justify-center border border-green-700 bg-white">
+                                                    {data.tipo_pago ===
+                                                    'CREDITO'
+                                                        ? (
+                                              costoSin /
+                                              Number(
+                                                  data.cuotas_simulacro || 1,
+                                              )
+                                          ).toFixed(2)
+                                                        : costoSin.toFixed(2)}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                    {costoCar > 0 && (
+                                        <tr>
+                                            <td className="h-8 border border-black bg-gray-200/50 p-1">
+                                                {selectedCiclo?.id_ciclo || ''}
+                                            </td>
+                                            <td className="border border-black bg-purple-200/50 p-1 px-4 text-left">
+                                                Carnet
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                S/ {costoCar.toFixed(2)}
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                1
+                                            </td>
+                                            <td className="border border-black bg-green-50/50 p-1">
+                                                <div className="mx-1 flex h-5 items-center justify-center border border-green-700 bg-white">
+                                                    {costoCar.toFixed(2)}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
                                     <tr>
-                                        <td className="h-10 border border-black bg-gray-200/50 p-1">
-                                            {selectedCiclo?.id_ciclo || ''}
-                                        </td>
-                                        <td className="border border-black bg-orange-200/50 p-1 px-4 text-left">
-                                            {selectedCiclo
-                                                ? `MATRÍCULA AL CICLO ${selectedCiclo.nombre}`
-                                                : ''}
-                                        </td>
-                                        <td className="border border-t-0 border-b-0 border-black p-1"></td>
-                                        <td className="border border-t-0 border-b-0 border-black p-1"></td>
-                                        <td className="border border-black bg-green-50/50 p-1">
-                                            <div className="mx-1 flex h-5 items-center justify-center border border-green-700 bg-white">
-                                                {data.tipo_pago === 'CONTADO'
-                                                    ? Number(
-                                                          costoFinal,
-                                                      ).toFixed(2)
-                                                    : (
-                                                          Number(costoFinal) /
-                                                          Number(
-                                                              data.numero_cuotas ||
-                                                                  2,
-                                                          )
-                                                      ).toFixed(2)}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className="h-10 border border-black bg-gray-200/50 p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-t-0 border-b-0 border-black p-1"></td>
-                                        <td className="border border-t-0 border-b-0 border-black p-1"></td>
-                                        <td className="border border-black bg-gray-200/50 p-1"></td>
-                                    </tr>
-                                    <tr>
-                                        <td className="h-10 border border-black bg-gray-200/50 p-1"></td>
+                                        <td className="h-8 border border-black bg-gray-200/50 p-1"></td>
                                         <td className="border border-black p-1"></td>
                                         <td className="border-r border-b border-l border-black p-1">
                                             S/ -
@@ -650,8 +776,8 @@ export default function NuevaMatricula({
                                         <td className="border-b border-black bg-gray-100 p-1 font-bold text-red-600">
                                             Total
                                         </td>
-                                        <td className="border-r border-b border-l border-black p-1">
-                                            S/ -
+                                        <td className="border-r border-b border-l border-black bg-green-50/50 p-1 font-bold">
+                                            S/ {costoTotal.toFixed(2)}
                                         </td>
                                     </tr>
                                 </tbody>

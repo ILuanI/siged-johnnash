@@ -174,15 +174,16 @@ class ConsolidadoAlumnoService
                         ],
                     ];
                 }
-                $comprobante = $matricula->comprobantePago()->with(['cuotas.pagos'])->first();
-                $saldoPendiente = $comprobante ? floatval($comprobante->saldo_pendiente) : 0.0;
+
+                $comprobantes = $matricula->comprobantesPago()->with(['cuotas.pagos'])->get();
+                $saldoPendiente = $comprobantes->sum(fn ($c) => floatval($c->saldo_pendiente));
                 $costoTotal = floatval($matricula->costo_total);
 
                 $cuotasMapped = [];
                 $pagosMapped = [];
                 $tieneDeudaVencida = false;
 
-                if ($comprobante) {
+                foreach ($comprobantes as $comprobante) {
                     foreach ($comprobante->cuotas as $cuota) {
                         $estadoCuota = $cuota->estado;
                         $vencida = $estadoCuota !== 'PAGADA' && $cuota->fecha_vencimiento->lt(today());
@@ -197,6 +198,7 @@ class ConsolidadoAlumnoService
                             'monto' => floatval($cuota->monto),
                             'fecha_vencimiento' => $cuota->fecha_vencimiento?->toDateString(),
                             'estado' => $estadoCuota,
+                            'concepto' => $comprobante->concepto?->value,
                         ];
 
                         foreach ($cuota->pagos as $pago) {
