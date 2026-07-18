@@ -715,7 +715,7 @@ export default function NuevaMatricula({
                                             </td>
                                         </tr>
                                     )}
-                                    {costoSim > 0 && (
+                                    {costoSin > 0 && (
                                         <tr>
                                             <td className="h-8 border border-black bg-gray-200/50 p-1">
                                                 {selectedCiclo?.id_ciclo || ''}
@@ -724,7 +724,7 @@ export default function NuevaMatricula({
                                                 Simulacros
                                             </td>
                                             <td className="border border-black p-1">
-                                                S/ {costoSim.toFixed(2)}
+                                                S/ {costoSin.toFixed(2)}
                                             </td>
                                             <td className="border border-black p-1">
                                                 {data.tipo_pago === 'CREDITO'
