@@ -98,7 +98,7 @@ Auto-registered by `FortifyServiceProvider`. Rate limits: login 5/min, 2FA 5/min
 ### Matriculas
 - **Estudiantes**: create, list, assign career, download PDF
 - **Catálogo académico**: areas → careers → courses hierarchy (full CRUD each)
-- **Nueva matrícula**: create + store
+- **Nueva matrícula**: create + store. Costo desglosado por concepto: matrícula, simulacro y carnet. Cada concepto genera su propio `ComprobantePago` con cuotas independientes. Carnet siempre 1 cuota.
 
 ### Cursos
 - Course CRUD + ciclo/aula assignment (POST only for sub-resources)
@@ -111,7 +111,10 @@ Auto-registered by `FortifyServiceProvider`. Rate limits: login 5/min, 2FA 5/min
 - Public parent portal: `/portal-padres` + `/consulta-notas` (by DNI, no auth)
 
 ### Tesorería
-- Account statements (index + per-student), fee payment/deferral, extraordinary payments, WhatsApp templates
+- Account statements (index + per-student): cuotas de todos los conceptos (MATRICULA, SIMULACRO, CARNET, EXTRAORDINARIO) unificadas con badge de concepto
+- Fee payment/deferral per cuota
+- **Pago extraordinario**: registro manual de cobros ad-hoc (exámenes, certificados, materiales) con descripción libre
+- WhatsApp notification templates
 
 ### Reportes
 - Filters: text, turno, area, course, date range, tardanzas, ausencias, min/max grade
