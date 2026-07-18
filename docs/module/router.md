@@ -28,10 +28,12 @@ routes/
 |---|---|---|
 | `auth` | All protected routes | Must be logged in |
 | `verified` | Most protected routes | Email verified |
-| `permiso` (custom) | CRUD modules | Permission check |
+| `permiso` (custom) | Most CRUD modules | Permission check |
 | `auth:sanctum` | `api.php` | API token auth |
 | `RequirePassword` | `settings/security` | Re-prompt password |
 | `throttle:6,1` | Password update | Rate limit |
+
+**Excepciones:** `notas.php` y `reportes.php` usan solo `['auth', 'verified']` (sin `permiso`). `api.php` usa `auth:sanctum`.
 
 ### `EnsureUserHasPermission` (alias `permiso`)
 
@@ -66,6 +68,8 @@ Route::middleware(['auth', 'verified', 'permiso'])
     ->group(function () { ... });
 ```
 
+**Sin `permiso`:** notas, reportes — usan `['auth', 'verified']`.
+
 **Naming:** `module.resource.action` (dot notation), snake_case.
 
 **Controllers:** organized by module under `app/Http/Controllers/` subdirectories: `Ajustes/`, `Bi/`, `Academico/`, `Tesoreria/`, `Ia/`, `Public/`, `Api/Matriculas/`.
@@ -88,35 +92,38 @@ Auto-registered by `FortifyServiceProvider`. Rate limits: login 5/min, 2FA 5/min
 ## Module summaries
 
 ### Core web.php
-- `GET /` → home
+- `GET /` → home (redirige a dashboard si autenticado, login si no)
 - `GET /dashboard` → `DashboardBiController` (KPIs, autocomplete, 360° student view, area breakdown)
-- CRUD: `docentes`, `usuarios`, `roles`
+- CRUD: `docentes`, `usuarios`, `roles` (todos sin `create/show/edit`)
 
 ### Ajustes
 - Full CRUD for: aulas, turnos, periodos, colegios de procedencia
+- Sin `create/show/edit` (todo en una sola página)
 
 ### Matriculas
-- **Estudiantes**: create, list, assign career, download PDF
+- **Estudiantes**: create, list, assign career (`PATCH students/{alumno}/carrera`), download PDF
 - **Catálogo académico**: areas → careers → courses hierarchy (full CRUD each)
-- **Nueva matrícula**: create + store. Costo desglosado por concepto: matrícula, simulacro y carnet. Cada concepto genera su propio `ComprobantePago` con cuotas independientes. Carnet siempre 1 cuota.
+- **Nueva matrícula**: create + store. Costo desglosado: matrícula, simulacro, carnet. Cada concepto genera su propio `ComprobantePago` con cuotas independientes. Carnet siempre 1 cuota.
 
 ### Cursos
-- Course CRUD + ciclo/aula assignment (POST only for sub-resources)
+- `Resource::except(['create', 'show', 'edit'])` + endpoints extra: `POST cursos/ciclos`, `POST cursos/aulas`
 
 ### Asistencias
-- List, lector view, lector store (barcode/QR). Statuses: ASISTIO, TARDANZA, FALTO
+- `GET /asistencias` y `GET /asistencias/lector` → mismo controller (`AsistenciaController@index`)
+- `POST /asistencias/lector` → `LectorAsistenciaController@store`
+- Statuses: ASISTIO, TARDANZA, FALTO, JUSTIFICADO
 
-### Notas
+### Notas (sin `permiso`)
 - Index, CSV upload, preview CSV, save grades
 - Public parent portal: `/portal-padres` + `/consulta-notas` (by DNI, no auth)
 
 ### Tesorería
-- Account statements (index + per-student): cuotas de todos los conceptos (MATRICULA, SIMULACRO, CARNET, EXTRAORDINARIO) unificadas con badge de concepto
-- Fee payment/deferral per cuota
-- **Pago extraordinario**: registro manual de cobros ad-hoc (exámenes, certificados, materiales) con descripción libre
+- Account statements (index + per-student): cuotas de todos los conceptos (MATRICULA, SIMULACRO, CARNET, EXTRAORDINARIO)
+- Fee payment/deferral per cuota, prórroga
+- **Pago extraordinario**: registro manual de cobros ad-hoc con descripción libre
 - WhatsApp notification templates
 
-### Reportes
+### Reportes (sin `permiso`)
 - Filters: text, turno, area, course, date range, tardanzas, ausencias, min/max grade
 - Exports: Excel (`Maatwebsite\Excel`), PDF (`DomPDF`, landscape A4)
 
@@ -124,7 +131,7 @@ Auto-registered by `FortifyServiceProvider`. Rate limits: login 5/min, 2FA 5/min
 - `GET /ia/desercion` → dropout risk analysis panel
 
 ### Settings
-- Profile edit/update/delete, security (RequirePassword), password change (throttle:6,1), appearance toggle
+- Profile edit/update/delete, security (RequirePassword), password change (throttle:6,1), appearance inertia page
 
 ### API
 - `auth:sanctum` — student create, enrollment create, consolidated student data
