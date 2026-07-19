@@ -167,6 +167,9 @@ return [
             'confirm' => true,
             'confirmPassword' => true,
         ]),
+        Features::passkeys([
+            'confirmPassword' => true,
+        ]),
     ],
 
 ];
