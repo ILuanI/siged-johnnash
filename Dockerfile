@@ -5,8 +5,9 @@
 # ==============================================================================
 FROM php:8.3-cli-bookworm AS builder
 
-# Instalar Node.js 22, Git, Zip y herramientas del sistema en Debian
+# Instalar CA-Certificates (requerido por laravel-vite-plugin/fonts para descargar Bunny Fonts), Node 22 y herramientas
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     curl \
     git \
     unzip \
@@ -19,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && apt-get install -y nodejs \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Instalar helper de extensiones PHP y extensiones requeridas
+# Instalar helper de extensiones PHP y extensiones requeridas por Laravel y Wayfinder
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 RUN install-php-extensions pdo_mysql gd zip bcmath intl mbstring xml
 
@@ -39,14 +40,18 @@ RUN npm ci
 # 3. Copiar todo el código fuente del proyecto
 COPY . .
 
-# 4. Crear .env básico para la fase de build (evita fallos de sed con caracteres especiales)
-RUN echo "APP_KEY=base64:vZi6fPR+/CIFZljCVvIVDiD2aK9c47XMVonHIbW75So=" > .env \
- && echo "APP_ENV=production" >> .env
+# 4. Crear .env de compilación y generar APP_KEY válida para Wayfinder/Laravel
+RUN cp .env.example .env && php artisan key:generate
 
-# 5. Optimizar autoloader, invocar npm run build y eliminar .env temporal
-RUN composer dump-autoload --optimize --no-dev \
- && npm run build \
- && rm -f /app/.env
+# 5. Optimizar autoloader de composer
+RUN composer dump-autoload --optimize --no-dev
+
+# 6. Compilar assets estáticos frontend (Vite + Wayfinder + Bunny Fonts)
+ENV NODE_ENV=production
+RUN npm run build
+
+# 7. Eliminar .env temporal para garantizar que en tiempo de ejecución se usen las vars inyectadas por Coolify
+RUN rm -f /app/.env
 
 
 # ==============================================================================
@@ -54,8 +59,9 @@ RUN composer dump-autoload --optimize --no-dev \
 # ==============================================================================
 FROM php:8.3-fpm-bookworm AS runner
 
-# Instalar Nginx y Supervisor en Debian
+# Instalar Nginx, Supervisor y ca-certificates en Debian
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     nginx \
     supervisor \
     curl \
