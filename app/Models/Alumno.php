@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Alumno extends Model
@@ -25,16 +26,13 @@ class Alumno extends Model
     protected $primaryKey = 'id_alumno';
 
     protected $fillable = [
-        'codigo',
         'nombres',
         'apellidos',
         'dni',
         'fecha_nac',
         'sexo',
         'telefono',
-        'correo',
-        'direccion',
-        'colegio_proc',
+        'colegio_procedencia_id',
         'id_carrera',
         'id_apoderado',
         'estado',
@@ -62,6 +60,11 @@ class Alumno extends Model
         return $this->belongsTo(Apoderado::class, 'id_apoderado', 'id_apoderado');
     }
 
+    public function colegioProcedencia(): BelongsTo
+    {
+        return $this->belongsTo(ColegioProcedencia::class, 'colegio_procedencia_id', 'id_colegio_procedencia');
+    }
+
     public function matriculas(): HasMany
     {
         return $this->hasMany(Matricula::class, 'id_alumno', 'id_alumno');
@@ -70,7 +73,31 @@ class Alumno extends Model
     public function matriculaVigente(): HasOne
     {
         return $this->hasOne(Matricula::class, 'id_alumno', 'id_alumno')
-            ->where('estado', EstadoMatricula::Vigente)
+            ->where('matricula.estado', EstadoMatricula::Vigente)
             ->latestOfMany('fecha_matricula');
+    }
+
+    public function asistencias(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            Asistencia::class,
+            Matricula::class,
+            'id_alumno',
+            'id_matricula',
+            'id_alumno',
+            'id_matricula'
+        );
+    }
+
+    public function resultadosExamen(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            ResultadoExamen::class,
+            Matricula::class,
+            'id_alumno',
+            'id_matricula',
+            'id_alumno',
+            'id_matricula'
+        );
     }
 }

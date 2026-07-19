@@ -3,9 +3,15 @@
 use App\Enums\EstadoAlumno;
 use App\Models\Alumno;
 use App\Models\Matricula;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    Sanctum::actingAs(User::factory()->create());
+});
 
 test('devuelve el consolidado del alumno con matrícula vigente', function () {
     $matricula = Matricula::factory()->create();
@@ -19,9 +25,9 @@ test('devuelve el consolidado del alumno con matrícula vigente', function () {
         ->assertJsonPath('success', true)
         ->assertJsonPath('data.perfil.id_alumno', $alumno->id_alumno)
         ->assertJsonPath('data.matricula_actual.id_matricula', $matricula->id_matricula)
-        ->assertJsonPath('data.asistencia._meta.disponible', false)
-        ->assertJsonPath('data.notas._meta.disponible', false)
-        ->assertJsonPath('data.finanzas._meta.disponible', false);
+        ->assertJsonPath('data.asistencia._meta.disponible', true)
+        ->assertJsonPath('data.notas._meta.disponible', true)
+        ->assertJsonPath('data.finanzas._meta.disponible', true);
 });
 
 test('devuelve 404 cuando el alumno no existe', function () {

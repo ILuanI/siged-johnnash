@@ -2,16 +2,21 @@
 
 use App\Enums\EstadoAlumno;
 use App\Models\Alumno;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
-test('registra un alumno nuevo con código autogenerado', function () {
+beforeEach(function () {
+    Sanctum::actingAs(User::factory()->create());
+});
+
+test('registra un alumno nuevo', function () {
     $response = $this->postJson('/api/matriculas/estudiantes', [
         'nombres' => 'Juan Carlos',
         'apellidos' => 'Pérez López',
         'dni' => '72345678',
-        'correo' => 'juan@example.com',
     ]);
 
     $response
@@ -20,7 +25,6 @@ test('registra un alumno nuevo con código autogenerado', function () {
         ->assertJsonPath('data.nombres', 'Juan Carlos')
         ->assertJsonPath('data.estado', EstadoAlumno::Activo->value);
 
-    expect($response->json('data.codigo'))->toStartWith('JOB-');
     $this->assertDatabaseHas('alumno', ['dni' => '72345678']);
 });
 
@@ -42,4 +46,19 @@ test('rechaza el registro sin nombres obligatorios', function () {
     ]);
 
     $response->assertUnprocessable();
+});
+
+test('rechaza peticiones api sin autenticacion', function () {
+    $this->app['auth']->forgetGuards();
+
+    $response = $this->withHeaders([
+        'Authorization' => '',
+        'Accept' => 'application/json',
+    ])->postJson('/api/matriculas/estudiantes', [
+        'nombres' => 'Juan',
+        'apellidos' => 'Perez',
+        'dni' => '87654321',
+    ]);
+
+    expect($response->status())->toBeIn([401, 403]);
 });

@@ -24,17 +24,6 @@ class Turno extends Model
         'hora_fin',
     ];
 
-    /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'hora_inicio' => 'datetime:H:i',
-            'hora_fin' => 'datetime:H:i',
-        ];
-    }
-
     public function matriculas(): HasMany
     {
         return $this->hasMany(Matricula::class, 'id_turno', 'id_turno');

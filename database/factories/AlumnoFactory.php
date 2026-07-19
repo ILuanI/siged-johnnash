@@ -18,15 +18,15 @@ class AlumnoFactory extends Factory
      */
     public function definition(): array
     {
+        $dni = fake()->unique()->numerify('########');
+
         return [
-            'codigo' => 'JOB-'.fake()->unique()->numerify('####'),
             'nombres' => fake()->firstName(),
             'apellidos' => fake()->lastName().' '.fake()->lastName(),
-            'dni' => fake()->unique()->numerify('########'),
+            'dni' => $dni,
             'fecha_nac' => fake()->date(),
             'sexo' => fake()->randomElement(['M', 'F']),
             'telefono' => fake()->phoneNumber(),
-            'correo' => fake()->safeEmail(),
             'estado' => EstadoAlumno::Activo,
         ];
     }

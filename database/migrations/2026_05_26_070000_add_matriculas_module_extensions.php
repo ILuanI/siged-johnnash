@@ -54,25 +54,34 @@ return new class extends Migration
             });
 
             if (Schema::hasTable('periodo_academico') && Schema::hasColumn('matricula', 'id_periodo')) {
-                Schema::table('matricula', function (Blueprint $table) {
-                    $table->foreign('id_periodo')->references('id_periodo')->on('periodo_academico');
-                });
+                try {
+                    Schema::table('matricula', function (Blueprint $table) {
+                        $table->foreign('id_periodo')->references('id_periodo')->on('periodo_academico');
+                    });
+                } catch (Exception $e) {
+                }
             }
 
             if (Schema::hasTable('turno') && Schema::hasColumn('matricula', 'id_turno')) {
-                Schema::table('matricula', function (Blueprint $table) {
-                    $table->foreign('id_turno')->references('id_turno')->on('turno');
-                });
+                try {
+                    Schema::table('matricula', function (Blueprint $table) {
+                        $table->foreign('id_turno')->references('id_turno')->on('turno');
+                    });
+                } catch (Exception $e) {
+                }
             }
 
             if (Schema::hasTable('aula') && Schema::hasColumn('matricula', 'id_aula')) {
-                Schema::table('matricula', function (Blueprint $table) {
-                    $table->foreign('id_aula')->references('id_aula')->on('aula');
-                });
+                try {
+                    Schema::table('matricula', function (Blueprint $table) {
+                        $table->foreign('id_aula')->references('id_aula')->on('aula');
+                    });
+                } catch (Exception $e) {
+                }
             }
         }
 
-        if (Schema::hasTable('alumno')) {
+        if (Schema::hasTable('alumno') && DB::getDriverName() === 'mysql') {
             DB::statement("ALTER TABLE alumno MODIFY estado ENUM('ACTIVO','MATRICULADO','RETIRADO','EGRESADO') NOT NULL DEFAULT 'ACTIVO'");
         }
     }

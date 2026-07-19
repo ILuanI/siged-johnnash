@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ConceptoPago;
 use App\Enums\EstadoMatricula;
 use App\Enums\ModalidadMatricula;
 use App\Enums\TipoPagoMatricula;
@@ -9,6 +10,8 @@ use Database\Factories\MatriculaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Matricula extends Model
 {
@@ -32,6 +35,11 @@ class Matricula extends Model
         'tipo_pago',
         'costo_total',
         'estado',
+        'costo_matricula',
+        'costo_simulacro',
+        'costo_carnet',
+        'cuotas_matricula',
+        'cuotas_simulacro',
     ];
 
     /**
@@ -44,6 +52,11 @@ class Matricula extends Model
             'modalidad' => ModalidadMatricula::class,
             'tipo_pago' => TipoPagoMatricula::class,
             'costo_total' => 'decimal:2',
+            'costo_matricula' => 'decimal:2',
+            'costo_simulacro' => 'decimal:2',
+            'costo_carnet' => 'decimal:2',
+            'cuotas_matricula' => 'integer',
+            'cuotas_simulacro' => 'integer',
             'estado' => EstadoMatricula::class,
         ];
     }
@@ -71,5 +84,31 @@ class Matricula extends Model
     public function aula(): BelongsTo
     {
         return $this->belongsTo(Aula::class, 'id_aula', 'id_aula');
+    }
+
+    public function asistencias(): HasMany
+    {
+        return $this->hasMany(Asistencia::class, 'id_matricula', 'id_matricula');
+    }
+
+    public function resultadosExamen(): HasMany
+    {
+        return $this->hasMany(ResultadoExamen::class, 'id_matricula', 'id_matricula');
+    }
+
+    public function comprobantePago(): HasOne
+    {
+        return $this->hasOne(ComprobantePago::class, 'id_matricula', 'id_matricula')
+            ->where('concepto', ConceptoPago::Matricula);
+    }
+
+    public function comprobantesPago(): HasMany
+    {
+        return $this->hasMany(ComprobantePago::class, 'id_matricula', 'id_matricula');
+    }
+
+    public function prediccionDesercion(): HasOne
+    {
+        return $this->hasOne(PrediccionDesercion::class, 'id_matricula', 'id_matricula');
     }
 }
