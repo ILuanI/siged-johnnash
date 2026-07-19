@@ -40,8 +40,11 @@ RUN npm ci
 # 3. Copiar todo el código fuente del proyecto
 COPY . .
 
-# 4. Crear .env de compilación y generar APP_KEY válida para Wayfinder/Laravel
-RUN cp .env.example .env && php artisan key:generate
+# 4. Limpiar caché heredada de bootstrap del entorno local y descubrir paquetes de producción
+RUN rm -f bootstrap/cache/*.php \
+ && cp .env.example .env \
+ && php artisan package:discover \
+ && php artisan key:generate --force
 
 # 5. Optimizar autoloader de composer
 RUN composer dump-autoload --optimize --no-dev

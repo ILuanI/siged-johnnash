@@ -23,3 +23,5 @@ Dockerfile
 .dockerignore
 README.md
 CASOS_PRUEBAS_UNITARIAS.md
+bootstrap/cache/*.php
+!bootstrap/cache/.gitignore
