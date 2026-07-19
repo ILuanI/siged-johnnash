@@ -1,19 +1,25 @@
 # ==============================================================================
-# Etapa 1: Builder Unificado (PHP 8.3 + Node.js + Composer)
-# Necesario porque Wayfinder y Vite requieren PHP para generar tipos de rutas.
+# Etapa 1: Builder Unificado en Debian (PHP 8.3 + Node.js 22 + Composer)
+# Debian (glibc) garantiza compatibilidad con los binarios nativos de Tailwind v4,
+# LightningCSS, Rollup y la generación de tipos de Wayfinder.
 # ==============================================================================
-FROM php:8.3-cli-alpine AS builder
+FROM php:8.3-cli-bookworm AS builder
 
-# Instalar Node.js, npm, git y herramientas del sistema
-RUN apk add --no-cache \
-    nodejs \
-    npm \
-    git \
+# Instalar Node.js 22, Git, Zip y herramientas del sistema en Debian
+RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    git \
+    unzip \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
     zip \
-    unzip
+ && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+ && apt-get install -y nodejs \
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Instalar helper de extensiones PHP y extensiones requeridas por Laravel/Wayfinder
+# Instalar helper de extensiones PHP y extensiones requeridas
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
 RUN install-php-extensions pdo_mysql gd zip bcmath intl mbstring xml
 
@@ -33,22 +39,27 @@ RUN npm ci
 # 3. Copiar todo el código fuente del proyecto
 COPY . .
 
-# 4. Optimizar autoloader e invocar npm run build (con PHP disponible para Wayfinder)
+# 4. Configurar la APP_KEY exacta del proyecto para que Wayfinder/Laravel inicialicen durante el build
+ENV APP_KEY="base64:vZi6fPR+/CIFZljCVvIVDiD2aK9c47XMVonHIbW75So="
+RUN cp .env.example .env && sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
+
+# 5. Optimizar autoloader, invocar npm run build y eliminar .env temporal
 RUN composer dump-autoload --optimize --no-dev \
- && npm run build
+ && npm run build \
+ && rm -f /app/.env
 
 
 # ==============================================================================
 # Etapa 2: Imagen de Ejecución Producción (PHP 8.3 FPM + Nginx + Supervisord)
 # ==============================================================================
-FROM php:8.3-fpm-alpine AS runner
+FROM php:8.3-fpm-bookworm AS runner
 
-# Instalar paquetes requeridos del sistema
-RUN apk add --no-cache \
+# Instalar Nginx y Supervisor en Debian
+RUN apt-get update && apt-get install -y --no-install-recommends \
     nginx \
     supervisor \
     curl \
-    bash
+ && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Instalar extensiones PHP para el entorno de ejecución
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
@@ -65,11 +76,12 @@ RUN echo "opcache.enable=1" >> /usr/local/etc/php/conf.d/docker-php-ext-opcache.
 
 WORKDIR /var/www/html
 
-# Copiar aplicación completa ya instalada y compilada desde la etapa builder
+# Copiar aplicación completa compilada desde la etapa builder
 COPY --from=builder /app /var/www/html
 
 # Copiar configuraciones de Nginx, Supervisor y Script Entrypoint
-COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+COPY docker/nginx.conf /etc/nginx/sites-available/default
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
