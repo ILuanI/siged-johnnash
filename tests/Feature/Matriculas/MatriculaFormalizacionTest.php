@@ -9,9 +9,15 @@ use App\Models\Ciclo;
 use App\Models\Matricula;
 use App\Models\PeriodoAcademico;
 use App\Models\Turno;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    Sanctum::actingAs(User::factory()->create());
+});
 
 test('formaliza una matrícula y cambia el estado del alumno a matriculado', function () {
     $periodo = PeriodoAcademico::factory()->create();

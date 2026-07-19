@@ -16,11 +16,24 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { updateCarrera as updateAlumnoCarrera } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
+import {
+    desactivar as desactivarAlumnoAction,
+    update as updateAlumno,
+    updateCarrera as updateAlumnoCarrera,
+} from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -29,6 +42,8 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useInitials } from '@/hooks/use-initials';
+import { usePermisos } from '@/hooks/use-permisos';
+import { confirmAction } from '@/lib/confirm';
 import {
     calcularEdad,
     estadoBadgeClass,
@@ -62,12 +77,101 @@ export function StudentProfileModal({
         consolidado.perfil.carrera?.id_carrera.toString() ?? '',
     );
     const [actualizandoCarrera, setActualizandoCarrera] = useState(false);
+    const [editOpen, setEditOpen] = useState(false);
+    const [processing, setProcessing] = useState(false);
+    const [editForm, setEditForm] = useState({
+        nombres: consolidado.perfil.nombres,
+        apellidos: consolidado.perfil.apellidos,
+        dni: consolidado.perfil.dni ?? '',
+        telefono: consolidado.perfil.telefono ?? '',
+        fecha_nac: consolidado.perfil.fecha_nac ?? '',
+        sexo: consolidado.perfil.sexo ?? '',
+        estado: consolidado.perfil.estado ?? 'ACTIVO',
+        apoderado_nombres: consolidado.perfil.apoderado?.nombres ?? '',
+        apoderado_telefono: consolidado.perfil.apoderado?.telefono ?? '',
+    });
+    const { puede } = usePermisos();
+    const puedeEditar = puede('estudiantes', 'editar');
     const getInitials = useInitials();
     const { perfil, matricula_actual } = consolidado;
     const edad = calcularEdad(perfil.fecha_nac);
     const apoderado = perfil.apoderado;
     const riesgo = consolidado.riesgo_desercion;
     const carreraActualId = perfil.carrera?.id_carrera.toString() ?? '';
+
+    const openEdit = () => {
+        setEditForm({
+            nombres: perfil.nombres,
+            apellidos: perfil.apellidos,
+            dni: perfil.dni ?? '',
+            telefono: perfil.telefono ?? '',
+            fecha_nac: perfil.fecha_nac ?? '',
+            sexo: perfil.sexo ?? '',
+            estado: perfil.estado ?? 'ACTIVO',
+            apoderado_nombres: perfil.apoderado?.nombres ?? '',
+            apoderado_telefono: perfil.apoderado?.telefono ?? '',
+        });
+        setEditOpen(true);
+    };
+
+    const guardarEdicion = (e: React.FormEvent) => {
+        e.preventDefault();
+        setProcessing(true);
+
+        router.put(
+            updateAlumno.url(perfil.id_alumno),
+            {
+                nombres: editForm.nombres,
+                apellidos: editForm.apellidos,
+                dni: editForm.dni,
+                telefono: editForm.telefono || null,
+                fecha_nac: editForm.fecha_nac || null,
+                sexo: editForm.sexo || null,
+                estado: editForm.estado,
+                id_carrera: carreraId ? Number(carreraId) : null,
+                apoderado: editForm.apoderado_nombres
+                    ? {
+                          nombres: editForm.apoderado_nombres,
+                          telefono: editForm.apoderado_telefono || null,
+                      }
+                    : null,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => setEditOpen(false),
+                onError: (errors) => {
+                    Object.values(errors).forEach((message) =>
+                        toast.error(String(message)),
+                    );
+                },
+                onFinish: () => setProcessing(false),
+            },
+        );
+    };
+
+    const desactivarAlumno = async () => {
+        const confirmed = await confirmAction({
+            title: '¿Desactivar estudiante?',
+            text: `${perfil.nombre_completo} pasará a estado RETIRADO.`,
+            confirmButtonText: 'Desactivar',
+            cancelButtonText: 'Cancelar',
+            icon: 'warning',
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        router.patch(desactivarAlumnoAction.url(perfil.id_alumno), {}, {
+            preserveScroll: true,
+            onSuccess: () => onClose(),
+            onError: (errors) => {
+                Object.values(errors).forEach((message) =>
+                    toast.error(String(message)),
+                );
+            },
+        });
+    };
 
     const cambiarCarrera = () => {
         if (!carreraId) {
@@ -493,25 +597,219 @@ export function StudentProfileModal({
                 </div>
 
                 <div className="flex gap-3 border-t bg-slate-50 px-6 py-4">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        disabled
-                    >
-                        <UserX className="size-4" />
-                        Desactivar
-                    </Button>
-                    <Button
-                        type="button"
-                        className="flex-1 bg-[#ff7043] hover:bg-[#f4511e]"
-                        disabled
-                    >
-                        <Pencil className="size-4" />
-                        Editar
-                    </Button>
+                    {puedeEditar && perfil.estado !== 'RETIRADO' && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            onClick={desactivarAlumno}
+                        >
+                            <UserX className="size-4" />
+                            Desactivar
+                        </Button>
+                    )}
+                    {puedeEditar && (
+                        <Button
+                            type="button"
+                            className="flex-1 bg-[#ff7043] hover:bg-[#f4511e]"
+                            onClick={openEdit}
+                        >
+                            <Pencil className="size-4" />
+                            Editar
+                        </Button>
+                    )}
                 </div>
             </DialogContent>
+
+            <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Editar estudiante</DialogTitle>
+                        <DialogDescription>
+                            Actualiza los datos personales y de contacto.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={guardarEdicion} className="grid gap-4">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-nombres">Nombres</Label>
+                                <Input
+                                    id="edit-nombres"
+                                    value={editForm.nombres}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            nombres: e.target.value,
+                                        }))
+                                    }
+                                    required
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-apellidos">Apellidos</Label>
+                                <Input
+                                    id="edit-apellidos"
+                                    value={editForm.apellidos}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            apellidos: e.target.value,
+                                        }))
+                                    }
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-dni">DNI</Label>
+                                <Input
+                                    id="edit-dni"
+                                    value={editForm.dni}
+                                    maxLength={8}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            dni: e.target.value
+                                                .replace(/\D/g, '')
+                                                .slice(0, 8),
+                                        }))
+                                    }
+                                    required
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-telefono">Teléfono</Label>
+                                <Input
+                                    id="edit-telefono"
+                                    value={editForm.telefono}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            telefono: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-fecha">
+                                    Fecha de nacimiento
+                                </Label>
+                                <Input
+                                    id="edit-fecha"
+                                    type="date"
+                                    value={editForm.fecha_nac}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            fecha_nac: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Sexo</Label>
+                                <Select
+                                    value={editForm.sexo || undefined}
+                                    onValueChange={(value) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            sexo: value,
+                                        }))
+                                    }
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Seleccionar" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="M">Masculino</SelectItem>
+                                        <SelectItem value="F">Femenino</SelectItem>
+                                        <SelectItem value="OTRO">Otro</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Estado</Label>
+                            <Select
+                                value={editForm.estado}
+                                onValueChange={(value) =>
+                                    setEditForm((prev) => ({
+                                        ...prev,
+                                        estado: value,
+                                    }))
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ACTIVO">ACTIVO</SelectItem>
+                                    <SelectItem value="MATRICULADO">
+                                        MATRICULADO
+                                    </SelectItem>
+                                    <SelectItem value="RETIRADO">
+                                        RETIRADO
+                                    </SelectItem>
+                                    <SelectItem value="EGRESADO">
+                                        EGRESADO
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-apoderado">
+                                    Apoderado
+                                </Label>
+                                <Input
+                                    id="edit-apoderado"
+                                    value={editForm.apoderado_nombres}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            apoderado_nombres: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-apoderado-tel">
+                                    Tel. apoderado
+                                </Label>
+                                <Input
+                                    id="edit-apoderado-tel"
+                                    value={editForm.apoderado_telefono}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            apoderado_telefono: e.target.value,
+                                        }))
+                                    }
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setEditOpen(false)}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={processing}
+                                className="bg-[#ff7043] hover:bg-[#f4511e]"
+                            >
+                                Guardar cambios
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     );
 }

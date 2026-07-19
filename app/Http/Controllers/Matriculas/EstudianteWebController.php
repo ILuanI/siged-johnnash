@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers\Matriculas;
 
+use App\Enums\EstadoAlumno;
 use App\Enums\EstadoCuota;
 use App\Enums\EstadoMatricula;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Matriculas\StoreAlumnoRequest;
 use App\Http\Requests\Matriculas\UpdateAlumnoCarreraRequest;
+use App\Http\Requests\Matriculas\UpdateAlumnoRequest;
 use App\Http\Resources\Matriculas\AlumnoResource;
 use App\Http\Resources\Matriculas\AreaResource;
 use App\Http\Resources\Matriculas\CarreraResource;
 use App\Http\Resources\Matriculas\ColegioProcedenciaResource;
 use App\Models\Alumno;
+use App\Models\Apoderado;
 use App\Models\Area;
 use App\Models\Carrera;
 use App\Models\ColegioProcedencia;
@@ -21,6 +24,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -119,6 +123,40 @@ class EstudianteWebController extends Controller
         $alumno->update($request->validated());
 
         return redirect()->back()->with('success', 'Carrera del alumno actualizada correctamente.');
+    }
+
+    public function update(UpdateAlumnoRequest $request, Alumno $alumno): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($alumno, $validated): void {
+            if (! empty($validated['apoderado'])) {
+                $alumno->loadMissing('apoderado');
+
+                if ($alumno->id_apoderado && $alumno->apoderado) {
+                    $alumno->apoderado->update($validated['apoderado']);
+                } else {
+                    $apoderado = Apoderado::query()->create($validated['apoderado']);
+                    $validated['id_apoderado'] = $apoderado->id_apoderado;
+                }
+            }
+
+            unset($validated['apoderado']);
+            $alumno->update($validated);
+        });
+
+        return redirect()
+            ->route('matriculas.estudiantes.index', ['alumno' => $alumno->id_alumno])
+            ->with('success', 'Datos del estudiante actualizados correctamente.');
+    }
+
+    public function desactivar(Alumno $alumno): RedirectResponse
+    {
+        $alumno->update(['estado' => EstadoAlumno::Retirado]);
+
+        return redirect()
+            ->route('matriculas.estudiantes.index')
+            ->with('success', 'Estudiante desactivado correctamente.');
     }
 
     public function downloadPdf(Alumno $alumno)

@@ -4,7 +4,9 @@ use App\Enums\EstadoAlumno;
 use App\Models\Alumno;
 use App\Models\Apoderado;
 use App\Models\Carrera;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
@@ -75,6 +77,8 @@ describe('Caso 3: Validación de Datos de Alumno', function () {
     });
 
     test('no se puede registrar alumno sin DNI', function () {
+        Sanctum::actingAs(User::factory()->create());
+
         $response = $this->postJson('/api/matriculas/estudiantes', [
             'nombres' => 'Juan',
             'apellidos' => 'Pérez',

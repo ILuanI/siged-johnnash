@@ -116,4 +116,56 @@ class AsistenciaBarcodeService
             'asistencia' => $asistencia,
         ];
     }
+
+    /**
+     * @param  array{id_alumno: int, fecha: string, estado: string, id_asignacion?: int|null}  $datos
+     */
+    public function upsertManual(array $datos): Asistencia
+    {
+        return DB::transaction(function () use ($datos): Asistencia {
+            $alumno = Alumno::query()
+                ->with('matriculaVigente')
+                ->findOrFail($datos['id_alumno']);
+
+            $matricula = $alumno->matriculaVigente;
+
+            if (! $matricula) {
+                throw new BusinessRuleException('El alumno no tiene una matrícula vigente para registrar asistencia.');
+            }
+
+            $idAsignacion = $datos['id_asignacion'] ?? null;
+            $fecha = $datos['fecha'];
+
+            $asistencia = Asistencia::query()
+                ->where('tipo_alumno', 'INTERNO')
+                ->where('dni', $alumno->dni)
+                ->whereDate('fecha', $fecha)
+                ->when(
+                    $idAsignacion,
+                    fn ($query) => $query->where('id_asignacion', $idAsignacion),
+                    fn ($query) => $query->whereNull('id_asignacion'),
+                )
+                ->first();
+
+            if ($asistencia) {
+                $asistencia->update([
+                    'estado' => $datos['estado'],
+                    'id_matricula' => $matricula->id_matricula,
+                    'registrado_en' => now(),
+                ]);
+
+                return $asistencia->refresh();
+            }
+
+            return Asistencia::query()->create([
+                'tipo_alumno' => 'INTERNO',
+                'dni' => $alumno->dni,
+                'id_matricula' => $matricula->id_matricula,
+                'id_asignacion' => $idAsignacion,
+                'fecha' => $fecha,
+                'estado' => $datos['estado'],
+                'registrado_en' => now(),
+            ]);
+        });
+    }
 }

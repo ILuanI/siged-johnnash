@@ -8,8 +8,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export default function LectorAsistencia() {
+type AsignacionOption = {
+    id_asignacion: number;
+    etiqueta: string;
+};
+
+export default function LectorAsistencia({
+    asignaciones = [],
+}: {
+    asignaciones?: AsignacionOption[];
+}) {
     const [dni, setDni] = useState('');
+    const [idAsignacion, setIdAsignacion] = useState('');
+    const [nombresConvenio, setNombresConvenio] = useState('');
     const [processing, setProcessing] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const lastScanRef = useRef({ dni: '', timestamp: 0 });
@@ -40,10 +51,17 @@ export default function LectorAsistencia() {
 
         router.post(
             registrarAsistencia.url(),
-            { dni: dniLimpio },
+            {
+                dni: dniLimpio,
+                id_asignacion: idAsignacion ? Number(idAsignacion) : null,
+                nombres_convenio: nombresConvenio || null,
+            },
             {
                 preserveScroll: true,
-                onSuccess: () => setDni(''),
+                onSuccess: () => {
+                    setDni('');
+                    setNombresConvenio('');
+                },
                 onError: (errors) => {
                     const firstError = Object.values(errors)[0];
                     toast.error(
@@ -73,36 +91,75 @@ export default function LectorAsistencia() {
                 <ScanBarcode className="size-4" />
                 <AlertTitle>Lector de asistencia</AlertTitle>
                 <AlertDescription>
-                    Escaneo activo para el turno actual.
+                    Escanea el DNI o ingrésalo manualmente. Opcionalmente
+                    asocia la asistencia a un curso/asignación.
                 </AlertDescription>
             </Alert>
 
             <div className="rounded-xl border bg-white p-6 shadow-sm">
-                <div className="space-y-2">
-                    <Label htmlFor="lector-dni">DNI escaneado</Label>
-                    <Input
-                        ref={inputRef}
-                        id="lector-dni"
-                        inputMode="numeric"
-                        autoComplete="off"
-                        autoFocus
-                        value={dni}
-                        maxLength={8}
-                        onBlur={() =>
-                            window.setTimeout(
-                                () => inputRef.current?.focus(),
-                                50,
-                            )
-                        }
-                        onChange={(e) =>
-                            setDni(
-                                e.target.value.replace(/\D/g, '').slice(0, 8),
-                            )
-                        }
-                        onKeyDown={handleKeyDown}
-                        className="h-12 font-mono text-lg tracking-widest"
-                        placeholder="00000000"
-                    />
+                <div className="space-y-4">
+                    {asignaciones.length > 0 && (
+                        <div className="space-y-2">
+                            <Label htmlFor="lector-asignacion">
+                                Curso / asignación (opcional)
+                            </Label>
+                            <select
+                                id="lector-asignacion"
+                                className="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs"
+                                value={idAsignacion}
+                                onChange={(e) => setIdAsignacion(e.target.value)}
+                            >
+                                <option value="">Sin asignación específica</option>
+                                {asignaciones.map((asignacion) => (
+                                    <option
+                                        key={asignacion.id_asignacion}
+                                        value={asignacion.id_asignacion}
+                                    >
+                                        {asignacion.etiqueta}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="space-y-2">
+                        <Label htmlFor="lector-dni">DNI escaneado</Label>
+                        <Input
+                            ref={inputRef}
+                            id="lector-dni"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            autoFocus
+                            value={dni}
+                            maxLength={8}
+                            onBlur={() =>
+                                window.setTimeout(
+                                    () => inputRef.current?.focus(),
+                                    50,
+                                )
+                            }
+                            onChange={(e) =>
+                                setDni(
+                                    e.target.value.replace(/\D/g, '').slice(0, 8),
+                                )
+                            }
+                            onKeyDown={handleKeyDown}
+                            className="h-12 font-mono text-lg tracking-widest"
+                            placeholder="00000000"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="lector-convenio">
+                            Nombre (solo convenio, opcional)
+                        </Label>
+                        <Input
+                            id="lector-convenio"
+                            value={nombresConvenio}
+                            onChange={(e) => setNombresConvenio(e.target.value)}
+                            placeholder="Si el DNI no es alumno interno"
+                        />
+                    </div>
                 </div>
 
                 <div className="mt-4 flex items-center justify-between gap-3">

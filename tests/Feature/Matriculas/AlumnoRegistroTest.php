@@ -2,9 +2,15 @@
 
 use App\Enums\EstadoAlumno;
 use App\Models\Alumno;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    Sanctum::actingAs(User::factory()->create());
+});
 
 test('registra un alumno nuevo', function () {
     $response = $this->postJson('/api/matriculas/estudiantes', [
@@ -40,4 +46,19 @@ test('rechaza el registro sin nombres obligatorios', function () {
     ]);
 
     $response->assertUnprocessable();
+});
+
+test('rechaza peticiones api sin autenticacion', function () {
+    $this->app['auth']->forgetGuards();
+
+    $response = $this->withHeaders([
+        'Authorization' => '',
+        'Accept' => 'application/json',
+    ])->postJson('/api/matriculas/estudiantes', [
+        'nombres' => 'Juan',
+        'apellidos' => 'Perez',
+        'dni' => '87654321',
+    ]);
+
+    expect($response->status())->toBeIn([401, 403]);
 });

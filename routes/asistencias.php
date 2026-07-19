@@ -12,8 +12,11 @@ Route::middleware(['auth', 'verified', 'permiso'])
             ->name('index');
 
         Route::get('lector', [AsistenciaController::class, 'index'])
-            ->name('lector.index'); // Redirect or alias for old route
+            ->name('lector.index');
 
         Route::post('lector', [LectorAsistenciaController::class, 'store'])
             ->name('lector.store');
+
+        Route::post('marcar', [AsistenciaController::class, 'upsert'])
+            ->name('marcar');
     });

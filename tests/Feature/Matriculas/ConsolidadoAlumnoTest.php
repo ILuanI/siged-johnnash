@@ -3,9 +3,15 @@
 use App\Enums\EstadoAlumno;
 use App\Models\Alumno;
 use App\Models\Matricula;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    Sanctum::actingAs(User::factory()->create());
+});
 
 test('devuelve el consolidado del alumno con matrícula vigente', function () {
     $matricula = Matricula::factory()->create();
