@@ -9,9 +9,15 @@ use App\Models\Ciclo;
 use App\Models\Matricula;
 use App\Models\PeriodoAcademico;
 use App\Models\Turno;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
+
+beforeEach(function () {
+    Sanctum::actingAs(User::factory()->create());
+});
 
 test('formaliza una matrícula y cambia el estado del alumno a matriculado', function () {
     $periodo = PeriodoAcademico::factory()->create();
@@ -30,6 +36,7 @@ test('formaliza una matrícula y cambia el estado del alumno a matriculado', fun
         'id_periodo' => $periodo->id_periodo,
         'id_turno' => $turno->id_turno,
         'id_aula' => $aula->id_aula,
+        'costo_matricula' => $ciclo->costo_base,
     ]);
 
     $response
@@ -46,6 +53,7 @@ test('formaliza una matrícula y cambia el estado del alumno a matriculado', fun
     ]);
     $this->assertDatabaseHas('comprobante_pago', [
         'id_matricula' => $response->json('data.id_matricula'),
+        'concepto' => 'MATRICULA',
         'saldo_pendiente' => '1500',
     ]);
     $this->assertDatabaseHas('cuota', [

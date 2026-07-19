@@ -19,6 +19,7 @@ class ModulosSistema
             'roles' => 'Roles',
             'academico' => 'Académico',
             'pagos' => 'Pagos',
+            'pagos_extraordinarios' => 'Pagos Extraordinarios',
             'reportes' => 'Reportes',
             'ia' => 'IA Deserción',
             'ajustes' => 'Ajustes',

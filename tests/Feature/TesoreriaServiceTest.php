@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ConceptoPago;
 use App\Enums\TipoPagoMatricula;
 use App\Models\Matricula;
 use App\Services\Tesoreria\CuotaScheduleService;
@@ -15,11 +16,14 @@ test('genera cuotas para una matrícula al crédito', function () {
         'fecha_matricula' => '2026-06-15',
     ]);
 
-    $comprobante = app(PlanPagoMatriculaService::class)->generar($matricula, [
-        'numero_cuotas' => 3,
-        'fecha_primera_cuota' => '2026-07-01',
-        'dias_entre_cuotas' => 15,
-    ]);
+    $comprobante = app(PlanPagoMatriculaService::class)->generar(
+        matricula: $matricula,
+        concepto: ConceptoPago::Matricula,
+        costo: 1000,
+        numCuotas: 3,
+        fechaPrimeraCuota: '2026-07-01',
+        diasEntreCuotas: 15,
+    );
 
     $cuotas = $comprobante->cuotas()->orderBy('numero_cuota')->get();
 
@@ -34,9 +38,15 @@ test('aplaza una cuota vencida y la devuelve a pendiente', function () {
         'tipo_pago' => TipoPagoMatricula::Contado,
         'costo_total' => 500,
     ]);
-    $comprobante = app(PlanPagoMatriculaService::class)->generar($matricula, [
-        'fecha_primera_cuota' => '2026-06-01',
-    ]);
+
+    $comprobante = app(PlanPagoMatriculaService::class)->generar(
+        matricula: $matricula,
+        concepto: ConceptoPago::Matricula,
+        costo: 500,
+        numCuotas: 1,
+        fechaPrimeraCuota: '2026-06-01',
+    );
+
     $cuota = $comprobante->cuotas()->first();
     $cuota->update(['estado' => 'VENCIDA']);
 

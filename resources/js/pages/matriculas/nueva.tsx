@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Printer, Save, Wallet } from 'lucide-react';
 import { index as estudiantesIndex } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
 import { store as storeMatricula } from '@/actions/App/Http/Controllers/Matriculas/MatriculaWebController';
 import InputError from '@/components/input-error';
@@ -59,7 +59,7 @@ export default function NuevaMatricula({
     const turnosList = asArray(turnos);
     const aulasList = asArray(aulas);
 
-    const { data, setData, post, processing, errors } = useForm({
+    const { data, setData, post, processing, errors, transform } = useForm({
         id_alumno: '',
         id_periodo: '',
         id_ciclo: '',
@@ -67,11 +67,16 @@ export default function NuevaMatricula({
         id_aula: '',
         modalidad: 'PRESENCIAL',
         tipo_pago: 'CONTADO',
-        costo_total: '',
+        costo_matricula: '',
+        costo_simulacro: '',
+        costo_carnet: '',
         fecha_matricula: new Date().toISOString().split('T')[0],
-        numero_cuotas: '2',
+        cuotas_matricula: '1',
+        cuotas_simulacro: '1',
         fecha_primera_cuota: new Date().toISOString().split('T')[0],
         dias_entre_cuotas: '30',
+        pagar_ahora: false,
+        metodo_pago: 'EFECTIVO',
     });
 
     const selectedAlumno = alumnosList.find(
@@ -80,11 +85,31 @@ export default function NuevaMatricula({
     const selectedCiclo = ciclosList.find(
         (c) => c.id_ciclo.toString() === data.id_ciclo,
     );
-    const costoFinal = data.costo_total || selectedCiclo?.costo_base || '0.00';
+
+    const costoMat = parseFloat(data.costo_matricula) || 0;
+    const costoSin = parseFloat(data.costo_simulacro) || 0;
+    const costoCar = parseFloat(data.costo_carnet) || 0;
+    const costoTotal = costoMat + costoSin + costoCar;
+
+    const cuotasMat = data.tipo_pago === 'CREDITO' ? Number(data.cuotas_matricula || 1) : 1;
+    const cuotasSin = data.tipo_pago === 'CREDITO' ? Number(data.cuotas_simulacro || 1) : 1;
+    const pagoPorCuotaTotal = (costoMat / cuotasMat) + (costoSin / cuotasSin) + costoCar;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
         post(storeMatricula.url());
+    };
+
+    const handleSaveAndPay = () => {
+        transform((formData) => ({
+            ...formData,
+            pagar_ahora: true,
+        }));
+        post(storeMatricula.url());
+    };
+
+    const handlePrint = () => {
+        window.print();
     };
 
     return (
@@ -103,7 +128,7 @@ export default function NuevaMatricula({
                     Nueva matrícula
                 </h1>
                 <p className="text-sm text-slate-500">
-                    Periodo, ciclo, aula y plan de pago.
+                    Periodo, ciclo, aula y desglose de costos.
                 </p>
             </header>
 
@@ -195,11 +220,11 @@ export default function NuevaMatricula({
                                         setData((prev) => ({
                                             ...prev,
                                             id_ciclo: val,
-                                            costo_total: c
+                                            costo_matricula: c
                                                 ? Number(c.costo_base).toFixed(
                                                       2,
                                                   )
-                                                : prev.costo_total,
+                                                : prev.costo_matricula,
                                         }));
                                     }}
                                 >
@@ -321,30 +346,86 @@ export default function NuevaMatricula({
                                     >
                                         <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="CONTADO">
-                                            Contado
-                                        </SelectItem>
-                                        <SelectItem value="CREDITO">
-                                            Crédito
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.tipo_pago} />
+                                <SelectContent>
+                                    <SelectItem value="CONTADO">
+                                        Contado
+                                    </SelectItem>
+                                    <SelectItem value="CREDITO">
+                                        Crédito
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.tipo_pago} />
+                            {data.tipo_pago === 'CONTADO' && (
+                                <p className="mt-1 text-xs text-slate-400">
+                                    Seleccione <strong>Crédito</strong> para
+                                    configurar el número de cuotas y
+                                    vencimientos.
+                                </p>
+                            )}
                             </div>
                             <div>
-                                <Label htmlFor="costo_total">Costo total</Label>
+                                <Label htmlFor="costo_matricula">
+                                    Costo Matrícula
+                                </Label>
                                 <Input
-                                    id="costo_total"
+                                    id="costo_matricula"
                                     type="number"
                                     step="0.01"
-                                    placeholder="Usa el costo del ciclo si queda vacío"
-                                    value={data.costo_total}
+                                    min="0"
+                                    placeholder="0.00"
+                                    value={data.costo_matricula}
                                     onChange={(e) =>
-                                        setData('costo_total', e.target.value)
+                                        setData(
+                                            'costo_matricula',
+                                            e.target.value,
+                                        )
                                     }
                                 />
-                                <InputError message={errors.costo_total} />
+                                <InputError message={errors.costo_matricula} />
+                            </div>
+                            <div>
+                                <Label htmlFor="costo_simulacro">
+                                    Costo Simulacros
+                                </Label>
+                                <Input
+                                    id="costo_simulacro"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    value={data.costo_simulacro}
+                                    onChange={(e) =>
+                                        setData(
+                                            'costo_simulacro',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                                <InputError message={errors.costo_simulacro} />
+                            </div>
+                            <div>
+                                <Label htmlFor="costo_carnet">
+                                    Costo Carnet
+                                </Label>
+                                <Input
+                                    id="costo_carnet"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="0.00"
+                                    value={data.costo_carnet}
+                                    onChange={(e) =>
+                                        setData('costo_carnet', e.target.value)
+                                    }
+                                />
+                                <InputError message={errors.costo_carnet} />
+                            </div>
+                            <div>
+                                <Label>Costo Total</Label>
+                                <div className="flex h-10 items-center rounded-md border bg-slate-50 px-3 text-sm font-bold text-slate-900">
+                                    S/ {costoTotal.toFixed(2)}
+                                </div>
                             </div>
                             <div>
                                 <Label htmlFor="fecha_matricula">
@@ -366,30 +447,60 @@ export default function NuevaMatricula({
                         </div>
 
                         {data.tipo_pago === 'CREDITO' && (
-                            <div className="grid gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:grid-cols-3">
+                            <div className="grid gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4 sm:grid-cols-4">
                                 <div>
-                                    <Label htmlFor="numero_cuotas">
-                                        Cuotas
+                                    <Label
+                                        htmlFor="cuotas_matricula"
+                                        className="whitespace-nowrap"
+                                    >
+                                        Cuotas Matrícula
                                     </Label>
                                     <Input
-                                        id="numero_cuotas"
+                                        id="cuotas_matricula"
                                         type="number"
-                                        min="2"
+                                        min="1"
                                         max="4"
-                                        value={data.numero_cuotas}
+                                        value={data.cuotas_matricula}
                                         onChange={(e) =>
                                             setData(
-                                                'numero_cuotas',
+                                                'cuotas_matricula',
                                                 e.target.value,
                                             )
                                         }
                                     />
                                     <InputError
-                                        message={errors.numero_cuotas}
+                                        message={errors.cuotas_matricula}
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="fecha_primera_cuota">
+                                    <Label
+                                        htmlFor="cuotas_simulacro"
+                                        className="whitespace-nowrap"
+                                    >
+                                        Cuotas Simulacro
+                                    </Label>
+                                    <Input
+                                        id="cuotas_simulacro"
+                                        type="number"
+                                        min="1"
+                                        max="4"
+                                        value={data.cuotas_simulacro}
+                                        onChange={(e) =>
+                                            setData(
+                                                'cuotas_simulacro',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={errors.cuotas_simulacro}
+                                    />
+                                </div>
+                                <div>
+                                    <Label
+                                        htmlFor="fecha_primera_cuota"
+                                        className="whitespace-nowrap"
+                                    >
                                         Primer vencimiento
                                     </Label>
                                     <Input
@@ -408,7 +519,10 @@ export default function NuevaMatricula({
                                     />
                                 </div>
                                 <div>
-                                    <Label htmlFor="dias_entre_cuotas">
+                                    <Label
+                                        htmlFor="dias_entre_cuotas"
+                                        className="whitespace-nowrap"
+                                    >
                                         Días entre cuotas
                                     </Label>
                                     <Input
@@ -434,10 +548,11 @@ export default function NuevaMatricula({
                         <div className="flex gap-3 pt-2">
                             <Button
                                 type="submit"
+                                variant="outline"
                                 disabled={processing}
-                                className="bg-[#ff7043] hover:bg-[#f4511e]"
                             >
-                                Formalizar matrícula
+                                <Save className="mr-1 size-4" />
+                                Solo Guardar Matrícula
                             </Button>
                             <Button type="button" variant="outline" asChild>
                                 <Link href={estudiantesIndex.url()}>
@@ -453,11 +568,12 @@ export default function NuevaMatricula({
                             {/* Cabecera */}
                             <div className="mb-4 flex items-start justify-between border-b-2 border-black pb-4">
                                 <div className="flex items-center gap-2">
-                                    <div className="mr-2 text-5xl leading-none font-bold text-orange-500 italic">
-                                        ħ
-                                        <span className="text-4xl text-[#00a2e8]">
-                                            ◿
-                                        </span>
+                                    <div className="mr-2 flex h-14 w-14 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                                        <img
+                                            src="/images/logo-cuadrada.png"
+                                            alt="Logo John Nash"
+                                            className="h-full w-full object-cover"
+                                        />
                                     </div>
                                     <div>
                                         <h2 className="text-3xl leading-none font-black tracking-wider text-[#00a2e8]">
@@ -503,7 +619,7 @@ export default function NuevaMatricula({
                                             e-mail:
                                         </span>{' '}
                                         <span className="text-blue-600 underline">
-                                            academiajn18@gmail.com
+                                            academiaprejohnnash@gmail.com
                                         </span>
                                     </p>
                                 </div>
@@ -585,11 +701,11 @@ export default function NuevaMatricula({
                                 </div>
                             </div>
 
-                            {/* Tabla */}
+                            {/* Tabla de desglose */}
                             <table className="mb-2 w-full border-collapse border border-black text-center text-xs">
                                 <thead>
                                     <tr className="bg-gray-100 text-red-600">
-                                        <th className="w-24 border border-black p-1 font-bold">
+                                        <th className="w-16 border border-black p-1 font-bold">
                                             Código
                                         </th>
                                         <th className="border border-black p-1 font-bold">
@@ -598,68 +714,204 @@ export default function NuevaMatricula({
                                         <th className="w-20 border border-black p-1 font-bold">
                                             Costo
                                         </th>
-                                        <th className="w-20 border border-black p-1 font-bold">
+                                        <th className="w-16 border border-black p-1 font-bold">
                                             N° cuotas
                                         </th>
                                         <th className="w-24 border border-black p-1 font-bold">
-                                            Pago
+                                            Pago por cuota
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    {costoMat > 0 && (
+                                        <tr>
+                                            <td className="h-8 border border-black bg-gray-200/50 p-1">
+                                                {selectedCiclo?.id_ciclo || ''}
+                                            </td>
+                                            <td className="border border-black bg-orange-200/50 p-1 px-4 text-left">
+                                                Matrícula
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                S/ {costoMat.toFixed(2)}
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                {data.tipo_pago === 'CREDITO'
+                                                    ? data.cuotas_matricula
+                                                    : '1'}
+                                            </td>
+                                            <td className="border border-black bg-green-50/50 p-1">
+                                                <div className="mx-1 flex h-5 items-center justify-center border border-green-700 bg-white">
+                                                    {data.tipo_pago ===
+                                                    'CREDITO'
+                                                        ? (
+                                              costoMat /
+                                              Number(
+                                                  data.cuotas_matricula || 1,
+                                              )
+                                          ).toFixed(2)
+                                                        : costoMat.toFixed(2)}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                    {costoSin > 0 && (
+                                        <tr>
+                                            <td className="h-8 border border-black bg-gray-200/50 p-1">
+                                                {selectedCiclo?.id_ciclo || ''}
+                                            </td>
+                                            <td className="border border-black bg-blue-200/50 p-1 px-4 text-left">
+                                                Simulacros
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                S/ {costoSin.toFixed(2)}
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                {data.tipo_pago === 'CREDITO'
+                                                    ? data.cuotas_simulacro
+                                                    : '1'}
+                                            </td>
+                                            <td className="border border-black bg-green-50/50 p-1">
+                                                <div className="mx-1 flex h-5 items-center justify-center border border-green-700 bg-white">
+                                                    {data.tipo_pago ===
+                                                    'CREDITO'
+                                                        ? (
+                                              costoSin /
+                                              Number(
+                                                  data.cuotas_simulacro || 1,
+                                              )
+                                          ).toFixed(2)
+                                                        : costoSin.toFixed(2)}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                    {costoCar > 0 && (
+                                        <tr>
+                                            <td className="h-8 border border-black bg-gray-200/50 p-1">
+                                                {selectedCiclo?.id_ciclo || ''}
+                                            </td>
+                                            <td className="border border-black bg-purple-200/50 p-1 px-4 text-left">
+                                                Carnet
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                S/ {costoCar.toFixed(2)}
+                                            </td>
+                                            <td className="border border-black p-1">
+                                                1
+                                            </td>
+                                            <td className="border border-black bg-green-50/50 p-1">
+                                                <div className="mx-1 flex h-5 items-center justify-center border border-green-700 bg-white">
+                                                    {costoCar.toFixed(2)}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
                                     <tr>
-                                        <td className="h-10 border border-black bg-gray-200/50 p-1">
-                                            {selectedCiclo?.id_ciclo || ''}
-                                        </td>
-                                        <td className="border border-black bg-orange-200/50 p-1 px-4 text-left">
-                                            {selectedCiclo
-                                                ? `MATRÍCULA AL CICLO ${selectedCiclo.nombre}`
-                                                : ''}
-                                        </td>
-                                        <td className="border border-t-0 border-b-0 border-black p-1"></td>
-                                        <td className="border border-t-0 border-b-0 border-black p-1"></td>
-                                        <td className="border border-black bg-green-50/50 p-1">
-                                            <div className="mx-1 flex h-5 items-center justify-center border border-green-700 bg-white">
-                                                {data.tipo_pago === 'CONTADO'
-                                                    ? Number(
-                                                          costoFinal,
-                                                      ).toFixed(2)
-                                                    : (
-                                                          Number(costoFinal) /
-                                                          Number(
-                                                              data.numero_cuotas ||
-                                                                  2,
-                                                          )
-                                                      ).toFixed(2)}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td className="h-10 border border-black bg-gray-200/50 p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border border-t-0 border-b-0 border-black p-1"></td>
-                                        <td className="border border-t-0 border-b-0 border-black p-1"></td>
-                                        <td className="border border-black bg-gray-200/50 p-1"></td>
-                                    </tr>
-                                    <tr>
-                                        <td className="h-10 border border-black bg-gray-200/50 p-1"></td>
-                                        <td className="border border-black p-1"></td>
-                                        <td className="border-r border-b border-l border-black p-1">
-                                            S/ -
-                                        </td>
-                                        <td className="border-b border-black bg-gray-100 p-1 font-bold text-red-600">
+                                        <td className="h-8 border border-black bg-gray-200/50 p-1"></td>
+                                        <td className="border border-black bg-gray-100 p-1 text-left font-bold text-red-600">
                                             Total
                                         </td>
-                                        <td className="border-r border-b border-l border-black p-1">
-                                            S/ -
+                                        <td className="border border-black p-1 font-bold">
+                                            S/ {costoTotal.toFixed(2)}
+                                        </td>
+                                        <td className="border-b border-black p-1"></td>
+                                        <td className="border-r border-b border-l border-black bg-green-50/50 p-1 font-bold">
+                                            S/ {pagoPorCuotaTotal.toFixed(2)}
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Payment controls — hidden when printing */}
+                        <div className="mt-6 border-t border-gray-200 pt-4 not-printable">
+                            <div className="mb-3 flex items-center gap-3">
+                                <Label
+                                    htmlFor="metodo_pago"
+                                    className="whitespace-nowrap text-sm font-semibold"
+                                >
+                                    Método de pago:
+                                </Label>
+                                <Select
+                                    value={data.metodo_pago}
+                                    onValueChange={(val) =>
+                                        setData('metodo_pago', val)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        className="w-64"
+                                        id="metodo_pago"
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="EFECTIVO">
+                                            Efectivo
+                                        </SelectItem>
+                                        <SelectItem value="YAPE/PLIN/TRANSFERENCIA">
+                                            Yape / Plin / Transferencia
+                                        </SelectItem>
+                                        <SelectItem value="TARJETA">
+                                            Tarjeta
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex flex-wrap gap-3">
+                                <Button
+                                    type="button"
+                                    disabled={processing}
+                                    className="bg-[#ff7043] hover:bg-[#f4511e]"
+                                    onClick={handleSaveAndPay}
+                                >
+                                    <Wallet className="mr-1 size-4" />
+                                    Guardar y Pagar 1ra Cuota
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handlePrint}
+                                >
+                                    <Printer className="mr-1 size-4" />
+                                    Descargar
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <style>{`
+                @media print {
+                    body * {
+                        visibility: hidden;
+                    }
+                    .not-printable {
+                        display: none !important;
+                    }
+                    header,
+                    form {
+                        display: none !important;
+                    }
+                    .grid > div:last-child {
+                        position: absolute !important;
+                        top: 0 !important;
+                        left: 0 !important;
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                        padding: 0.5in !important;
+                    }
+                    .grid > div:last-child * {
+                        visibility: visible;
+                    }
+                    .grid > div:last-child .min-w-\\[600px\\] {
+                        min-width: auto !important;
+                    }
+                }
+            `}</style>
         </>
     );
 }

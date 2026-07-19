@@ -47,12 +47,20 @@ class EnsureUserHasPermission
             return null;
         }
 
-        if (str_starts_with($routeName, 'matriculas.estudiantes')) {
+        if (str_starts_with($routeName, 'matriculas.estudiantes') || str_starts_with($routeName, 'matriculas.')) {
             return 'estudiantes';
         }
 
-        if (str_starts_with($routeName, 'matriculas.')) {
-            return 'estudiantes';
+        if (str_starts_with($routeName, 'tesoreria.pago-extraordinario')) {
+            return 'pagos_extraordinarios';
+        }
+
+        if (str_starts_with($routeName, 'tesoreria.')) {
+            return 'pagos';
+        }
+
+        if (str_starts_with($routeName, 'notas.')) {
+            return 'academico';
         }
 
         if (str_starts_with($routeName, 'profile.') || str_starts_with($routeName, 'password.') || str_starts_with($routeName, 'passkeys.') || str_starts_with($routeName, 'two-factor.') || str_starts_with($routeName, 'appearance.')) {

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ConceptoPago;
 use App\Enums\EstadoCuota;
 use App\Models\Alumno;
 use App\Models\Apoderado;
@@ -354,6 +355,7 @@ class MockBiDataSeeder extends Seeder
                 'id_matricula' => $matricula->id_matricula,
                 'numero' => 'B001-0000'.$idx,
                 'tipo' => 'BOLETA',
+                'concepto' => ConceptoPago::Matricula,
                 'fecha_emision' => Carbon::now()->toDateString(),
                 'costo_total' => $s['costo'],
                 'saldo_pendiente' => $saldo,

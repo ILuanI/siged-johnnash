@@ -3,25 +3,41 @@
 namespace App\Http\Controllers\Asistencias;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Asistencias\UpsertAsistenciaRequest;
+use App\Models\Alumno;
+use App\Models\Area;
+use App\Models\AsignacionDocente;
+use App\Models\Carrera;
+use App\Models\Ciclo;
+use App\Models\Curso;
+use App\Services\Asistencias\AsistenciaBarcodeService;
+use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class AsistenciaController extends Controller
 {
-    public function index(Request $request)
+    public function __construct(
+        private readonly AsistenciaBarcodeService $asistenciaBarcodeService,
+    ) {}
+
+    public function index(Request $request): Response
     {
         $busqueda = $request->input('busqueda');
-        $periodo = $request->input('periodo', 'semana'); // dia, semana, mes, personalizado
-        $fecha_inicio_req = $request->input('fecha_inicio');
-        $fecha_fin_req = $request->input('fecha_fin');
-        
-        $id_area = $request->input('id_area');
-        $id_carrera = $request->input('id_carrera');
-        $id_ciclo = $request->input('id_ciclo');
-        $id_curso = $request->input('id_curso');
+        $periodo = $request->input('periodo', 'semana');
+        $fechaInicioReq = $request->input('fecha_inicio');
+        $fechaFinReq = $request->input('fecha_fin');
 
-        if ($periodo === 'personalizado' && $fecha_inicio_req && $fecha_fin_req) {
-            $fechaInicio = \Carbon\Carbon::parse($fecha_inicio_req)->startOfDay();
-            $fechaFin = \Carbon\Carbon::parse($fecha_fin_req)->endOfDay();
+        $idArea = $request->input('id_area');
+        $idCarrera = $request->input('id_carrera');
+        $idCiclo = $request->input('id_ciclo');
+        $idCurso = $request->input('id_curso');
+
+        if ($periodo === 'personalizado' && $fechaInicioReq && $fechaFinReq) {
+            $fechaInicio = Carbon::parse($fechaInicioReq)->startOfDay();
+            $fechaFin = Carbon::parse($fechaFinReq)->endOfDay();
         } else {
             $fechaInicio = now()->startOfWeek();
             $fechaFin = now()->endOfWeek();
@@ -35,59 +51,84 @@ class AsistenciaController extends Controller
             }
         }
 
-        $query = \App\Models\Alumno::query()
-            ->with(['asistencias' => function ($q) use ($fechaInicio, $fechaFin, $id_curso) {
+        $query = Alumno::query()
+            ->with(['asistencias' => function ($q) use ($fechaInicio, $fechaFin, $idCurso) {
                 $q->whereBetween('fecha', [$fechaInicio->format('Y-m-d'), $fechaFin->format('Y-m-d')]);
-                if ($id_curso) {
-                    $q->whereHas('asignacionDocente', function ($q2) use ($id_curso) {
-                        $q2->where('id_curso', $id_curso);
+                if ($idCurso) {
+                    $q->whereHas('asignacionDocente', function ($q2) use ($idCurso) {
+                        $q2->where('id_curso', $idCurso);
                     });
                 }
             }])
-            ->whereHas('matriculaVigente', function ($q) use ($id_ciclo) {
-                if ($id_ciclo) {
-                    $q->where('id_ciclo', $id_ciclo);
+            ->whereHas('matriculaVigente', function ($q) use ($idCiclo) {
+                if ($idCiclo) {
+                    $q->where('id_ciclo', $idCiclo);
                 }
             });
 
-        if ($id_area) {
-            $query->whereHas('carrera', function ($q) use ($id_area) {
-                $q->where('id_area', $id_area);
+        if ($idArea) {
+            $query->whereHas('carrera', function ($q) use ($idArea) {
+                $q->where('id_area', $idArea);
             });
         }
 
-        if ($id_carrera) {
-            $query->where('id_carrera', $id_carrera);
+        if ($idCarrera) {
+            $query->where('id_carrera', $idCarrera);
         }
 
         if ($busqueda) {
             $query->where(function ($q) use ($busqueda) {
                 $q->where('dni', 'like', "%{$busqueda}%")
-                  ->orWhere('nombres', 'like', "%{$busqueda}%")
-                  ->orWhere('apellidos', 'like', "%{$busqueda}%");
+                    ->orWhere('nombres', 'like', "%{$busqueda}%")
+                    ->orWhere('apellidos', 'like', "%{$busqueda}%");
             });
         }
 
         $alumnos = $query->paginate(20)->withQueryString();
 
-        return \Inertia\Inertia::render('asistencias/index', [
+        $asignaciones = AsignacionDocente::query()
+            ->with(['curso:id_curso,nombre', 'docente:id,nombres,apellidos', 'ciclo:id_ciclo,nombre'])
+            ->latest('id_asignacion')
+            ->limit(50)
+            ->get()
+            ->map(fn (AsignacionDocente $asignacion) => [
+                'id_asignacion' => $asignacion->id_asignacion,
+                'etiqueta' => trim(sprintf(
+                    '%s — %s (%s)',
+                    $asignacion->curso?->nombre ?? 'Curso',
+                    trim(($asignacion->docente?->nombres ?? '').' '.($asignacion->docente?->apellidos ?? '')),
+                    $asignacion->ciclo?->nombre ?? 'Sin ciclo',
+                )),
+            ]);
+
+        return Inertia::render('asistencias/index', [
             'alumnos' => $alumnos,
             'catalogos' => [
-                'areas' => \App\Models\Area::orderBy('nombre')->get(),
-                'carreras' => \App\Models\Carrera::orderBy('nombre')->get(),
-                'ciclos' => \App\Models\Ciclo::orderBy('nombre')->get(),
-                'cursos' => \App\Models\Curso::orderBy('nombre')->get(),
+                'areas' => Area::orderBy('nombre')->get(),
+                'carreras' => Carrera::orderBy('nombre')->get(),
+                'ciclos' => Ciclo::orderBy('nombre')->get(),
+                'cursos' => Curso::orderBy('nombre')->get(),
+                'asignaciones' => $asignaciones,
             ],
             'filtros' => [
                 'busqueda' => $busqueda,
                 'periodo' => $periodo,
                 'fecha_inicio' => $fechaInicio->format('Y-m-d'),
                 'fecha_fin' => $fechaFin->format('Y-m-d'),
-                'id_area' => $id_area,
-                'id_carrera' => $id_carrera,
-                'id_ciclo' => $id_ciclo,
-                'id_curso' => $id_curso,
+                'id_area' => $idArea,
+                'id_carrera' => $idCarrera,
+                'id_ciclo' => $idCiclo,
+                'id_curso' => $idCurso,
             ],
         ]);
+    }
+
+    public function upsert(UpsertAsistenciaRequest $request): RedirectResponse
+    {
+        $asistencia = $this->asistenciaBarcodeService->upsertManual($request->validated());
+
+        return redirect()
+            ->back()
+            ->with('success', "Asistencia actualizada: {$asistencia->estado}.");
     }
 }

@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Matriculas;
 
+use App\Enums\EstadoCuota;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Matriculas\StoreMatriculaRequest;
 use App\Http\Resources\Matriculas\AlumnoResource;
 use App\Models\Alumno;
 use App\Models\Aula;
 use App\Models\Ciclo;
+use App\Models\Pago;
 use App\Models\PeriodoAcademico;
 use App\Models\Turno;
 use App\Services\Matriculas\MatriculaFormalizacionService;
@@ -72,6 +74,33 @@ class MatriculaWebController extends Controller
     public function store(StoreMatriculaRequest $request): RedirectResponse
     {
         $matricula = $this->matriculaFormalizacionService->formalizar($request->validated());
+
+        if ($request->boolean('pagar_ahora')) {
+            $matricula->load('comprobantesPago.cuotas');
+
+            foreach ($matricula->comprobantesPago as $comprobante) {
+                $cuotas = $comprobante->concepto->value === 'CARNET'
+                    ? $comprobante->cuotas
+                    : $comprobante->cuotas->where('numero_cuota', 1);
+
+                foreach ($cuotas as $cuota) {
+                    Pago::create([
+                        'id_cuota' => $cuota->id_cuota,
+                        'monto' => $cuota->monto,
+                        'fecha_pago' => now()->toDateString(),
+                        'metodo_pago' => $request->input('metodo_pago'),
+                        'user_id' => auth()->id(),
+                    ]);
+
+                    $cuota->update(['estado' => EstadoCuota::Pagada]);
+                    $comprobante->decrement('saldo_pendiente', $cuota->monto);
+                }
+            }
+
+            return redirect()
+                ->route('tesoreria.estado-cuenta.show', ['alumno' => $matricula->id_alumno])
+                ->with('success', 'Matrícula formalizada y primera cuota pagada correctamente.');
+        }
 
         return redirect()
             ->route('matriculas.estudiantes.index', ['alumno' => $matricula->id_alumno])

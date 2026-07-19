@@ -21,6 +21,12 @@ Route::middleware(['auth', 'verified', 'permiso'])
         Route::post('estudiantes', [EstudianteWebController::class, 'store'])
             ->name('estudiantes.store');
 
+        Route::put('estudiantes/{alumno}', [EstudianteWebController::class, 'update'])
+            ->name('estudiantes.update');
+
+        Route::patch('estudiantes/{alumno}/desactivar', [EstudianteWebController::class, 'desactivar'])
+            ->name('estudiantes.desactivar');
+
         Route::patch('estudiantes/{alumno}/carrera', [EstudianteWebController::class, 'updateCarrera'])
             ->name('estudiantes.carrera.update');
 
