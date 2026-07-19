@@ -31,7 +31,7 @@ WORKDIR /app
 
 # 1. Copiar manifiestos e instalar dependencias PHP
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --prefer-dist --ignore-platform-reqs
+RUN composer install --no-dev --no-scripts --prefer-dist
 
 # 2. Copiar manifiestos e instalar dependencias Node
 COPY package.json package-lock.json ./
@@ -40,28 +40,32 @@ RUN npm ci
 # 3. Copiar todo el código fuente del proyecto
 COPY . .
 
-# 4. Crear estructura de almacenamiento/cache y .env efímero para compilación en memoria
+# 4. Asegurar directorios de almacenamiento y cache con permisos adecuados
 RUN mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache storage/logs bootstrap/cache \
- && chmod -R 777 storage bootstrap/cache \
- && rm -f bootstrap/cache/*.php \
- && cp .env.example .env \
- && sed -i 's/SESSION_DRIVER=.*/SESSION_DRIVER=array/g' .env \
- && sed -i 's/CACHE_STORE=.*/CACHE_STORE=array/g' .env \
- && sed -i 's/QUEUE_CONNECTION=.*/QUEUE_CONNECTION=sync/g' .env \
- && sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/g' .env \
- && sed -i 's/DB_DATABASE=.*/DB_DATABASE=:memory:/g' .env
+ && chmod -R 775 storage bootstrap/cache \
+ && rm -f bootstrap/cache/*.php
 
-# 5. Generar autoloader optimizado de composer y ejecutar autodiscovery de paquetes
+# 5. Crear .env efímero de compilación aislado en memoria
+RUN if [ -f .env.example ]; then cp .env.example .env; else touch .env; fi \
+ && echo "" >> .env \
+ && echo "APP_ENV=production" >> .env \
+ && echo "SESSION_DRIVER=array" >> .env \
+ && echo "CACHE_STORE=array" >> .env \
+ && echo "QUEUE_CONNECTION=sync" >> .env \
+ && echo "DB_CONNECTION=sqlite" >> .env \
+ && echo "DB_DATABASE=:memory:" >> .env
+
+# 6. Generar autoloader optimizado de composer y autodiscovery de paquetes de producción
 RUN composer dump-autoload --optimize --no-dev
 
-# 6. Generar APP_KEY requerida por Wayfinder/Laravel durante el build
+# 7. Generar APP_KEY válida requerida por Wayfinder/Laravel durante la compilación
 RUN php artisan key:generate --force
 
-# 7. Compilar assets estáticos frontend (Vite + Wayfinder + Bunny Fonts)
+# 8. Compilar assets estáticos frontend (Vite + Wayfinder + Bunny Fonts)
 ENV NODE_ENV=production
 RUN npm run build
 
-# 8. Eliminar .env temporal para garantizar que en tiempo de ejecución se usen las vars inyectadas por Coolify
+# 9. Eliminar .env temporal para garantizar que en tiempo de ejecución se usen las vars inyectadas por Coolify
 RUN rm -f /app/.env
 
 

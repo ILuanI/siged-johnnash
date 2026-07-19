@@ -16,6 +16,7 @@ storage/framework/sessions/*
 storage/framework/views/*
 .env
 .env.*
+!.env.example
 *.sql
 .phpunit.cache
 tests
