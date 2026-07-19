@@ -8,7 +8,10 @@ chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 # Crear enlace simbólico de almacenamiento público si no existe
 php artisan storage:link --force || true
 
-# Limpiar y reconstruir cachés de Laravel
+# Limpiar y reconstruir cachés de Laravel con las variables de entorno inyectadas por Coolify
+php artisan config:clear || true
+php artisan route:clear || true
+php artisan view:clear || true
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache

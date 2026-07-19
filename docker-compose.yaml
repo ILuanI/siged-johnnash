@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     ports:
-      - "80:80"
+      - "8088:80"
     environment:
       APP_NAME: "SIGED"
       APP_ENV: production
