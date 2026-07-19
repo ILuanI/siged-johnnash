@@ -18,8 +18,17 @@ php artisan view:cache
 
 # Ejecutar migraciones automáticas si la variable RUN_MIGRATIONS=true
 if [ "$RUN_MIGRATIONS" = "true" ]; then
-    echo "Ejecutando migraciones de base de datos..."
-    php artisan migrate --force
+    echo "Esperando a que la base de datos esté lista para migraciones..."
+    i=0
+    while [ $i -lt 30 ]; do
+        if php artisan migrate --force; then
+            echo "Migraciones completadas exitosamente."
+            break
+        fi
+        echo "Reintentando migraciones en 2 segundos... ($i/30)"
+        sleep 2
+        i=$((i+1))
+    done
 fi
 
 # Iniciar supervisord

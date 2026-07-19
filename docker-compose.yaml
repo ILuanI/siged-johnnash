@@ -6,8 +6,8 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: always
-    ports:
-      - "8088:80"
+    expose:
+      - "80"
     environment:
       APP_NAME: "SIGED"
       APP_ENV: production
