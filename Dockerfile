@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Instalar helper de extensiones PHP y extensiones requeridas por Laravel y Wayfinder
 COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
-RUN install-php-extensions pdo_mysql gd zip bcmath intl mbstring xml
+RUN install-php-extensions pdo_mysql pdo_sqlite gd zip bcmath intl mbstring xml
 
 # Copiar ejecutable de Composer
 COPY --from=composer:2.8 /usr/bin/composer /usr/bin/composer
@@ -40,20 +40,28 @@ RUN npm ci
 # 3. Copiar todo el código fuente del proyecto
 COPY . .
 
-# 4. Limpiar caché heredada de bootstrap del entorno local y descubrir paquetes de producción
-RUN rm -f bootstrap/cache/*.php \
+# 4. Crear estructura de almacenamiento/cache y .env efímero para compilación en memoria
+RUN mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache storage/logs bootstrap/cache \
+ && chmod -R 777 storage bootstrap/cache \
+ && rm -f bootstrap/cache/*.php \
  && cp .env.example .env \
- && php artisan package:discover \
- && php artisan key:generate --force
+ && sed -i 's/SESSION_DRIVER=.*/SESSION_DRIVER=array/g' .env \
+ && sed -i 's/CACHE_STORE=.*/CACHE_STORE=array/g' .env \
+ && sed -i 's/QUEUE_CONNECTION=.*/QUEUE_CONNECTION=sync/g' .env \
+ && sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/g' .env \
+ && sed -i 's/DB_DATABASE=.*/DB_DATABASE=:memory:/g' .env
 
-# 5. Optimizar autoloader de composer
+# 5. Generar autoloader optimizado de composer y ejecutar autodiscovery de paquetes
 RUN composer dump-autoload --optimize --no-dev
 
-# 6. Compilar assets estáticos frontend (Vite + Wayfinder + Bunny Fonts)
+# 6. Generar APP_KEY requerida por Wayfinder/Laravel durante el build
+RUN php artisan key:generate --force
+
+# 7. Compilar assets estáticos frontend (Vite + Wayfinder + Bunny Fonts)
 ENV NODE_ENV=production
 RUN npm run build
 
-# 7. Eliminar .env temporal para garantizar que en tiempo de ejecución se usen las vars inyectadas por Coolify
+# 8. Eliminar .env temporal para garantizar que en tiempo de ejecución se usen las vars inyectadas por Coolify
 RUN rm -f /app/.env
 
 
