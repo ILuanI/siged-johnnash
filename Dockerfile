@@ -39,9 +39,9 @@ RUN npm ci
 # 3. Copiar todo el código fuente del proyecto
 COPY . .
 
-# 4. Configurar la APP_KEY exacta del proyecto para que Wayfinder/Laravel inicialicen durante el build
-ENV APP_KEY="base64:vZi6fPR+/CIFZljCVvIVDiD2aK9c47XMVonHIbW75So="
-RUN cp .env.example .env && sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
+# 4. Crear .env básico para la fase de build (evita fallos de sed con caracteres especiales)
+RUN echo "APP_KEY=base64:vZi6fPR+/CIFZljCVvIVDiD2aK9c47XMVonHIbW75So=" > .env \
+ && echo "APP_ENV=production" >> .env
 
 # 5. Optimizar autoloader, invocar npm run build y eliminar .env temporal
 RUN composer dump-autoload --optimize --no-dev \
