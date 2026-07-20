@@ -65,7 +65,8 @@ class DesercionRiskService
 
                 $predictions = [];
                 try {
-                    $response = Http::timeout(5)->post('http://127.0.0.1:8001/predict/bulk', [
+                    $baseUrl = config('services.ai.url', 'http://127.0.0.1:8001');
+                    $response = Http::timeout(5)->post("{$baseUrl}/predict/bulk", [
                         'students' => $payload,
                     ]);
 
@@ -140,7 +141,8 @@ class DesercionRiskService
         $nivelRiesgo = null;
 
         try {
-            $response = Http::timeout(3)->post('http://127.0.0.1:8001/predict', [
+            $baseUrl = config('services.ai.url', 'http://127.0.0.1:8001');
+            $response = Http::timeout(3)->post("{$baseUrl}/predict", [
                 'application_mode' => 1,
                 'course' => (int) $course,
                 'daytime_evening_attendance' => (int) $daytimeEveningAttendance,
