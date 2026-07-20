@@ -30,20 +30,9 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - eslint (ESLINT) - v9
 - prettier (PRETTIER) - v3
 
-## Skills Registry (on-demand)
+## Skills Activation
 
-Skills are loaded on-demand via `skill` tool to save tokens. Do NOT load all upfront. Use this table to decide which skill to activate based on the task:
-
-| Trigger | Skill | Path |
-|---|---|---|
-| auth: login, register, 2FA, password reset, passkeys, profile | `fortify-development` | `.agents/skills/fortify-development/SKILL.md` |
-| React pages, forms, navigation with Inertia v3 | `inertia-react-development` | `.agents/skills/inertia-react-development/SKILL.md` |
-| writing/reviewing/refactoring Laravel PHP code (controllers, models, queries, etc.) | `laravel-best-practices` | `.agents/skills/laravel-best-practices/SKILL.md` |
-| writing/editing tests with Pest | `pest-testing` | `.agents/skills/pest-testing/SKILL.md` |
-| Tailwind CSS styling (responsive, dark mode, utility classes) | `tailwindcss-development` | `.agents/skills/tailwindcss-development/SKILL.md` |
-| connecting frontend to Laravel routes/controllers via Wayfinder | `wayfinder-development` | `.agents/skills/wayfinder-development/SKILL.md` |
-
-Load a skill only when its trigger matches the current task. Use: `skill("name")`.
+This project has domain-specific skills available in `**/skills/**`. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
 
 ## Conventions
 
