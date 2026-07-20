@@ -27,11 +27,14 @@ services:
       QUEUE_CONNECTION: database
       RUN_MIGRATIONS: "true"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   db:
     image: mysql:8.0
     restart: always
+    expose:
+      - "3306"
     environment:
       MYSQL_DATABASE: bd_johnnash
       MYSQL_USER: siged_user
