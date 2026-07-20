@@ -848,7 +848,7 @@ export default function NuevaMatricula({
                                         <SelectItem value="EFECTIVO">
                                             Efectivo
                                         </SelectItem>
-                                        <SelectItem value="YAPE/PLIN/TRANSFERENCIA">
+                                        <SelectItem value="TRANSFERENCIA">
                                             Yape / Plin / Transferencia
                                         </SelectItem>
                                         <SelectItem value="TARJETA">
