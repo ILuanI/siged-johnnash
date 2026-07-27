@@ -77,6 +77,7 @@ export default function NuevaMatricula({
         dias_entre_cuotas: '30',
         pagar_ahora: false,
         metodo_pago: 'EFECTIVO',
+        id_cliente: '',
     });
 
     const selectedAlumno = alumnosList.find(
@@ -85,6 +86,31 @@ export default function NuevaMatricula({
     const selectedCiclo = ciclosList.find(
         (c) => c.id_ciclo.toString() === data.id_ciclo,
     );
+
+    const esMenor = selectedAlumno?.fecha_nac
+        ? (() => {
+              const nac = new Date(selectedAlumno.fecha_nac);
+              const hoy = new Date();
+              let edad = hoy.getFullYear() - nac.getFullYear();
+              const mes = hoy.getMonth() - nac.getMonth();
+              if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) {
+                  edad--;
+              }
+              return edad < 18;
+          })()
+        : false;
+
+    const clienteNombre =
+        data.id_cliente === 'apoderado' && selectedAlumno?.apoderado
+            ? selectedAlumno.apoderado.nombres
+            : selectedAlumno
+              ? `${selectedAlumno.apellidos}, ${selectedAlumno.nombres}`
+              : '';
+
+    const clienteContacto =
+        data.id_cliente === 'apoderado' && selectedAlumno?.apoderado
+            ? selectedAlumno.apoderado.telefono || '_________'
+            : selectedAlumno?.telefono || '_________';
 
     const costoMat = parseFloat(data.costo_matricula) || 0;
     const costoSin = parseFloat(data.costo_simulacro) || 0;
@@ -142,9 +168,42 @@ export default function NuevaMatricula({
                             <Label htmlFor="id_alumno">Alumno *</Label>
                             <Select
                                 value={data.id_alumno}
-                                onValueChange={(val) =>
-                                    setData('id_alumno', val)
-                                }
+                                onValueChange={(val) => {
+                                    setData('id_alumno', val);
+                                    const alumno = alumnosList.find(
+                                        (a) => a.id_alumno.toString() === val,
+                                    );
+                                    if (alumno?.fecha_nac) {
+                                        const nac = new Date(alumno.fecha_nac);
+                                        const hoy = new Date();
+                                        let edad =
+                                            hoy.getFullYear() -
+                                            nac.getFullYear();
+                                        const mes =
+                                            hoy.getMonth() - nac.getMonth();
+                                        if (
+                                            mes < 0 ||
+                                            (mes === 0 &&
+                                                hoy.getDate() <
+                                                    nac.getDate())
+                                        ) {
+                                            edad--;
+                                        }
+                                        setData(
+                                            'id_cliente',
+                                            edad < 18 && alumno.apoderado
+                                                ? 'apoderado'
+                                                : 'alumno',
+                                        );
+                                    } else {
+                                        setData(
+                                            'id_cliente',
+                                            alumno?.apoderado
+                                                ? 'apoderado'
+                                                : 'alumno',
+                                        );
+                                    }
+                                }}
                             >
                                 <SelectTrigger
                                     className="w-full"
@@ -651,23 +710,48 @@ export default function NuevaMatricula({
                                 </div>
 
                                 <div className="mt-2 text-black">Cliente:</div>
-                                <div className="mt-2 border-b border-dotted border-gray-400 font-normal text-gray-700">
-                                    {selectedAlumno?.apoderado
-                                        ? selectedAlumno.apoderado.nombres
-                                        : selectedAlumno
-                                          ? `${selectedAlumno.apellidos}, ${selectedAlumno.nombres}`
-                                          : '______________________'}
+                                <div className="mt-2">
+                                    {selectedAlumno ? (
+                                        <Select
+                                            value={data.id_cliente}
+                                            onValueChange={(val) =>
+                                                setData('id_cliente', val)
+                                            }
+                                        >
+                                            <SelectTrigger className="h-7 w-full border-0 border-b border-dotted border-gray-400 bg-transparent text-left text-sm font-normal text-gray-700 focus:ring-0">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="alumno">
+                                                    {selectedAlumno.apellidos},{' '}
+                                                    {selectedAlumno.nombres}
+                                                    (Alumno)
+                                                </SelectItem>
+                                                {selectedAlumno.apoderado && (
+                                                    <SelectItem value="apoderado">
+                                                        {
+                                                            selectedAlumno
+                                                                .apoderado.nombres
+                                                        }{' '}
+                                                        (Apoderado)
+                                                    </SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <div className="border-b border-dotted border-gray-400 py-0.5 font-normal text-gray-700">
+                                            ______________________
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="mt-2 pl-4 text-black">
                                     Contacto:
                                 </div>
-                                <div className="mt-2 border-b border-dotted border-gray-400 font-normal text-gray-700">
-                                    {selectedAlumno?.apoderado
-                                        ? selectedAlumno.apoderado.telefono ||
-                                          '_________'
-                                        : selectedAlumno?.telefono ||
-                                          '_________'}
+                                <div className="mt-2 border-b border-dotted border-gray-400 py-0.5 font-normal text-gray-700">
+                                    {clienteNombre
+                                        ? clienteContacto
+                                        : '_________'}
                                 </div>
 
                                 <div className="text-black">Estudiante:</div>
