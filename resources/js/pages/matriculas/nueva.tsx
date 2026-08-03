@@ -719,13 +719,16 @@ export default function NuevaMatricula({
                                             }
                                         >
                                             <SelectTrigger className="h-7 w-full border-0 border-b border-dotted border-gray-400 bg-transparent text-left text-sm font-normal text-gray-700 focus:ring-0">
-                                                <SelectValue />
+                                                <SelectValue
+                                                    placeholder="Seleccionar cliente"
+                                                    className="text-sm font-normal text-gray-700"
+                                                />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="alumno">
                                                     {selectedAlumno.apellidos},{' '}
-                                                    {selectedAlumno.nombres}
-                                                    (Alumno)
+                                                    {selectedAlumno.nombres}{' '}
+                                                    (alumno)
                                                 </SelectItem>
                                                 {selectedAlumno.apoderado && (
                                                     <SelectItem value="apoderado">
@@ -733,7 +736,7 @@ export default function NuevaMatricula({
                                                             selectedAlumno
                                                                 .apoderado.nombres
                                                         }{' '}
-                                                        (Apoderado)
+                                                        (apoderado)
                                                     </SelectItem>
                                                 )}
                                             </SelectContent>

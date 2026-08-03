@@ -94,6 +94,8 @@ class EstadoCuentaController extends Controller
             'cuota_ids' => ['required', 'array', 'min:1'],
             'cuota_ids.*' => ['required', 'integer', 'exists:cuota,id_cuota'],
             'metodo_pago' => ['required', 'string', 'max:50'],
+            'montos' => ['nullable', 'array'],
+            'montos.*' => ['required_with:montos', 'numeric', 'min:0.01'],
         ]);
 
         $processed = 0;
@@ -117,16 +119,25 @@ class EstadoCuentaController extends Controller
                 continue;
             }
 
+            $montoPagar = isset($validated['montos'][$cuotaId])
+                ? min($validated['montos'][$cuotaId], $restante)
+                : $restante;
+
             Pago::create([
                 'id_cuota' => $cuota->id_cuota,
-                'monto' => $restante,
+                'monto' => $montoPagar,
                 'fecha_pago' => now()->toDateString(),
                 'metodo_pago' => $validated['metodo_pago'],
                 'user_id' => auth()->id(),
             ]);
 
-            $cuota->update(['estado' => EstadoCuota::Pagada]);
-            $cuota->comprobantePago?->decrement('saldo_pendiente', $cuota->monto);
+            $cuota->comprobantePago?->decrement('saldo_pendiente', $montoPagar);
+
+            $totalPagadoAhora = $totalPagado + $montoPagar;
+            if ($totalPagadoAhora >= $cuota->monto) {
+                $cuota->update(['estado' => EstadoCuota::Pagada]);
+            }
+
             $processed++;
         }
 

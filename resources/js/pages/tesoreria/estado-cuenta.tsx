@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import {
     index as tesoreriaIndex,
-    pagar as tesoreriaPagar,
     prorrogar as tesoreriaProrrogar,
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import { ComprobantePago } from '@/components/pagos/ComprobantePago';
@@ -22,13 +21,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 
 function formatCurrency(amount: string | number) {
     return new Intl.NumberFormat('es-PE', {
@@ -39,6 +31,7 @@ function formatCurrency(amount: string | number) {
 
 function parseDate(dateStr: string) {
     const [y, m, d] = dateStr.split('T')[0].split('-');
+
     return new Date(Number(y), Number(m) - 1, Number(d));
 }
 
@@ -67,13 +60,17 @@ const CONCEPTO_LABEL: Record<string, string> = {
 function CuotaItem({
     cuota,
     isSelected,
+    montoPagar,
     onAdd,
     onRemove,
+    onAmountChange,
 }: {
     cuota: any;
     isSelected: boolean;
+    montoPagar: number;
     onAdd: () => void;
     onRemove: () => void;
+    onAmountChange: (amount: number) => void;
 }) {
     const [openProrroga, setOpenProrroga] = useState(false);
     const [diasProrroga, setDiasProrroga] = useState('7');
@@ -126,6 +123,28 @@ function CuotaItem({
                 {totalPagado > 0 && (
                     <div className="mt-1 text-xs text-slate-400">
                         Abonado: {formatCurrency(totalPagado)}
+                    </div>
+                )}
+                {isSelected && (
+                    <div className="mt-2 flex items-center gap-2">
+                        <Label className="text-xs text-slate-500">
+                            A pagar:
+                        </Label>
+                        <div className="flex items-center gap-1">
+                            <span className="text-xs text-slate-500">S/</span>
+                            <Input
+                                type="number"
+                                min="0.01"
+                                max={restante}
+                                step="0.01"
+                                value={montoPagar}
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    onAmountChange(Math.min(val, restante));
+                                }}
+                                className="h-7 w-24 border-0 border-b border-dotted border-slate-400 bg-transparent px-1 py-0 text-xs font-semibold text-slate-900 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            />
+                        </div>
                     </div>
                 )}
             </div>
@@ -216,6 +235,7 @@ function CuotaItem({
                                                                   diasProrroga,
                                                               ),
                                                       );
+
                                                       return formatDate(d);
                                                   })()
                                                 : '...'}
@@ -240,6 +260,7 @@ function CuotaItem({
 
 export default function EstadoCuentaShow({ alumno }: any) {
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [selectedAmounts, setSelectedAmounts] = useState<Record<number, number>>({});
     const lastMatricula = alumno.matriculas?.[0];
     const comprobantes = lastMatricula?.comprobantes_pago || [];
     const cuotas: (ComprobanteCuotaItem & { estado: string })[] =
@@ -264,13 +285,33 @@ export default function EstadoCuentaShow({ alumno }: any) {
     const toggleCuota = (id: number) => {
         setSelectedIds((prev) => {
             const next = new Set(prev);
+
             if (next.has(id)) {
                 next.delete(id);
+                setSelectedAmounts((prev) => {
+                    const next2 = { ...prev };
+                    delete next2[id];
+
+                    return next2;
+                });
             } else {
                 next.add(id);
+                const cuota = cuotas.find((c) => c.id_cuota === id);
+
+                if (cuota) {
+                    const totalPagado =
+                        cuota.pagos?.reduce((sum: number, p: any) => sum + Number(p.monto), 0) || 0;
+                    const restante = Math.max(0, Number(cuota.monto) - totalPagado);
+                    setSelectedAmounts((prev) => ({ ...prev, [id]: restante }));
+                }
             }
+
             return next;
         });
+    };
+
+    const handleAmountChange = (id: number, amount: number) => {
+        setSelectedAmounts((prev) => ({ ...prev, [id]: amount }));
     };
 
     return (
@@ -311,8 +352,11 @@ export default function EstadoCuentaShow({ alumno }: any) {
                     <div className="lg:col-span-2">
                         <ComprobantePago
                             selectedCuotas={selectedCuotas}
-                            onRemove={(id) => toggleCuota(id)}
-                            onClear={() => setSelectedIds(new Set())}
+                            amounts={selectedAmounts}
+                            onClear={() => {
+                                setSelectedIds(new Set());
+                                setSelectedAmounts({});
+                            }}
                             alumno={alumno}
                             cicloNombre={lastMatricula?.ciclo?.nombre}
                             modalidad={lastMatricula?.modalidad}
@@ -389,6 +433,24 @@ export default function EstadoCuentaShow({ alumno }: any) {
                                                 isSelected={selectedIds.has(
                                                     cuota.id_cuota,
                                                 )}
+                                                montoPagar={
+                                                    selectedAmounts[cuota.id_cuota] ?? (() => {
+                                                        const totalPagado =
+                                                            cuota.pagos?.reduce(
+                                                                (sum: number, p: any) =>
+                                                                    sum + Number(p.monto),
+                                                                0,
+                                                            ) || 0;
+
+                                                        return Math.max(
+                                                            0,
+                                                            Number(cuota.monto) - totalPagado,
+                                                        );
+                                                    })()
+                                                }
+                                                onAmountChange={(amount) =>
+                                                    handleAmountChange(cuota.id_cuota, amount)
+                                                }
                                                 onAdd={() =>
                                                     toggleCuota(cuota.id_cuota)
                                                 }

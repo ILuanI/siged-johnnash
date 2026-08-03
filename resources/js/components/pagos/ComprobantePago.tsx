@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { router } from '@inertiajs/react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,7 +31,7 @@ type CuotaItem = {
 
 type Props = {
     selectedCuotas: CuotaItem[];
-    onRemove: (id: number) => void;
+    amounts?: Record<number, number>;
     onClear: () => void;
     alumno?: {
         nombres?: string;
@@ -63,7 +63,7 @@ const CONCEPTO_BG: Record<string, string> = {
 
 export function ComprobantePago({
     selectedCuotas,
-    onRemove,
+    amounts,
     onClear,
     alumno,
     cicloNombre,
@@ -76,18 +76,37 @@ export function ComprobantePago({
     const [metodoPago, setMetodoPago] = useState('EFECTIVO');
     const [processing, setProcessing] = useState(false);
 
+    const getCuotaAmount = (cuota: CuotaItem): number => {
+        if (amounts && amounts[cuota.id_cuota] !== undefined) {
+            return amounts[cuota.id_cuota];
+        }
+
+        return Number(cuota.monto) - (cuota.pagos?.reduce((s, p) => s + Number(p.monto), 0) ?? 0);
+    };
+
     const total = selectedCuotas.reduce(
-        (sum, c) => sum + Number(c.monto) - (c.pagos?.reduce((s, p) => s + Number(p.monto), 0) ?? 0),
+        (sum, c) => sum + getCuotaAmount(c),
         0,
     );
 
     const handlePagarComprobante = () => {
         setProcessing(true);
+        const montos: Record<number, number> = {};
+
+        if (amounts) {
+            for (const cuota of selectedCuotas) {
+                if (amounts[cuota.id_cuota] !== undefined) {
+                    montos[cuota.id_cuota] = amounts[cuota.id_cuota];
+                }
+            }
+        }
+
         router.post(
             '/tesoreria/cuotas/pagar-comprobante',
             {
                 cuota_ids: selectedCuotas.map((c) => c.id_cuota),
                 metodo_pago: metodoPago,
+                ...(Object.keys(montos).length > 0 ? { montos } : {}),
             },
             {
                 onSuccess: () => {
@@ -210,14 +229,12 @@ export function ComprobantePago({
                                 <th className="border border-gray-300 p-1 font-bold">Cuota</th>
                                 <th className="border border-gray-300 p-1 font-bold">Vence</th>
                                 <th className="border border-gray-300 p-1 font-bold">Monto</th>
-                                <th className="border border-gray-300 p-1 font-bold"></th>
                             </tr>
                         </thead>
                         <tbody>
                             {selectedCuotas.map((cuota) => {
-                                const restante =
-                                    Number(cuota.monto) -
-                                    (cuota.pagos?.reduce((s, p) => s + Number(p.monto), 0) ?? 0);
+                                const montoPagar = getCuotaAmount(cuota);
+
                                 return (
                                     <tr key={cuota.id_cuota}>
                                         <td
@@ -239,18 +256,7 @@ export function ComprobantePago({
                                             })}
                                         </td>
                                         <td className="border border-gray-300 p-1 font-medium">
-                                            S/ {restante.toFixed(2)}
-                                        </td>
-                                        <td className="border border-gray-300 p-1">
-                                            <button
-                                                onClick={() =>
-                                                    onRemove(cuota.id_cuota)
-                                                }
-                                                className="cursor-pointer text-red-500 hover:text-red-700"
-                                                title="Quitar"
-                                            >
-                                                ✕
-                                            </button>
+                                            S/ {montoPagar.toFixed(2)}
                                         </td>
                                     </tr>
                                 );
@@ -265,7 +271,6 @@ export function ComprobantePago({
                                 <td className="border border-gray-300 p-1 text-red-600">
                                     S/ {total.toFixed(2)}
                                 </td>
-                                <td className="border border-gray-300 p-1"></td>
                             </tr>
                         </tbody>
                     </table>
