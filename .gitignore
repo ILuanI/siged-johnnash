@@ -29,4 +29,6 @@ yarn-error.log
 /.vscode
 /.zed
 opencode.json*
+opencode.json
 .sql
+.opencode

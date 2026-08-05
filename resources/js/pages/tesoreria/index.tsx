@@ -1,16 +1,18 @@
 import { Head, router } from '@inertiajs/react';
-import { Minus, Pencil, Plus, Search } from 'lucide-react';
+import { History, Minus, Pencil, Plus, Search } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import {
     index as tesoreriaIndex,
+    movimientos as tesoreriaMovimientos,
     show as tesoreriaShow,
     prorrogar as tesoreriaProrrogar,
     updateWhatsappTemplates as tesoreriaUpdateTemplates,
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import { ComprobantePago } from '@/components/pagos/ComprobantePago';
 import type { ComprobanteCuotaItem } from '@/components/pagos/ComprobantePago';
+import { PagoRow } from '@/components/pagos/PagoRow';
 import { SemaforoPagos } from '@/components/pagos/SemaforoPagos';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +35,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { useInitials } from '@/hooks/use-initials';
-import { estadoBadgeClass, getPaymentStatus, getWhatsAppUrl } from '@/lib/matriculas';
+import {
+    estadoBadgeClass,
+    getPaymentStatus,
+    getWhatsAppUrl,
+} from '@/lib/matriculas';
 import { cn } from '@/lib/utils';
 
 const FILTROS_ESTADO = [
@@ -155,7 +161,7 @@ function CuotaItem({
                         <span
                             className={`ml-2 inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${
                                 CONCEPTO_BADGE[cuota.concepto] ??
-                                'bg-gray-100 text-gray-700 border-gray-200'
+                                'border-gray-200 bg-gray-100 text-gray-700'
                             }`}
                         >
                             {CONCEPTO_LABEL[cuota.concepto] ?? cuota.concepto}
@@ -168,6 +174,13 @@ function CuotaItem({
                 {totalPagado > 0 && (
                     <div className="mt-1 text-xs text-slate-400">
                         Abonado: {formatCurrency(totalPagado)}
+                    </div>
+                )}
+                {cuota.pagos?.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                        {cuota.pagos.map((p: any) => (
+                            <PagoRow key={p.id_pago} pago={p} />
+                        ))}
                     </div>
                 )}
                 {isSelected && (
@@ -235,7 +248,10 @@ function CuotaItem({
                             )}
                         </Button>
 
-                        <Dialog open={openProrroga} onOpenChange={setOpenProrroga}>
+                        <Dialog
+                            open={openProrroga}
+                            onOpenChange={setOpenProrroga}
+                        >
                             <DialogTrigger asChild>
                                 <Button size="sm" variant="outline">
                                     Prorrogar
@@ -260,9 +276,7 @@ function CuotaItem({
                                             min="1"
                                             value={diasProrroga}
                                             onChange={(e) =>
-                                                setDiasProrroga(
-                                                    e.target.value,
-                                                )
+                                                setDiasProrroga(e.target.value)
                                             }
                                             required
                                         />
@@ -303,13 +317,19 @@ function CuotaItem({
     );
 }
 
-function ConfigWhatsAppDialog({ plantillas, open, onOpenChange }: {
+function ConfigWhatsAppDialog({
+    plantillas,
+    open,
+    onOpenChange,
+}: {
     plantillas: { vencido: string; proximo_a_vencer: string };
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }) {
     const [vencido, setVencido] = useState(plantillas.vencido);
-    const [proximoVencer, setProximoVencer] = useState(plantillas.proximo_a_vencer);
+    const [proximoVencer, setProximoVencer] = useState(
+        plantillas.proximo_a_vencer,
+    );
     const [processing, setProcessing] = useState(false);
 
     const handleSave = (e: FormEvent) => {
@@ -338,7 +358,9 @@ function ConfigWhatsAppDialog({ plantillas, open, onOpenChange }: {
                 </DialogHeader>
                 <form onSubmit={handleSave} className="space-y-4">
                     <div className="space-y-2">
-                        <Label className="text-red-600 font-semibold">Estado: VENCIDO</Label>
+                        <Label className="font-semibold text-red-600">
+                            Estado: VENCIDO
+                        </Label>
                         <textarea
                             value={vencido}
                             onChange={(e) => setVencido(e.target.value)}
@@ -347,7 +369,9 @@ function ConfigWhatsAppDialog({ plantillas, open, onOpenChange }: {
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label className="text-yellow-600 font-semibold">Estado: PRÓXIMO A VENCER</Label>
+                        <Label className="font-semibold text-yellow-600">
+                            Estado: PRÓXIMO A VENCER
+                        </Label>
                         <textarea
                             value={proximoVencer}
                             onChange={(e) => setProximoVencer(e.target.value)}
@@ -356,13 +380,23 @@ function ConfigWhatsAppDialog({ plantillas, open, onOpenChange }: {
                         />
                     </div>
                     <p className="text-xs text-slate-400">
-                        Usa {'{nombre}'}, {'{apellidos}'} y {'{dni}'} como variables que se reemplazarán automáticamente.
+                        Usa {'{nombre}'}, {'{apellidos}'} y {'{dni}'} como
+                        variables que se reemplazarán automáticamente.
                     </p>
                     <div className="flex justify-end gap-2 pt-2">
-                        <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onOpenChange(false)}
+                        >
                             Cancelar
                         </Button>
-                        <Button type="submit" disabled={processing} size="sm" className="bg-[#1a237e] hover:bg-[#0d1557]">
+                        <Button
+                            type="submit"
+                            disabled={processing}
+                            size="sm"
+                            className="bg-[#1a237e] hover:bg-[#0d1557]"
+                        >
                             {processing ? 'Guardando...' : 'Guardar'}
                         </Button>
                     </div>
@@ -372,7 +406,13 @@ function ConfigWhatsAppDialog({ plantillas, open, onOpenChange }: {
     );
 }
 
-function WhatsAppDialog({ estudiante, cuotas, plantillas, open, onOpenChange }: {
+function WhatsAppDialog({
+    estudiante,
+    cuotas,
+    plantillas,
+    open,
+    onOpenChange,
+}: {
     estudiante: any;
     cuotas: any[];
     plantillas: { vencido: string; proximo_a_vencer: string };
@@ -380,16 +420,23 @@ function WhatsAppDialog({ estudiante, cuotas, plantillas, open, onOpenChange }: 
     onOpenChange: (open: boolean) => void;
 }) {
     const paymentStatus = getPaymentStatus(cuotas);
-    const statusLabel = paymentStatus === 'vencido' ? 'VENCIDO' : 'PRÓXIMO A VENCER';
+    const statusLabel =
+        paymentStatus === 'vencido' ? 'VENCIDO' : 'PRÓXIMO A VENCER';
     const apoderado = estudiante.apoderado;
 
-    const plantillaBase = paymentStatus === 'vencido' ? plantillas.vencido : plantillas.proximo_a_vencer;
+    const plantillaBase =
+        paymentStatus === 'vencido'
+            ? plantillas.vencido
+            : plantillas.proximo_a_vencer;
 
     const [telefonoSeleccionado, setTelefonoSeleccionado] = useState(
         estudiante.telefono || apoderado?.telefono || '',
     );
     const [mensaje, setMensaje] = useState(
-        plantillaBase.replace(/\{nombre\}/g, estudiante.nombres).replace(/\{apellidos\}/g, estudiante.apellidos).replace(/\{dni\}/g, estudiante.dni || ''),
+        plantillaBase
+            .replace(/\{nombre\}/g, estudiante.nombres)
+            .replace(/\{apellidos\}/g, estudiante.apellidos)
+            .replace(/\{dni\}/g, estudiante.dni || ''),
     );
 
     const opcionesTelefono: { label: string; value: string }[] = [];
@@ -429,11 +476,18 @@ function WhatsAppDialog({ estudiante, cuotas, plantillas, open, onOpenChange }: 
                 <div className="space-y-4">
                     <div>
                         <p className="text-sm text-slate-600">
-                            <strong>Alumno:</strong> {estudiante.apellidos}, {estudiante.nombres}
+                            <strong>Alumno:</strong> {estudiante.apellidos},{' '}
+                            {estudiante.nombres}
                         </p>
                         <p className="text-sm text-slate-600">
                             <strong>Estado:</strong>{' '}
-                            <span className={paymentStatus === 'vencido' ? 'font-semibold text-red-600' : 'font-semibold text-yellow-600'}>
+                            <span
+                                className={
+                                    paymentStatus === 'vencido'
+                                        ? 'font-semibold text-red-600'
+                                        : 'font-semibold text-yellow-600'
+                                }
+                            >
                                 {statusLabel}
                             </span>
                         </p>
@@ -441,7 +495,8 @@ function WhatsAppDialog({ estudiante, cuotas, plantillas, open, onOpenChange }: 
 
                     {opcionesTelefono.length === 0 ? (
                         <p className="text-sm text-red-500">
-                            Este alumno no tiene teléfono registrado ni apoderado con teléfono.
+                            Este alumno no tiene teléfono registrado ni
+                            apoderado con teléfono.
                         </p>
                     ) : (
                         <>
@@ -456,7 +511,10 @@ function WhatsAppDialog({ estudiante, cuotas, plantillas, open, onOpenChange }: 
                                     </SelectTrigger>
                                     <SelectContent>
                                         {opcionesTelefono.map((opt) => (
-                                            <SelectItem key={opt.value} value={opt.value}>
+                                            <SelectItem
+                                                key={opt.value}
+                                                value={opt.value}
+                                            >
                                                 {opt.label}
                                             </SelectItem>
                                         ))}
@@ -484,11 +542,15 @@ function WhatsAppDialog({ estudiante, cuotas, plantillas, open, onOpenChange }: 
                                 </Button>
                                 <Button
                                     size="sm"
-                                    className="bg-[#25D366] hover:bg-[#1ebe5c] text-white gap-2"
+                                    className="gap-2 bg-[#25D366] text-white hover:bg-[#1ebe5c]"
                                     onClick={handleEnviar}
                                 >
-                                    <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
-                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                        className="size-4"
+                                    >
+                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                                     </svg>
                                     Enviar WhatsApp
                                 </Button>
@@ -501,16 +563,25 @@ function WhatsAppDialog({ estudiante, cuotas, plantillas, open, onOpenChange }: 
     );
 }
 
-export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }: any) {
+export default function TesoreriaIndex({
+    alumnos,
+    filters,
+    whatsapp_templates,
+}: any) {
     const getInitials = useInitials();
     const [busqueda, setBusqueda] = useState(filters.search ?? '');
     const [activeAlumnoId, setActiveAlumnoId] = useState<number | null>(null);
     const [whatsAppAlumno, setWhatsAppAlumno] = useState<any | null>(null);
     const [configWhatsAppOpen, setConfigWhatsAppOpen] = useState(false);
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-    const [selectedAmounts, setSelectedAmounts] = useState<Record<number, number>>({});
+    const [selectedAmounts, setSelectedAmounts] = useState<
+        Record<number, number>
+    >({});
     const estadoActivo = filters.estado ?? '';
-    const plantillas = whatsapp_templates ?? { vencido: '', proximo_a_vencer: '' };
+    const plantillas = whatsapp_templates ?? {
+        vencido: '',
+        proximo_a_vencer: '',
+    };
 
     // Filtros ultra rápidos con debouncing en cliente
     useEffect(() => {
@@ -522,7 +593,7 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                         search: busqueda || undefined,
                         estado: estadoActivo || undefined,
                     },
-                    { preserveState: true, replace: true }
+                    { preserveState: true, replace: true },
                 );
             }
         }, 300);
@@ -538,7 +609,7 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                 search: busqueda || undefined,
                 estado: estadoActivo || undefined,
             },
-            { preserveState: true, replace: true }
+            { preserveState: true, replace: true },
         );
     };
 
@@ -549,22 +620,23 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                 search: busqueda || undefined,
                 estado: estado || undefined,
             },
-            { preserveState: true, replace: true }
+            { preserveState: true, replace: true },
         );
     };
 
     const activeAlumno = alumnos.data.find(
-        (a: any) => a.id_alumno === activeAlumnoId
+        (a: any) => a.id_alumno === activeAlumnoId,
     );
     const lastMatricula = activeAlumno?.matriculas?.[0];
     const comprobantes = lastMatricula?.comprobantes_pago || [];
-    const cuotas: (ComprobanteCuotaItem & { estado: string })[] = comprobantes.flatMap((c: any) =>
-        (c.cuotas || []).map((cu: any) => ({
-            ...cu,
-            concepto: c.concepto,
-            comprobante_numero: c.numero,
-        })),
-    );
+    const cuotas: (ComprobanteCuotaItem & { estado: string })[] =
+        comprobantes.flatMap((c: any) =>
+            (c.cuotas || []).map((cu: any) => ({
+                ...cu,
+                concepto: c.concepto,
+                comprobante_numero: c.numero,
+            })),
+        );
     const costoTotal = comprobantes.reduce(
         (sum: number, c: any) => sum + Number(c.costo_total),
         0,
@@ -635,7 +707,11 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                             variant="outline"
                             size="sm"
                             className="cursor-pointer gap-2"
-                            onClick={() => router.visit('/tesoreria/pago-extraordinario/nuevo')}
+                            onClick={() =>
+                                router.visit(
+                                    '/tesoreria/pago-extraordinario/nuevo',
+                                )
+                            }
                         >
                             <Plus className="size-3.5" />
                             Pago Extraordinario
@@ -648,6 +724,15 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                         >
                             <Pencil className="size-3.5" />
                             Plantillas WhatsApp
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer gap-2"
+                            onClick={() => router.visit(tesoreriaMovimientos.url())}
+                        >
+                            <History className="size-3.5" />
+                            Movimientos
                         </Button>
                     </div>
                 </div>
@@ -696,9 +781,11 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                     <>
                         <ul className="space-y-2">
                             {alumnos.data.map((estudiante: any) => {
-                                const lastMatricula = estudiante.matriculas?.[0];
-                                const cuotas =
-                                    (lastMatricula?.comprobantes_pago || []).flatMap((c: any) => c.cuotas || []);
+                                const lastMatricula =
+                                    estudiante.matriculas?.[0];
+                                const cuotas = (
+                                    lastMatricula?.comprobantes_pago || []
+                                ).flatMap((c: any) => c.cuotas || []);
 
                                 return (
                                     <li key={estudiante.id_alumno}>
@@ -743,18 +830,29 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                                         </span>
                                                     )}
                                                 </div>
-                                                {['vencido', 'proximo_a_vencer'].includes(
+                                                {[
+                                                    'vencido',
+                                                    'proximo_a_vencer',
+                                                ].includes(
                                                     getPaymentStatus(cuotas),
                                                 ) && (
                                                     <Button
                                                         variant="outline"
                                                         size="sm"
-                                                        className="cursor-pointer text-[#25D366] border-[#25D366] hover:bg-[#25D366]/10"
-                                                        onClick={() => setWhatsAppAlumno(estudiante)}
+                                                        className="cursor-pointer border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10"
+                                                        onClick={() =>
+                                                            setWhatsAppAlumno(
+                                                                estudiante,
+                                                            )
+                                                        }
                                                         title="Enviar WhatsApp"
                                                     >
-                                                        <svg viewBox="0 0 24 24" fill="currentColor" className="size-4">
-                                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                                                        <svg
+                                                            viewBox="0 0 24 24"
+                                                            fill="currentColor"
+                                                            className="size-4"
+                                                        >
+                                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                                                         </svg>
                                                     </Button>
                                                 )}
@@ -762,7 +860,11 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                                     variant="outline"
                                                     size="sm"
                                                     className="cursor-pointer"
-                                                    onClick={() => setActiveAlumnoId(estudiante.id_alumno)}
+                                                    onClick={() =>
+                                                        setActiveAlumnoId(
+                                                            estudiante.id_alumno,
+                                                        )
+                                                    }
                                                 >
                                                     Ver Cuenta
                                                 </Button>
@@ -776,7 +878,8 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                         {alumnos.last_page > 1 && (
                             <div className="mt-6 flex flex-col items-center gap-3">
                                 <p className="text-xs text-slate-400">
-                                    Mostrando {alumnos.from}–{alumnos.to} de {alumnos.total} estudiantes
+                                    Mostrando {alumnos.from}–{alumnos.to} de{' '}
+                                    {alumnos.total} estudiantes
                                 </p>
                                 <div className="flex items-center gap-1">
                                     <Button
@@ -787,24 +890,51 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                             router.get(
                                                 tesoreriaIndex.url(),
                                                 {
-                                                    search: busqueda || undefined,
-                                                    estado: estadoActivo || undefined,
-                                                    page: alumnos.current_page - 1,
+                                                    search:
+                                                        busqueda || undefined,
+                                                    estado:
+                                                        estadoActivo ||
+                                                        undefined,
+                                                    page:
+                                                        alumnos.current_page -
+                                                        1,
                                                 },
-                                                { preserveState: true, replace: true },
+                                                {
+                                                    preserveState: true,
+                                                    replace: true,
+                                                },
                                             );
                                         }}
                                         className="cursor-pointer"
                                     >
                                         Anterior
                                     </Button>
-                                    {Array.from({ length: alumnos.last_page }, (_, i) => i + 1).map((page) => {
-                                        const isActive = page === alumnos.current_page;
-                                        const show = page === 1 || page === alumnos.last_page || Math.abs(page - alumnos.current_page) <= 2;
+                                    {Array.from(
+                                        { length: alumnos.last_page },
+                                        (_, i) => i + 1,
+                                    ).map((page) => {
+                                        const isActive =
+                                            page === alumnos.current_page;
+                                        const show =
+                                            page === 1 ||
+                                            page === alumnos.last_page ||
+                                            Math.abs(
+                                                page - alumnos.current_page,
+                                            ) <= 2;
 
                                         if (!show) {
-                                            if (page === 2 || page === alumnos.last_page - 1) {
-                                                return <span key={page} className="px-1 text-slate-300">...</span>;
+                                            if (
+                                                page === 2 ||
+                                                page === alumnos.last_page - 1
+                                            ) {
+                                                return (
+                                                    <span
+                                                        key={page}
+                                                        className="px-1 text-slate-300"
+                                                    >
+                                                        ...
+                                                    </span>
+                                                );
                                             }
 
                                             return null;
@@ -813,22 +943,34 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                         return (
                                             <Button
                                                 key={page}
-                                                variant={isActive ? 'default' : 'outline'}
+                                                variant={
+                                                    isActive
+                                                        ? 'default'
+                                                        : 'outline'
+                                                }
                                                 size="sm"
                                                 onClick={() => {
                                                     router.get(
                                                         tesoreriaIndex.url(),
                                                         {
-                                                            search: busqueda || undefined,
-                                                            estado: estadoActivo || undefined,
+                                                            search:
+                                                                busqueda ||
+                                                                undefined,
+                                                            estado:
+                                                                estadoActivo ||
+                                                                undefined,
                                                             page,
                                                         },
-                                                        { preserveState: true, replace: true },
+                                                        {
+                                                            preserveState: true,
+                                                            replace: true,
+                                                        },
                                                     );
                                                 }}
                                                 className={cn(
-                                                    'cursor-pointer min-w-[36px]',
-                                                    isActive && 'bg-[#1a237e] hover:bg-[#0d1557]',
+                                                    'min-w-[36px] cursor-pointer',
+                                                    isActive &&
+                                                        'bg-[#1a237e] hover:bg-[#0d1557]',
                                                 )}
                                             >
                                                 {page}
@@ -843,11 +985,19 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                             router.get(
                                                 tesoreriaIndex.url(),
                                                 {
-                                                    search: busqueda || undefined,
-                                                    estado: estadoActivo || undefined,
-                                                    page: alumnos.current_page + 1,
+                                                    search:
+                                                        busqueda || undefined,
+                                                    estado:
+                                                        estadoActivo ||
+                                                        undefined,
+                                                    page:
+                                                        alumnos.current_page +
+                                                        1,
                                                 },
-                                                { preserveState: true, replace: true },
+                                                {
+                                                    preserveState: true,
+                                                    replace: true,
+                                                },
                                             );
                                         }}
                                         className="cursor-pointer"
@@ -872,7 +1022,7 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                     }
                 }}
             >
-                <DialogContent className="sm:max-w-[1400px] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[1400px]">
                     {activeAlumno && (
                         <div className="pt-2">
                             <div className="mb-4 flex items-center justify-between border-b pb-3">
@@ -881,10 +1031,13 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                         Estado de Cuenta
                                     </DialogTitle>
                                     <h3 className="text-lg font-semibold text-slate-900">
-                                        {activeAlumno.apellidos}, {activeAlumno.nombres}
+                                        {activeAlumno.apellidos},{' '}
+                                        {activeAlumno.nombres}
                                     </h3>
                                     <p className="text-sm text-slate-500">
-                                        {activeAlumno.dni ? `DNI: ${activeAlumno.dni}` : 'Sin DNI'}
+                                        {activeAlumno.dni
+                                            ? `DNI: ${activeAlumno.dni}`
+                                            : 'Sin DNI'}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -944,10 +1097,16 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                                 </CardHeader>
                                                 <CardContent>
                                                     <div className="text-xl font-bold">
-                                                        {formatCurrency(costoTotal)}
+                                                        {formatCurrency(
+                                                            costoTotal,
+                                                        )}
                                                     </div>
                                                     <p className="mt-1 text-[10px] text-slate-400">
-                                                        Matrícula {lastMatricula?.ciclo?.nombre}
+                                                        Matrícula{' '}
+                                                        {
+                                                            lastMatricula?.ciclo
+                                                                ?.nombre
+                                                        }
                                                     </p>
                                                 </CardContent>
                                             </Card>
@@ -959,7 +1118,9 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                                 </CardHeader>
                                                 <CardContent>
                                                     <div className="text-xl font-bold text-slate-900">
-                                                        {formatCurrency(saldoPendiente)}
+                                                        {formatCurrency(
+                                                            saldoPendiente,
+                                                        )}
                                                     </div>
                                                 </CardContent>
                                             </Card>
@@ -979,8 +1140,8 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                                         className={cn(
                                                             'rounded-full text-xs uppercase',
                                                             saldoPendiente <= 0
-                                                                ? 'bg-green-100 text-green-700 border-green-200'
-                                                                : 'bg-red-100 text-red-700 border-red-200'
+                                                                ? 'border-green-200 bg-green-100 text-green-700'
+                                                                : 'border-red-200 bg-red-100 text-red-700',
                                                         )}
                                                     >
                                                         {saldoPendiente <= 0
@@ -1000,47 +1161,68 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                                             <CardContent className="pt-0">
                                                 {cuotas.length > 0 ? (
                                                     <div className="divide-y">
-                                                        {cuotas.map((cuota: any) => (
-                                                            <CuotaItem
-                                                                key={cuota.id_cuota}
-                                                                cuota={cuota}
-                                                                isSelected={selectedIds.has(
-                                                                    cuota.id_cuota,
-                                                                )}
-                                                                montoPagar={
-                                                                    selectedAmounts[cuota.id_cuota] ??
-                                                                    (() => {
-                                                                        const totalPagado =
-                                                                            cuota.pagos?.reduce(
-                                                                                (sum: number, p: any) =>
-                                                                                    sum + Number(p.monto),
-                                                                                0,
-                                                                            ) || 0;
+                                                        {cuotas.map(
+                                                            (cuota: any) => (
+                                                                <CuotaItem
+                                                                    key={
+                                                                        cuota.id_cuota
+                                                                    }
+                                                                    cuota={
+                                                                        cuota
+                                                                    }
+                                                                    isSelected={selectedIds.has(
+                                                                        cuota.id_cuota,
+                                                                    )}
+                                                                    montoPagar={
+                                                                        selectedAmounts[
+                                                                            cuota
+                                                                                .id_cuota
+                                                                        ] ??
+                                                                        (() => {
+                                                                            const totalPagado =
+                                                                                cuota.pagos?.reduce(
+                                                                                    (
+                                                                                        sum: number,
+                                                                                        p: any,
+                                                                                    ) =>
+                                                                                        sum +
+                                                                                        Number(
+                                                                                            p.monto,
+                                                                                        ),
+                                                                                    0,
+                                                                                ) ||
+                                                                                0;
 
-                                                                        return Math.max(
-                                                                            0,
-                                                                            Number(cuota.monto) - totalPagado,
-                                                                        );
-                                                                    })()
-                                                                }
-                                                                onAmountChange={(amount) =>
-                                                                    handleAmountChange(
-                                                                        cuota.id_cuota,
+                                                                            return Math.max(
+                                                                                0,
+                                                                                Number(
+                                                                                    cuota.monto,
+                                                                                ) -
+                                                                                    totalPagado,
+                                                                            );
+                                                                        })()
+                                                                    }
+                                                                    onAmountChange={(
                                                                         amount,
-                                                                    )
-                                                                }
-                                                                onAdd={() =>
-                                                                    toggleCuota(
-                                                                        cuota.id_cuota,
-                                                                    )
-                                                                }
-                                                                onRemove={() =>
-                                                                    toggleCuota(
-                                                                        cuota.id_cuota,
-                                                                    )
-                                                                }
-                                                            />
-                                                        ))}
+                                                                    ) =>
+                                                                        handleAmountChange(
+                                                                            cuota.id_cuota,
+                                                                            amount,
+                                                                        )
+                                                                    }
+                                                                    onAdd={() =>
+                                                                        toggleCuota(
+                                                                            cuota.id_cuota,
+                                                                        )
+                                                                    }
+                                                                    onRemove={() =>
+                                                                        toggleCuota(
+                                                                            cuota.id_cuota,
+                                                                        )
+                                                                    }
+                                                                />
+                                                            ),
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <p className="py-4 text-center text-sm text-slate-500">
@@ -1055,8 +1237,9 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
                             ) : (
                                 <Card>
                                     <CardContent className="p-12 text-center text-slate-500">
-                                        No hay comprobantes ni plan de pago registrado para la
-                                        matrícula actual de este alumno.
+                                        No hay comprobantes ni plan de pago
+                                        registrado para la matrícula actual de
+                                        este alumno.
                                     </CardContent>
                                 </Card>
                             )}
@@ -1068,7 +1251,9 @@ export default function TesoreriaIndex({ alumnos, filters, whatsapp_templates }:
             {whatsAppAlumno && (
                 <WhatsAppDialog
                     estudiante={whatsAppAlumno}
-                    cuotas={(whatsAppAlumno.matriculas?.[0]?.comprobantes_pago || []).flatMap((c: any) => c.cuotas || [])}
+                    cuotas={(
+                        whatsAppAlumno.matriculas?.[0]?.comprobantes_pago || []
+                    ).flatMap((c: any) => c.cuotas || [])}
                     plantillas={plantillas}
                     open={true}
                     onOpenChange={(open) => {

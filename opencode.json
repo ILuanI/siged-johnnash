@@ -10,5 +10,41 @@
                 "boost:mcp"
             ]
         }
+    },
+    "default_agent": "orchestrator",
+    "model": "opencode/deepseek-v4-flash-free",
+    "permission": {
+        "read": {
+        "*": "allow",
+        "*.env": "ask",
+        "*.env.*": "ask",
+        "*.env.example": "allow",
+        "*.pem": "ask",
+        "*.key": "ask",
+        "id_rsa": "ask",
+        "id_ed25519": "ask",
+        "storage/oauth-private.key": "ask",
+        "storage/oauth-public.key": "ask",
+        "storage/*.key": "ask"
+        },
+        "bash": {
+        "*": "allow",
+        "cat *.env*": "ask",
+        "type *.env*": "ask",
+        "less *.env*": "ask",
+        "more *.env*": "ask",
+        "head *.env*": "ask",
+        "tail *.env*": "ask",
+        "printenv*": "ask",
+        "env": "ask",
+        "*migrate*": "ask",
+        "*db:wipe*": "ask",
+        "*db:seed*": "ask",
+        "rm -rf *": "ask",
+        "git push*": "ask"
+        },
+        "edit": "allow",
+        "task": "allow",
+        "external_directory": "ask"
     }
 }
