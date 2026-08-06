@@ -67,6 +67,30 @@
 - `EstadoCuentaController::updateWhatsappTemplates()`: actualiza plantillas de notificación para cobranza.
 - Almacenadas como `configuracion` (pares clave-valor en tabla `configuracion`).
 
+### 7. Anulación de pago
+
+**Frontend**
+- Botón "Anular" por pago en el estado de cuenta, con modal que exige el `motivo`.
+
+**Backend**
+- `EstadoCuentaController::anularPago(Pago $pago)`:
+  - Autoriza vía `PagoPolicy::delete` (permiso `pagos.eliminar`).
+  - Requiere `motivo` (obligatorio, max 500).
+  - Rechaza pagos ya `ANULADO`.
+  - Dentro de una transacción: bloquea la cuota con `lockForUpdate()`, cambia el `estado` del pago a `ANULADO`, registra en `auditoria_pagos` (`accion = ANULACION`), recalcula el estado de la cuota y el `saldo_pendiente` del comprobante (excluyendo pagos `ANULADO`).
+
+### 8. Reporte de movimientos (libro diario)
+
+**Frontend**
+- `resources/js/pages/tesoreria/movimientos.tsx`: tabla de movimientos con filtros (rango de fechas, método de pago, estado) y ordenamiento por fecha/monto.
+
+**Backend**
+- `EstadoCuentaController::movimientos()`:
+  - GET `/tesoreria/movimientos` (autoriza vía `PagoPolicy::viewAny`, permiso `pagos.ver`).
+  - Filtros: `fecha_inicio`, `fecha_fin`, `metodo_pago`, `estado` (`PAGADO`/`ANULADO`).
+  - Ordenamiento por `fecha_pago` o `monto` (asc/desc), paginado (15) con `withQueryString`.
+  - Carga `cuota.comprobantePago.matricula.alumno`, `user` y `auditorias.usuario`.
+
 ---
 
 ## Diagrama de flujo
@@ -98,4 +122,14 @@ Pago extraordinario
   → GET /tesoreria/pago-extraordinario/nuevo
   → POST /tesoreria/pago-extraordinario
   → Crea ComprobantePago (EXTRAORDINARIO)
+
+Anulación de pago
+  → POST /tesoreria/pagos/{pago}/anular { motivo }
+  → Valida estado PAGADO y motivo obligatorio
+  → Cambia estado a ANULADO, recalcula saldo_pendiente
+  → Registra en auditoria_pagos
+
+Reporte de movimientos
+  → GET /tesoreria/movimientos
+  → Libro diario con filtros y ordenamiento por fecha_pago
 ```

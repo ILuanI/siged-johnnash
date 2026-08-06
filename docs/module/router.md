@@ -120,6 +120,8 @@ Auto-registered by `FortifyServiceProvider`. Rate limits: login 5/min, 2FA 5/min
 ### Tesorería
 - Account statements (index + per-student): cuotas de todos los conceptos (MATRICULA, SIMULACRO, CARNET, EXTRAORDINARIO)
 - Fee payment/deferral per cuota, prórroga
+- **Anulación de pago**: `POST /tesoreria/pagos/{pago}/anular` (motivo obligatorio, estado `PAGADO` → `ANULADO`, registra auditoría)
+- **Reporte de movimientos (libro diario)**: `GET /tesoreria/movimientos` — filtros por rango de fechas, método de pago y estado; ordenamiento por fecha/monto
 - **Pago extraordinario**: registro manual de cobros ad-hoc con descripción libre
 - WhatsApp notification templates
 

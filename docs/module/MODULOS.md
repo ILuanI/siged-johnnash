@@ -21,7 +21,7 @@ Este documento define cómo se organizan los **módulos funcionales** del sistem
 | — | Consolidado del alumno | Agrega perfil + matrícula + placeholders | ✅ Implementado | Modal en `/matriculas/estudiantes?alumno={id}` | `GET /api/matriculas/estudiantes/{id}/consolidado` |
 | **RI003** | Cursos / docentes / horarios | `curso`, `docente` (`docentes`), `asignacion_docente`, `horario`, `aula`, `ciclo` | ✅ Implementado | `/cursos` (horario visual con cuadrícula semanal), `/docentes` | — |
 | **RI004** | Asistencia | `asistencia` | 🔶 Parcial (Lector implementado) | `/asistencias/lector` | — |
-| **RI005** | Pagos y cuotas | `comprobante_pago`, `cuota`, `pago` | 🔶 Parcial (Estado de cuenta implementado) | `/tesoreria/estado-cuenta` | — |
+| **RI005** | Pagos y cuotas | `comprobante_pago`, `cuota`, `pago`, `auditoria_pago` | 🔶 Parcial (Estado de cuenta, anulación y movimientos implementados) | `/tesoreria/estado-cuenta`, `/tesoreria/movimientos` | — |
 | **RI006** | Notas / rendimiento | `examen`, `resultado_examen` | 🔶 Parcial (Cargar/consultar notas implementado) | `/notas`, `/notas/cargar`, `/notas/consulta` | — |
 | **RI007** | Usuarios y roles | `usuario`, `rol` | 🔶 Parcial (Laravel `users` + Fortify; tabla `usuario`/`rol` del dominio integrada parcialmente) | `/usuarios`, `/roles`, Auth + Settings | — |
 | **RI008** | Dashboard / BI | Vistas `vw_bi_*` | 🔶 Parcial (Dashboard + Reportes + BI) | `/dashboard`, `/reportes`, `/bi` | — |
@@ -72,6 +72,27 @@ app/Http/Controllers/
 │   └── SecurityController.php               # Seguridad 2FA (Fortify)
 ```
 
+### Policies (`app/Policies/`)
+
+Autorización por modelo vía `$user->tienePermiso($modulo, $accion)`:
+
+| Policy | Modelo | Permisos que otorga |
+|---|---|---|
+| `PagoPolicy` | `Pago` | `viewAny` → `pagos.ver` · `create` → `pagos.editar` · `delete` (anular) → `pagos.eliminar` |
+| `CuotaPolicy` | `Cuota` | `update` (pagar/prorrogar) → `pagos.editar` |
+| `ConfiguracionPolicy` | `Configuracion` | `update` (plantillas WhatsApp) → `pagos.editar` |
+| `DocentePolicy` | `Docente` | Gestión de docentes |
+
+**Permisos del módulo de pagos** (`pagos`):
+
+| Acción | Permiso | Uso |
+|---|---|---|
+| Ver estado de cuenta y movimientos | `pagos.ver` | `EstadoCuentaController::index/show/movimientos` |
+| Registrar pagos, prórrogas y pago extraordinario | `pagos.editar` | `EstadoCuentaController::pagar/prorrogar/pagarComprobante`, `PagoExtraordinarioController` |
+| Anular pagos | `pagos.eliminar` | `EstadoCuentaController::anularPago` (vía `PagoPolicy::delete`) |
+
+> La anulación de pagos y la consulta del reporte de movimientos quedan cubiertas por los permisos `pagos.eliminar` y `pagos.ver` respectivamente.
+
 ---
 
 ## Páginas Inertia por módulo (`resources/js/pages/`)
@@ -111,7 +132,9 @@ resources/js/pages/
 │   └── lector.tsx                           # Lector asistencia
 ├── tesoreria/
 │   ├── index.tsx                            # Home tesorería
-│   └── estado-cuenta.tsx                    # Estado de cuenta alumno
+│   ├── estado-cuenta.tsx                    # Estado de cuenta alumno
+│   ├── movimientos.tsx                      # Reporte de movimientos (libro diario)
+│   └── pago-extraordinario.tsx              # Registro de pago extraordinario
 ├── notas/
 │   ├── index.tsx                            # Home notas
 │   ├── cargar.tsx                           # Cargar notas
@@ -160,7 +183,7 @@ Puedes navegar al archivo del modulo si quieres obtener más detalle. Cuando qui
 ## Próximos módulos sugeridos (orden de sprint)
 
 1. **RI007** — Integrar roles del dominio (`rol`, `usuario`) con auth y policies.
-2. **RI005** — Completar Pagos (completa pestaña del consolidado y tesorería).
+2. **RI005** — Completar Pagos (anulación con auditoría y reporte de movimientos ya implementados; resta pulir UI/UX y reportes).
 3. **RI004** — Completar Asistencia (reportes, justificativos, alertas).
 4. **RI006** — Completar Notas / simulacros (promedios, actas, reportes).
 5. **RI008 / RI009** — BI e IA deserción (dashboards, predicciones, alertas tempranas).
@@ -176,4 +199,4 @@ Actualizar esta tabla cuando:
 - Se agreguen endpoints o se muevan carpetas.
 - Cambie la estructura de controladores o páginas Inertia.
 
-**Última actualización:** julio 2026 — Refleja estructura real de controladores y páginas Inertia.
+**Última actualización:** agosto 2026 — Refleja estructura real de controladores, páginas Inertia, policies y permisos del módulo de pagos.

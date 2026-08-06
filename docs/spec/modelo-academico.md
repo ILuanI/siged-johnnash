@@ -290,7 +290,7 @@ Puntaje máximo y mínimo por área en un examen.
 ## 8. Pagos
 
 ```
-comprobante_pago 1 ── * cuota 1 ── * pago
+comprobante_pago 1 ── * cuota 1 ── * pago 1 ── * auditoria_pago
 ```
 
 ### ComprobantePago (`comprobante_pago`)
@@ -330,6 +330,21 @@ Registro de un pago contra una cuota.
 | `fecha_pago` | datetime | |
 | `monto` | decimal(8,2) | |
 | `metodo_pago` | enum | `EFECTIVO` / `YAPE` / `PLIN` / `TRANSFERENCIA` / `TARJETA` |
+| `estado` | enum | `PAGADO` / `ANULADO` (default `PAGADO`) |
+
+### AuditoriaPago (`auditoria_pago`)
+Registro de auditoría de acciones sobre un pago (creación y anulación).
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | PK | |
+| `pago_id` | FK → `pago` | Pago auditado |
+| `usuario_id` | FK → `users` | Quien ejecutó la acción |
+| `accion` | varchar(50) | `CREAR` / `ANULACION` |
+| `motivo` | text | Obligatorio al anular |
+| `created_at` | timestamp | Momento del registro |
+
+**Reglas:** la anulación de un pago (`estado` → `ANULADO`) es irreversible, recalcula `saldo_pendiente` del comprobante y el estado de la cuota (excluyendo pagos `ANULADO`), y registra una entrada en `auditoria_pago` con `accion = ANULACION` y `motivo` obligatorio.
 
 ---
 
@@ -434,6 +449,7 @@ ciclo → asignacion_docente → curso
 | Matrículas | Matrículas → Nueva (`/matriculas/nueva`) | `MatriculaWebController` |
 | Asistencias | Asistencias (`/asistencias`) | `AsistenciaController` / `LectorAsistenciaController` |
 | Pagos / Cuotas | Tesorería (`/tesoreria/estado-cuenta`) | `EstadoCuentaController` |
+| Movimientos (libro diario) | Tesorería (`/tesoreria/movimientos`) | `EstadoCuentaController::movimientos` |
 | Reportes | Reportes (`/reportes`) | `ReportesController` |
 | IA Deserción | IA (`/ia/desercion`) | `DesercionController` |
 | Ajustes (turnos, periodos, colegios) | Ajustes (`/ajustes`) | `ConfiguracionController` |

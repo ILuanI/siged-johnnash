@@ -45,11 +45,23 @@ comprobante_pago 1 ── * cuota 1 ── * pago
 | `fecha_pago` | datetime, momento exacto |
 | `monto` | Puede ser parcial o total de la cuota |
 | `metodo_pago` | `EFECTIVO` / `YAPE` / `PLIN` / `TRANSFERENCIA` / `TARJETA` |
+| `estado` | `PAGADO` / `ANULADO` |
+
+### AuditoriaPago
+
+| Campo | Reglas |
+|---|---|
+| `pago_id` | FK → `pagos`, no null |
+| `usuario_id` | FK → `users`, quién ejecutó la acción |
+| `accion` | `CREAR` / `ANULACION` |
+| `motivo` | Texto obligatorio al anular |
+| `created_at` | datetime, momento del registro |
 
 ## Reglas de negocio
 
 - **Carnet siempre 1 cuota** — no aplica fraccionamiento.
-- **Saldo pendiente** se calcula como `costo_total - SUM(pagos.monto)` de todas las cuotas del comprobante.
+- **Saldo pendiente** se calcula como `costo_total - SUM(pagos.monto)` de todas las cuotas del comprobante, **excluyendo los pagos con `estado = ANULADO`**.
 - **Pago extraordinario**: el usuario ingresa concepto, descripción y monto manualmente; se genera un comprobante con tipo `EXTRAORDINARIO`.
 - **Prórroga**: se puede extender la `fecha_vencimiento` de una cuota.
+- **Anulación**: un pago `PAGADO` puede pasar a `ANULADO`. Dispara el recálculo de `saldo_pendiente` del comprobante y de la cuota asociada, y registra una entrada en `auditoria_pagos` con `accion = ANULACION` y el `motivo` obligatorio. Un pago `ANULADO` no puede volver a `PAGADO`.
 - Un comprobante con `saldo_pendiente = 0` se considera cancelado.
