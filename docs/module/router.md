@@ -33,7 +33,7 @@ routes/
 | `RequirePassword` | `settings/security` | Re-prompt password |
 | `throttle:6,1` | Password update | Rate limit |
 
-**Excepciones:** `notas.php` y `reportes.php` usan solo `['auth', 'verified']` (sin `permiso`). `api.php` usa `auth:sanctum`.
+**Excepciones:** `api.php` usa `auth:sanctum`. Las rutas públicas (como portal de padres y consulta de notas) no requieren autenticación.
 
 ### `EnsureUserHasPermission` (alias `permiso`)
 
@@ -68,7 +68,7 @@ Route::middleware(['auth', 'verified', 'permiso'])
     ->group(function () { ... });
 ```
 
-**Sin `permiso`:** notas, reportes — usan `['auth', 'verified']`.
+**Todas las rutas de gestión administrativa** en `notas.php` y `reportes.php` utilizan el middleware `['auth', 'verified', 'permiso']`.
 
 **Naming:** `module.resource.action` (dot notation), snake_case.
 
@@ -113,7 +113,7 @@ Auto-registered by `FortifyServiceProvider`. Rate limits: login 5/min, 2FA 5/min
 - `POST /asistencias/lector` → `LectorAsistenciaController@store`
 - Statuses: ASISTIO, TARDANZA, FALTO, JUSTIFICADO
 
-### Notas (sin `permiso`)
+### Notas (con `permiso`)
 - Index, CSV upload, preview CSV, save grades
 - Public parent portal: `/portal-padres` + `/consulta-notas` (by DNI, no auth)
 
@@ -125,7 +125,7 @@ Auto-registered by `FortifyServiceProvider`. Rate limits: login 5/min, 2FA 5/min
 - **Pago extraordinario**: registro manual de cobros ad-hoc con descripción libre
 - WhatsApp notification templates
 
-### Reportes (sin `permiso`)
+### Reportes (con `permiso`)
 - Filters: text, turno, area, course, date range, tardanzas, ausencias, min/max grade
 - Exports: Excel (`Maatwebsite\Excel`), PDF (`DomPDF`, landscape A4)
 

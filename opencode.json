@@ -45,6 +45,10 @@
         },
         "edit": "allow",
         "task": "allow",
-        "external_directory": "ask"
+        "external_directory": "ask",
+        "**/auth/**": "ask",
+        "**/payment*/**": "ask",
+        "**/student*/**": "ask",
+        "**/*personal_data*": "ask"
     }
 }
