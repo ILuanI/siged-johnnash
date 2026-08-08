@@ -62,7 +62,9 @@ export default function SemaforoPagos({
 }
 
 function calcularEstado(cuotas: CuotaSemaforo[]): SemaforoEstado {
-    const pendientes = cuotas.filter((cuota) => cuota.estado !== 'PAGADA');
+    const pendientes = cuotas.filter(
+        (cuota) => cuota.estado !== 'PAGADA' && cuota.estado !== 'EXONERADA',
+    );
 
     if (pendientes.length === 0) {
         return 'AL_DIA';

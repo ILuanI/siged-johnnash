@@ -3,11 +3,16 @@ import { ArrowLeft, Minus, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
+    exonerar as exonerarCuota,
     index as tesoreriaIndex,
     prorrogar as tesoreriaProrrogar,
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import { ComprobantePago } from '@/components/pagos/ComprobantePago';
 import type { ComprobanteCuotaItem } from '@/components/pagos/ComprobantePago';
+import {
+    AuditoriaExoneracionTooltip,
+    type AuditoriaCuotaItem,
+} from '@/components/pagos/AuditoriaExoneracionTooltip';
 import { PagoRow } from '@/components/pagos/PagoRow';
 import { SemaforoPagos } from '@/components/pagos/SemaforoPagos';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +27,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { usePermisos } from '@/hooks/use-permisos';
 
 function formatCurrency(amount: string | number) {
     return new Intl.NumberFormat('es-PE', {
@@ -76,6 +83,11 @@ function CuotaItem({
     const [openProrroga, setOpenProrroga] = useState(false);
     const [diasProrroga, setDiasProrroga] = useState('7');
     const [processing, setProcessing] = useState(false);
+    const [openExonerar, setOpenExonerar] = useState(false);
+    const [motivoExonerar, setMotivoExonerar] = useState('');
+    const [processingExonerar, setProcessingExonerar] = useState(false);
+    const { puede } = usePermisos();
+    const puedeExonerar = puede('pagos', 'eliminar');
 
     const handleProrroga = (e: React.FormEvent) => {
         e.preventDefault();
@@ -93,7 +105,28 @@ function CuotaItem({
         );
     };
 
+    const handleExonerar = () => {
+        setProcessingExonerar(true);
+        router.post(
+            exonerarCuota.url({ cuota: cuota.id_cuota }),
+            { motivo: motivoExonerar },
+            {
+                onSuccess: () => {
+                    setOpenExonerar(false);
+                    setMotivoExonerar('');
+                    toast.success('Cuota exonerada correctamente');
+                },
+                onError: () => {
+                    toast.error('No se pudo exonerar la cuota');
+                },
+                onFinish: () => setProcessingExonerar(false),
+            },
+        );
+    };
+
     const isPagada = cuota.estado === 'PAGADA';
+    const esExonerada = cuota.estado === 'EXONERADA';
+    const noAccionable = isPagada || esExonerada;
     const totalPagado =
         cuota.pagos?.reduce(
             (sum: number, p: any) => sum + Number(p.monto),
@@ -164,21 +197,30 @@ function CuotaItem({
                     <p className="font-bold text-slate-900">
                         {formatCurrency(restante > 0 ? restante : cuota.monto)}
                     </p>
-                    <Badge
-                        variant="outline"
-                        className={
-                            isPagada
-                                ? 'bg-green-100 text-green-700'
-                                : cuota.estado === 'VENCIDA'
-                                  ? 'bg-red-100 text-red-700'
-                                  : 'bg-yellow-100 text-yellow-700'
-                        }
-                    >
-                        {cuota.estado}
-                    </Badge>
+                    <div className="flex items-center justify-end">
+                        <Badge
+                            variant="outline"
+                            className={
+                                isPagada
+                                    ? 'bg-green-100 text-green-700'
+                                    : cuota.estado === 'VENCIDA'
+                                      ? 'bg-red-100 text-red-700'
+                                      : esExonerada
+                                        ? 'bg-violet-100 text-violet-700'
+                                        : 'bg-yellow-100 text-yellow-700'
+                            }
+                        >
+                            {cuota.estado}
+                        </Badge>
+                        {esExonerada && (
+                            <AuditoriaExoneracionTooltip
+                                auditorias={cuota.auditorias}
+                            />
+                        )}
+                    </div>
                 </div>
 
-                {!isPagada && (
+                {!noAccionable && (
                     <div className="flex gap-1">
                         <Button
                             size="sm"
@@ -200,6 +242,85 @@ function CuotaItem({
                                 </>
                             )}
                         </Button>
+
+                        {puedeExonerar && (
+                            <Dialog
+                                open={openExonerar}
+                                onOpenChange={setOpenExonerar}
+                            >
+                                <DialogTrigger asChild>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-violet-700 hover:bg-violet-50 hover:text-violet-800"
+                                    >
+                                        Exonerar
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>
+                                            Exonerar Cuota
+                                        </DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                        <p className="text-sm text-slate-600">
+                                            ¿Estás seguro de que deseas exonerar
+                                            la cuota{' '}
+                                            <strong>
+                                                {cuota.numero_cuota}
+                                            </strong>{' '}
+                                            de{' '}
+                                            <strong>
+                                                {formatCurrency(cuota.monto)}
+                                            </strong>
+                                            ? Esta acción no se puede deshacer.
+                                        </p>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="motivo-exoneracion">
+                                                Motivo de exoneración
+                                            </Label>
+                                            <Textarea
+                                                id="motivo-exoneracion"
+                                                value={motivoExonerar}
+                                                onChange={(e) =>
+                                                    setMotivoExonerar(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Indica el motivo de la exoneración (obligatorio)"
+                                                maxLength={500}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setOpenExonerar(false)
+                                                }
+                                                disabled={processingExonerar}
+                                            >
+                                                Cancelar
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                className="bg-violet-600 hover:bg-violet-700"
+                                                onClick={handleExonerar}
+                                                disabled={
+                                                    processingExonerar ||
+                                                    !motivoExonerar.trim()
+                                                }
+                                            >
+                                                {processingExonerar
+                                                    ? 'Exonerando...'
+                                                    : 'Sí, exonerar cuota'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        )}
 
                         <Dialog
                             open={openProrroga}

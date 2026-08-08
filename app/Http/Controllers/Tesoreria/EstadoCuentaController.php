@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Tesoreria;
 use App\Enums\EstadoCuota;
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
+use App\Models\AuditoriaCuota;
 use App\Models\AuditoriaPago;
 use App\Models\Configuracion;
 use App\Models\Cuota;
@@ -25,9 +26,13 @@ class EstadoCuentaController extends Controller
 
         $alumnos = Alumno::query()
             ->with(['apoderado', 'matriculas' => function ($query) {
-                $query->latest('fecha_matricula')->with(['ciclo', 'comprobantesPago.cuotas.pagos' => function ($q) {
-                    $q->where('estado', '!=', 'ANULADO')->with('auditorias.usuario');
-                }]);
+                $query->latest('fecha_matricula')->with([
+                    'ciclo',
+                    'comprobantesPago.cuotas.auditorias.usuario',
+                    'comprobantesPago.cuotas.pagos' => function ($q) {
+                        $q->where('estado', '!=', 'ANULADO')->with('auditorias.usuario');
+                    },
+                ]);
             }])
             ->when($search, function ($query, $search) {
                 $query->where('nombres', 'like', "%{$search}%")
@@ -122,9 +127,13 @@ class EstadoCuentaController extends Controller
     public function show(Alumno $alumno): Response
     {
         $alumno->load(['apoderado', 'matriculas' => function ($query) {
-            $query->latest('fecha_matricula')->with(['ciclo', 'comprobantesPago.cuotas.pagos' => function ($q) {
-                $q->where('estado', '!=', 'ANULADO')->with('auditorias.usuario');
-            }]);
+            $query->latest('fecha_matricula')->with([
+                'ciclo',
+                'comprobantesPago.cuotas.auditorias.usuario',
+                'comprobantesPago.cuotas.pagos' => function ($q) {
+                    $q->where('estado', '!=', 'ANULADO')->with('auditorias.usuario');
+                },
+            ]);
         }]);
 
         return Inertia::render('tesoreria/estado-cuenta', [
@@ -151,8 +160,8 @@ class EstadoCuentaController extends Controller
             foreach ($validated['cuota_ids'] as $cuotaId) {
                 $cuota = Cuota::query()->lockForUpdate()->find($cuotaId);
 
-                if (! $cuota || $cuota->estado === EstadoCuota::Pagada) {
-                    $errors[] = "Cuota #{$cuotaId} ya está pagada o no existe.";
+                if (! $cuota || $cuota->estado === EstadoCuota::Pagada || $cuota->estado === EstadoCuota::Exonerada) {
+                    $errors[] = "Cuota #{$cuotaId} ya está pagada, exonerada o no existe.";
 
                     continue;
                 }
@@ -274,6 +283,63 @@ class EstadoCuentaController extends Controller
         return back()->with('success', 'Pago anulado correctamente.');
     }
 
+    public function exonerar(Cuota $cuota, Request $request): RedirectResponse
+    {
+        $this->authorize('exonerar', $cuota);
+
+        $validated = $request->validate([
+            'motivo' => ['required', 'string', 'max:500'],
+        ]);
+
+        $exonerada = DB::transaction(function () use ($cuota, $validated): bool {
+            // Bloquear la cuota dentro de la transacción para evitar
+            // condiciones de carrera entre exoneraciones concurrentes.
+            $cuota = Cuota::query()->lockForUpdate()->findOrFail($cuota->id_cuota);
+
+            // Una cuota pagada o ya exonerada no puede exonerarse.
+            if ($cuota->estado === EstadoCuota::Pagada || $cuota->estado === EstadoCuota::Exonerada) {
+                return false;
+            }
+
+            // 1. Exonerar la cuota
+            $cuota->update(['estado' => EstadoCuota::Exonerada]);
+
+            // 2. Registrar la auditoría de la exoneración
+            AuditoriaCuota::create([
+                'cuota_id' => $cuota->id_cuota,
+                'usuario_id' => auth()->id(),
+                'accion' => 'EXONERAR',
+                'motivo' => $validated['motivo'],
+            ]);
+
+            // 3. Recalcular el saldo pendiente del comprobante: las cuotas
+            //    exoneradas dejan de contar como pendientes.
+            $comprobante = $cuota->comprobantePago;
+            if ($comprobante) {
+                $saldoPendiente = $comprobante->cuotas()
+                    ->with('pagos')
+                    ->get()
+                    ->sum(fn (Cuota $c) => $c->estado === EstadoCuota::Exonerada
+                        ? 0
+                        : $c->monto - $c->pagos
+                            ->where('estado', '!=', 'ANULADO')
+                            ->sum('monto'));
+
+                $comprobante->update([
+                    'saldo_pendiente' => max(0, $saldoPendiente),
+                ]);
+            }
+
+            return true;
+        });
+
+        if (! $exonerada) {
+            return back()->with('error', 'La cuota no puede exonerarse: ya está pagada o exonerada.');
+        }
+
+        return back()->with('success', 'Cuota exonerada correctamente.');
+    }
+
     public function pagar(Cuota $cuota, Request $request): RedirectResponse
     {
         $this->authorize('create', Pago::class);
@@ -282,6 +348,10 @@ class EstadoCuentaController extends Controller
             'monto' => ['required', 'numeric', 'min:0.01'],
             'metodo_pago' => ['required', 'string', 'max:50'],
         ]);
+
+        if ($cuota->estado === EstadoCuota::Pagada || $cuota->estado === EstadoCuota::Exonerada) {
+            return back()->with('error', 'La cuota ya está pagada o exonerada.');
+        }
 
         DB::transaction(function () use ($cuota, $validated) {
             // Registrar pago

@@ -1,8 +1,8 @@
 # Docs Index — SIGED JohnNash
 
-> Punto de entrada para la IA. Entendiendo la lógica de la doc, consultá los archivos que consideres necesarios.
-
----
+Este archivo es el indice de la documentacion del proyecto instalado. Sirve
+para que una persona o un agente encuentre rapidamente la fuente relevante.
+No reemplaza las reglas operativas de `AGENTS.md`.
 
 ## spec/ — Qué debe hacer el sistema (reglas de negocio)
 
@@ -13,6 +13,9 @@
 | `spec/ciclos.md` | Tipos de ciclo, comportamiento |
 | `spec/pagos.md` | Conceptos de pago, estructura comprobante/cuota/pago |
 | `spec/seminarios.md` | Ingresos por seminarios |
+
+Usa un archivo por area. Estas specs describen el comportamiento vigente del
+producto y requieren revision humana cuando cambian reglas de negocio.
 
 ## module/ — Cómo se organiza cada módulo (arquitectura)
 
@@ -29,6 +32,10 @@
 |---|---|
 | `flow/catalogo-flujo.md` | Flujo del catálogo académico |
 | `flow/pagos-flow.md` | Flujo de pagos |
+| `flow/dashboard-bi-flow.md` | Flujo del dashboard BI (KPIs, recaudación por concepto, ficha 360°) |
+
+Usa `sequenceDiagram` solo cuando haya actores asincronos o paralelos. Para
+un recorrido lineal archivo -> funcion, basta con la descripcion del flujo.
 
 ## meta/ — Info del proyecto
 
@@ -69,3 +76,11 @@ Después de hacer cambios en el código, actualizar los docs afectados:
 | Bug corregido o flujo nuevo | `flow/<flujo>.md` (sin línea exacta, solo archivo + función) |
 
  Las **spec/** son la fuente de verdad — si el código y la spec se contradicen, sospechar que la spec está desactualizada o el código está mal.
+
+## Convenciones del indice
+
+- Mantener una entrada por documento relevante.
+- Describir el alcance real del archivo, no copiar su contenido.
+- Actualizar este indice al crear, dividir, renombrar o eliminar documentos.
+- Si un documento no existe o esta incompleto, indicarlo claramente y
+  verificar el codigo antes de confiar en el mapa.

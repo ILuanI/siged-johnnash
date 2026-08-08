@@ -22,7 +22,12 @@ import {
     update as updateAlumno,
     updateCarrera as updateAlumnoCarrera,
 } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
+import { exonerar as exonerarCuota } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import SemaforoPagos from '@/components/SemaforoPagos';
+import {
+    AuditoriaExoneracionTooltip,
+    type AuditoriaCuotaItem,
+} from '@/components/pagos/AuditoriaExoneracionTooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,6 +56,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useInitials } from '@/hooks/use-initials';
 import { usePermisos } from '@/hooks/use-permisos';
 import { confirmAction } from '@/lib/confirm';
@@ -71,6 +77,7 @@ type FinanzasCuota = {
     fecha_vencimiento: string;
     estado: string;
     concepto?: string | null;
+    auditorias?: AuditoriaCuotaItem[];
 };
 
 type FinanzasPago = {
@@ -115,6 +122,9 @@ export function StudentProfileModal({
     const [actualizandoCarrera, setActualizandoCarrera] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [exonerarCuotaId, setExonerarCuotaId] = useState<number | null>(null);
+    const [motivoExonerar, setMotivoExonerar] = useState('');
+    const [processingExonerar, setProcessingExonerar] = useState(false);
     const [editForm, setEditForm] = useState({
         nombres: consolidado.perfil.nombres,
         apellidos: consolidado.perfil.apellidos,
@@ -128,6 +138,7 @@ export function StudentProfileModal({
     });
     const { puede } = usePermisos();
     const puedeEditar = puede('estudiantes', 'editar');
+    const puedeExonerar = puede('pagos', 'eliminar');
     const getInitials = useInitials();
     const { perfil, matricula_actual } = consolidado;
     const finanzas = consolidado.finanzas as unknown as FinanzasConsolidado;
@@ -233,6 +244,32 @@ export function StudentProfileModal({
                     );
                 },
                 onFinish: () => setActualizandoCarrera(false),
+            },
+        );
+    };
+
+    const handleExonerarCuota = () => {
+        if (exonerarCuotaId === null) {
+            return;
+        }
+
+        setProcessingExonerar(true);
+        router.post(
+            exonerarCuota.url({ cuota: exonerarCuotaId }),
+            { motivo: motivoExonerar },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setExonerarCuotaId(null);
+                    setMotivoExonerar('');
+                    toast.success('Cuota exonerada correctamente');
+                },
+                onError: (errors) => {
+                    Object.values(errors).forEach((message) =>
+                        toast.error(String(message)),
+                    );
+                },
+                onFinish: () => setProcessingExonerar(false),
             },
         );
     };
@@ -597,18 +634,49 @@ export function StudentProfileModal({
                                                                 </span>
                                                             </TableCell>
                                                             <TableCell className="py-2 text-right">
-                                                                <Badge
-                                                                    className={cn(
-                                                                        'rounded-full px-2 text-[10px]',
-                                                                        estadoCuotaClass(
-                                                                            cuota.estado,
-                                                                        ),
+                                                                <div className="flex items-center justify-end gap-1.5">
+                                                                    <Badge
+                                                                        className={cn(
+                                                                            'rounded-full px-2 text-[10px]',
+                                                                            estadoCuotaClass(
+                                                                                cuota.estado,
+                                                                            ),
+                                                                        )}
+                                                                    >
+                                                                        {
+                                                                            cuota.estado
+                                                                        }
+                                                                    </Badge>
+                                                                    {cuota.estado ===
+                                                                        'EXONERADA' && (
+                                                                        <AuditoriaExoneracionTooltip
+                                                                            auditorias={
+                                                                                cuota.auditorias
+                                                                            }
+                                                                        />
                                                                     )}
-                                                                >
-                                                                    {
-                                                                        cuota.estado
-                                                                    }
-                                                                </Badge>
+                                                                    {puedeExonerar &&
+                                                                        cuota.estado !==
+                                                                            'PAGADA' &&
+                                                                        cuota.estado !==
+                                                                            'EXONERADA' && (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                className="h-6 px-2 text-[10px] text-violet-700 hover:bg-violet-50 hover:text-violet-800"
+                                                                                onClick={() => {
+                                                                                    setExonerarCuotaId(
+                                                                                        cuota.id_cuota,
+                                                                                    );
+                                                                                    setMotivoExonerar(
+                                                                                        '',
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                Exonerar
+                                                                            </Button>
+                                                                        )}
+                                                                </div>
                                                             </TableCell>
                                                         </TableRow>
                                                     ),
@@ -1046,6 +1114,61 @@ export function StudentProfileModal({
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <Dialog
+                open={exonerarCuotaId !== null}
+                onOpenChange={(isOpen) => !isOpen && setExonerarCuotaId(null)}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Exonerar cuota</DialogTitle>
+                        <DialogDescription>
+                            La cuota dejará de contar como pendiente. Esta
+                            acción no se puede deshacer.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="motivo-exoneracion">
+                                Motivo de exoneración
+                            </Label>
+                            <Textarea
+                                id="motivo-exoneracion"
+                                value={motivoExonerar}
+                                onChange={(e) =>
+                                    setMotivoExonerar(e.target.value)
+                                }
+                                placeholder="Indica el motivo de la exoneración (obligatorio)"
+                                maxLength={500}
+                                required
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setExonerarCuotaId(null)}
+                                disabled={processingExonerar}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="button"
+                                className="bg-violet-600 hover:bg-violet-700"
+                                onClick={handleExonerarCuota}
+                                disabled={
+                                    processingExonerar ||
+                                    !motivoExonerar.trim()
+                                }
+                            >
+                                {processingExonerar
+                                    ? 'Exonerando...'
+                                    : 'Sí, exonerar cuota'}
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     );
 }
@@ -1115,6 +1238,8 @@ function estadoCuotaClass(estado: string) {
             return 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100';
         case 'VENCIDA':
             return 'bg-rose-100 text-rose-700 hover:bg-rose-100';
+        case 'EXONERADA':
+            return 'bg-violet-100 text-violet-700 hover:bg-violet-100';
         default:
             return 'bg-amber-100 text-amber-700 hover:bg-amber-100';
     }
