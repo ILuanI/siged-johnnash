@@ -10,6 +10,7 @@ Route::middleware(['auth', 'verified', 'permiso'])->prefix('tesoreria')->name('t
     Route::get('estado-cuenta/{alumno}', [EstadoCuentaController::class, 'show'])->name('estado-cuenta.show');
     Route::post('cuotas/{cuota}/prorrogar', [EstadoCuentaController::class, 'prorrogar'])->name('cuotas.prorrogar');
     Route::post('cuotas/{cuota}/pagar', [EstadoCuentaController::class, 'pagar'])->name('cuotas.pagar');
+    Route::post('cuotas/{cuota}/exonerar', [EstadoCuentaController::class, 'exonerar'])->name('cuotas.exonerar');
     Route::post('pagos/{pago}/anular', [EstadoCuentaController::class, 'anularPago'])->name('pagos.anular');
     Route::post('cuotas/pagar-comprobante', [EstadoCuentaController::class, 'pagarComprobante'])->name('cuotas.pagar-comprobante');
     Route::put('whatsapp-templates', [EstadoCuentaController::class, 'updateWhatsappTemplates'])->name('whatsapp-templates.update');

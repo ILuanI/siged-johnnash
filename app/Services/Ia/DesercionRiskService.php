@@ -267,6 +267,7 @@ class DesercionRiskService
         $cuotasVencidas = Cuota::query()
             ->whereHas('comprobantePago', fn ($query) => $query->where('id_matricula', $matricula->id_matricula))
             ->where('estado', '!=', 'PAGADA')
+            ->where('estado', '!=', 'EXONERADA')
             ->whereDate('fecha_vencimiento', '<', today())
             ->count();
 

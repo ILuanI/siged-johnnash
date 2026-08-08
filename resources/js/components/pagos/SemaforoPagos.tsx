@@ -5,7 +5,7 @@ const parseDate = (dateStr: string) => {
     return new Date(Number(y), Number(m) - 1, Number(d));
 };
 
-type CuotaEstado = 'PENDIENTE' | 'PAGADA' | 'VENCIDA';
+type CuotaEstado = 'PENDIENTE' | 'PAGADA' | 'VENCIDA' | 'EXONERADA';
 
 export interface CuotaSemaforo {
     estado: CuotaEstado;
@@ -29,7 +29,9 @@ export function SemaforoPagos({ cuotas, className }: SemaforoPagosProps) {
         );
     }
 
-    const pendientes = cuotas.filter((c) => c.estado !== 'PAGADA');
+    const pendientes = cuotas.filter(
+        (c) => c.estado !== 'PAGADA' && c.estado !== 'EXONERADA',
+    );
 
     if (pendientes.length === 0) {
         return (

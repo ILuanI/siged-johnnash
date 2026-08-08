@@ -2,6 +2,12 @@
 
 ## Ciclo de vida de un pago (desde la matrícula)
 
+### 0. Visualización en el perfil del alumno (solo lectura)
+
+**Frontend**
+- `resources/js/components/matriculas/student-profile-modal.tsx` → tab `pagos`: renderiza `consolidado.finanzas` (producido por `ConsolidadoAlumnoService`) con resumen Costo Total / Pagado / Saldo Pendiente, semáforo `SemaforoPagos`, tabla de cuotas con badges por estado y tabla de pagos realizados.
+- Reutiliza el mismo diseño que `resources/js/pages/dashboard.tsx` (sección "Estado Financiero").
+
 ### 1. Formalización de matrícula → creación de comprobantes
 
 **Backend**

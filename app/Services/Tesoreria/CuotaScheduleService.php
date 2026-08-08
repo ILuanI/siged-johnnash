@@ -31,7 +31,7 @@ class CuotaScheduleService
             $fechaBase = CarbonImmutable::parse($fechaPrimeraCuota);
             $dias = max(1, $diasEntreCuotas);
             $cuotasPendientes = $comprobante->cuotas()
-                ->where('estado', '!=', EstadoCuota::Pagada)
+                ->whereNotIn('estado', [EstadoCuota::Pagada, EstadoCuota::Exonerada])
                 ->orderBy('numero_cuota')
                 ->get();
 

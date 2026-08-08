@@ -3,6 +3,7 @@ import {
     AlertTriangle,
     Brain,
     Cake,
+    Clock,
     CreditCard,
     Download,
     GraduationCap,
@@ -21,9 +22,23 @@ import {
     update as updateAlumno,
     updateCarrera as updateAlumnoCarrera,
 } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
+import { exonerar as exonerarCuota } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
+import SemaforoPagos from '@/components/SemaforoPagos';
+import {
+    AuditoriaExoneracionTooltip,
+    type AuditoriaCuotaItem,
+} from '@/components/pagos/AuditoriaExoneracionTooltip';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import {
     Dialog,
     DialogContent,
@@ -41,6 +56,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useInitials } from '@/hooks/use-initials';
 import { usePermisos } from '@/hooks/use-permisos';
 import { confirmAction } from '@/lib/confirm';
@@ -53,6 +69,33 @@ import { cn } from '@/lib/utils';
 import type { CarreraOption, ConsolidadoAlumno } from '@/types/matriculas';
 
 type TabId = 'informacion' | 'pagos' | 'notas' | 'asistencia';
+
+type FinanzasCuota = {
+    id_cuota: number;
+    numero_cuota: number;
+    monto: number;
+    fecha_vencimiento: string;
+    estado: string;
+    concepto?: string | null;
+    auditorias?: AuditoriaCuotaItem[];
+};
+
+type FinanzasPago = {
+    id_pago: number;
+    numero_cuota: number;
+    monto: number;
+    fecha_pago: string;
+    metodo_pago: string | null;
+};
+
+type FinanzasConsolidado = {
+    saldo_pendiente: number;
+    costo_total: number;
+    tipo_pago: string | null;
+    estado_pago: string;
+    cuotas: FinanzasCuota[];
+    pagos: FinanzasPago[];
+};
 
 const tabs: { id: TabId; label: string }[] = [
     { id: 'informacion', label: 'Información' },
@@ -79,6 +122,9 @@ export function StudentProfileModal({
     const [actualizandoCarrera, setActualizandoCarrera] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [processing, setProcessing] = useState(false);
+    const [exonerarCuotaId, setExonerarCuotaId] = useState<number | null>(null);
+    const [motivoExonerar, setMotivoExonerar] = useState('');
+    const [processingExonerar, setProcessingExonerar] = useState(false);
     const [editForm, setEditForm] = useState({
         nombres: consolidado.perfil.nombres,
         apellidos: consolidado.perfil.apellidos,
@@ -92,8 +138,10 @@ export function StudentProfileModal({
     });
     const { puede } = usePermisos();
     const puedeEditar = puede('estudiantes', 'editar');
+    const puedeExonerar = puede('pagos', 'eliminar');
     const getInitials = useInitials();
     const { perfil, matricula_actual } = consolidado;
+    const finanzas = consolidado.finanzas as unknown as FinanzasConsolidado;
     const edad = calcularEdad(perfil.fecha_nac);
     const apoderado = perfil.apoderado;
     const riesgo = consolidado.riesgo_desercion;
@@ -162,15 +210,19 @@ export function StudentProfileModal({
             return;
         }
 
-        router.patch(desactivarAlumnoAction.url(perfil.id_alumno), {}, {
-            preserveScroll: true,
-            onSuccess: () => onClose(),
-            onError: (errors) => {
-                Object.values(errors).forEach((message) =>
-                    toast.error(String(message)),
-                );
+        router.patch(
+            desactivarAlumnoAction.url(perfil.id_alumno),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => onClose(),
+                onError: (errors) => {
+                    Object.values(errors).forEach((message) =>
+                        toast.error(String(message)),
+                    );
+                },
             },
-        });
+        );
     };
 
     const cambiarCarrera = () => {
@@ -192,6 +244,32 @@ export function StudentProfileModal({
                     );
                 },
                 onFinish: () => setActualizandoCarrera(false),
+            },
+        );
+    };
+
+    const handleExonerarCuota = () => {
+        if (exonerarCuotaId === null) {
+            return;
+        }
+
+        setProcessingExonerar(true);
+        router.post(
+            exonerarCuota.url({ cuota: exonerarCuotaId }),
+            { motivo: motivoExonerar },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setExonerarCuotaId(null);
+                    setMotivoExonerar('');
+                    toast.success('Cuota exonerada correctamente');
+                },
+                onError: (errors) => {
+                    Object.values(errors).forEach((message) =>
+                        toast.error(String(message)),
+                    );
+                },
+                onFinish: () => setProcessingExonerar(false),
             },
         );
     };
@@ -221,7 +299,7 @@ export function StudentProfileModal({
                         {perfil.estado ?? 'SIN ESTADO'}
                     </Badge>
                 </div>
-                
+
                 <div className="mt-2 text-center sm:absolute sm:top-6 sm:right-10 sm:mt-0">
                     <Button
                         variant="outline"
@@ -229,7 +307,11 @@ export function StudentProfileModal({
                         className="text-[#1a237e] hover:bg-[#1a237e]/5 hover:text-[#1a237e]"
                         asChild
                     >
-                        <a href={`/matriculas/estudiantes/${perfil.id_alumno}/pdf`} target="_blank" rel="noreferrer">
+                        <a
+                            href={`/matriculas/estudiantes/${perfil.id_alumno}/pdf`}
+                            target="_blank"
+                            rel="noreferrer"
+                        >
                             <Download className="mr-2 size-4" />
                             Descargar Perfil 360°
                         </a>
@@ -454,10 +536,222 @@ export function StudentProfileModal({
                     )}
 
                     {tab === 'pagos' && (
-                        <PlaceholderTab
-                            titulo="Pagos"
-                            mensaje={consolidado.finanzas._meta.mensaje}
-                        />
+                        <div className="space-y-4">
+                            <section className="rounded-xl border bg-white p-4">
+                                <div className="mb-3 flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <CreditCard className="size-5 text-slate-500" />
+                                        <h3 className="text-sm font-semibold text-slate-800">
+                                            Estado Financiero
+                                        </h3>
+                                    </div>
+                                    <SemaforoPagos cuotas={finanzas.cuotas} />
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-center">
+                                    <div>
+                                        <span className="block text-xs text-slate-500">
+                                            Costo Total
+                                        </span>
+                                        <span className="text-lg font-bold text-slate-900">
+                                            S/ {finanzas.costo_total.toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-xs text-slate-500">
+                                            Pagado
+                                        </span>
+                                        <span className="text-lg font-bold text-emerald-600">
+                                            S/{' '}
+                                            {(
+                                                finanzas.costo_total -
+                                                finanzas.saldo_pendiente
+                                            ).toFixed(2)}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-xs text-slate-500">
+                                            Saldo Pendiente
+                                        </span>
+                                        <span className="text-lg font-bold text-rose-600">
+                                            S/{' '}
+                                            {finanzas.saldo_pendiente.toFixed(
+                                                2,
+                                            )}
+                                        </span>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section className="rounded-xl border bg-white p-4">
+                                <h3 className="mb-3 text-sm font-semibold text-slate-800">
+                                    Cuotas
+                                </h3>
+                                {finanzas.cuotas.length > 0 ? (
+                                    <div className="overflow-hidden rounded-lg border border-slate-100">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="bg-slate-50">
+                                                    <TableHead className="py-2.5">
+                                                        N° Cuota
+                                                    </TableHead>
+                                                    <TableHead className="py-2.5">
+                                                        Monto
+                                                    </TableHead>
+                                                    <TableHead className="py-2.5">
+                                                        Vencimiento
+                                                    </TableHead>
+                                                    <TableHead className="py-2.5 text-right">
+                                                        Estado
+                                                    </TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {finanzas.cuotas.map(
+                                                    (cuota) => (
+                                                        <TableRow
+                                                            key={cuota.id_cuota}
+                                                            className="hover:bg-slate-50/50"
+                                                        >
+                                                            <TableCell className="py-2 font-medium">
+                                                                Cuota{' '}
+                                                                {
+                                                                    cuota.numero_cuota
+                                                                }
+                                                            </TableCell>
+                                                            <TableCell className="py-2">
+                                                                S/{' '}
+                                                                {cuota.monto.toFixed(
+                                                                    2,
+                                                                )}
+                                                            </TableCell>
+                                                            <TableCell className="py-2">
+                                                                <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                                                                    <Clock className="size-3.5" />
+                                                                    {new Date(
+                                                                        `${cuota.fecha_vencimiento}T00:00:00`,
+                                                                    ).toLocaleDateString()}
+                                                                </span>
+                                                            </TableCell>
+                                                            <TableCell className="py-2 text-right">
+                                                                <div className="flex items-center justify-end gap-1.5">
+                                                                    <Badge
+                                                                        className={cn(
+                                                                            'rounded-full px-2 text-[10px]',
+                                                                            estadoCuotaClass(
+                                                                                cuota.estado,
+                                                                            ),
+                                                                        )}
+                                                                    >
+                                                                        {
+                                                                            cuota.estado
+                                                                        }
+                                                                    </Badge>
+                                                                    {cuota.estado ===
+                                                                        'EXONERADA' && (
+                                                                        <AuditoriaExoneracionTooltip
+                                                                            auditorias={
+                                                                                cuota.auditorias
+                                                                            }
+                                                                        />
+                                                                    )}
+                                                                    {puedeExonerar &&
+                                                                        cuota.estado !==
+                                                                            'PAGADA' &&
+                                                                        cuota.estado !==
+                                                                            'EXONERADA' && (
+                                                                            <Button
+                                                                                size="sm"
+                                                                                variant="outline"
+                                                                                className="h-6 px-2 text-[10px] text-violet-700 hover:bg-violet-50 hover:text-violet-800"
+                                                                                onClick={() => {
+                                                                                    setExonerarCuotaId(
+                                                                                        cuota.id_cuota,
+                                                                                    );
+                                                                                    setMotivoExonerar(
+                                                                                        '',
+                                                                                    );
+                                                                                }}
+                                                                            >
+                                                                                Exonerar
+                                                                            </Button>
+                                                                        )}
+                                                                </div>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ),
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                ) : (
+                                    <p className="py-4 text-center text-xs text-slate-400">
+                                        Pago realizado en Modalidad Al Contado.
+                                    </p>
+                                )}
+                            </section>
+
+                            {finanzas.pagos.length > 0 && (
+                                <section className="rounded-xl border bg-white p-4">
+                                    <h3 className="mb-3 text-sm font-semibold text-slate-800">
+                                        Pagos realizados
+                                    </h3>
+                                    <div className="overflow-hidden rounded-lg border border-slate-100">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="bg-slate-50">
+                                                    <TableHead className="py-2.5">
+                                                        Cuota
+                                                    </TableHead>
+                                                    <TableHead className="py-2.5">
+                                                        Monto
+                                                    </TableHead>
+                                                    <TableHead className="py-2.5">
+                                                        Fecha
+                                                    </TableHead>
+                                                    <TableHead className="py-2.5 text-right">
+                                                        Método
+                                                    </TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {finanzas.pagos.map((pago) => (
+                                                    <TableRow
+                                                        key={pago.id_pago}
+                                                        className="hover:bg-slate-50/50"
+                                                    >
+                                                        <TableCell className="py-2 font-medium">
+                                                            Cuota{' '}
+                                                            {pago.numero_cuota}
+                                                        </TableCell>
+                                                        <TableCell className="py-2">
+                                                            S/{' '}
+                                                            {pago.monto.toFixed(
+                                                                2,
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="py-2 text-xs text-slate-500">
+                                                            {formatearFechaLarga(
+                                                                pago.fecha_pago,
+                                                            )}
+                                                        </TableCell>
+                                                        <TableCell className="py-2 text-right">
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="border-slate-200 bg-slate-50 font-medium text-slate-600"
+                                                            >
+                                                                {pago.metodo_pago ??
+                                                                    '—'}
+                                                            </Badge>
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </section>
+                            )}
+                        </div>
                     )}
                     {tab === 'notas' && (
                         <PlaceholderTab
@@ -646,7 +940,9 @@ export function StudentProfileModal({
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-apellidos">Apellidos</Label>
+                                <Label htmlFor="edit-apellidos">
+                                    Apellidos
+                                </Label>
                                 <Input
                                     id="edit-apellidos"
                                     value={editForm.apellidos}
@@ -724,9 +1020,15 @@ export function StudentProfileModal({
                                         <SelectValue placeholder="Seleccionar" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="M">Masculino</SelectItem>
-                                        <SelectItem value="F">Femenino</SelectItem>
-                                        <SelectItem value="OTRO">Otro</SelectItem>
+                                        <SelectItem value="M">
+                                            Masculino
+                                        </SelectItem>
+                                        <SelectItem value="F">
+                                            Femenino
+                                        </SelectItem>
+                                        <SelectItem value="OTRO">
+                                            Otro
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -746,7 +1048,9 @@ export function StudentProfileModal({
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="ACTIVO">ACTIVO</SelectItem>
+                                    <SelectItem value="ACTIVO">
+                                        ACTIVO
+                                    </SelectItem>
                                     <SelectItem value="MATRICULADO">
                                         MATRICULADO
                                     </SelectItem>
@@ -810,6 +1114,61 @@ export function StudentProfileModal({
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <Dialog
+                open={exonerarCuotaId !== null}
+                onOpenChange={(isOpen) => !isOpen && setExonerarCuotaId(null)}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Exonerar cuota</DialogTitle>
+                        <DialogDescription>
+                            La cuota dejará de contar como pendiente. Esta
+                            acción no se puede deshacer.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="motivo-exoneracion">
+                                Motivo de exoneración
+                            </Label>
+                            <Textarea
+                                id="motivo-exoneracion"
+                                value={motivoExonerar}
+                                onChange={(e) =>
+                                    setMotivoExonerar(e.target.value)
+                                }
+                                placeholder="Indica el motivo de la exoneración (obligatorio)"
+                                maxLength={500}
+                                required
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setExonerarCuotaId(null)}
+                                disabled={processingExonerar}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="button"
+                                className="bg-violet-600 hover:bg-violet-700"
+                                onClick={handleExonerarCuota}
+                                disabled={
+                                    processingExonerar ||
+                                    !motivoExonerar.trim()
+                                }
+                            >
+                                {processingExonerar
+                                    ? 'Exonerando...'
+                                    : 'Sí, exonerar cuota'}
+                            </Button>
+                        </DialogFooter>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     );
 }
@@ -871,6 +1230,19 @@ function PlaceholderTab({
             <p className="mt-1 text-sm text-slate-500">{mensaje}</p>
         </div>
     );
+}
+
+function estadoCuotaClass(estado: string) {
+    switch (estado) {
+        case 'PAGADA':
+            return 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100';
+        case 'VENCIDA':
+            return 'bg-rose-100 text-rose-700 hover:bg-rose-100';
+        case 'EXONERADA':
+            return 'bg-violet-100 text-violet-700 hover:bg-violet-100';
+        default:
+            return 'bg-amber-100 text-amber-700 hover:bg-amber-100';
+    }
 }
 
 function estadoAsistenciaClass(estado: string) {

@@ -150,6 +150,12 @@ interface Props {
         tasa_asistencia: number;
         promedio_notas: number;
         tasa_recaudacion: number;
+        recaudacion_por_concepto: {
+            matricula: number;
+            simulacros: number;
+            carnet: number;
+            otros: number;
+        };
     };
     studentList: Array<{ id_alumno: number; label: string }>;
     consolidado: ConsolidadoData | null;
@@ -179,6 +185,44 @@ export default function DashboardBi({
         showSuggestions &&
         searchQuery.trim().length >= 2 &&
         studentList.length > 0;
+
+    // Recaudación por concepto (desglose de la tarjeta financiera)
+    const recaudacion = kpis.recaudacion_por_concepto;
+    const totalRecaudado =
+        recaudacion.matricula +
+        recaudacion.simulacros +
+        recaudacion.carnet +
+        recaudacion.otros;
+    const recaudacionItems = [
+        {
+            key: 'matricula',
+            label: 'Matrícula',
+            monto: recaudacion.matricula,
+            dot: 'bg-[#ff7043]',
+        },
+        {
+            key: 'simulacros',
+            label: 'Simulacros',
+            monto: recaudacion.simulacros,
+            dot: 'bg-blue-500',
+        },
+        {
+            key: 'carnet',
+            label: 'Carnet',
+            monto: recaudacion.carnet,
+            dot: 'bg-emerald-500',
+        },
+        {
+            key: 'otros',
+            label: 'Otros',
+            monto: recaudacion.otros,
+            dot: 'bg-amber-500',
+        },
+    ].map((item) => ({
+        ...item,
+        porcentaje:
+            totalRecaudado > 0 ? (item.monto / totalRecaudado) * 100 : 0,
+    }));
 
     // Apply cycle filter instantly
     const handleCycleChange = (value: string) => {
@@ -364,6 +408,40 @@ export default function DashboardBi({
                                         width: `${kpis.tasa_recaudacion}%`,
                                     }}
                                 />
+                            </div>
+
+                            {/* Desglose por concepto */}
+                            <div className="mt-3 border-t border-slate-100 pt-3">
+                                <div className="mb-2 flex items-center justify-between">
+                                    <span className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
+                                        Recaudado por concepto
+                                    </span>
+                                    <span className="text-xs font-bold text-slate-700">
+                                        S/ {totalRecaudado.toFixed(2)}
+                                    </span>
+                                </div>
+                                <div className="space-y-2">
+                                    {recaudacionItems.map((item) => (
+                                        <div
+                                            key={item.key}
+                                            className="flex items-center justify-between text-xs"
+                                        >
+                                            <span className="flex items-center gap-1.5 text-slate-500">
+                                                <span
+                                                    className={`size-2 rounded-full ${item.dot}`}
+                                                />
+                                                {item.label}
+                                            </span>
+                                            <span className="font-semibold text-slate-700">
+                                                S/ {item.monto.toFixed(2)}
+                                                <span className="ml-1.5 font-normal text-slate-400">
+                                                    {item.porcentaje.toFixed(1)}
+                                                    %
+                                                </span>
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
@@ -687,9 +765,12 @@ export default function DashboardBi({
                                                                             'PAGADA'
                                                                                 ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                                                                                 : cuota.estado ===
-                                                                                    'VENCIDA'
+                                                                                      'VENCIDA'
                                                                                   ? 'border-rose-200 bg-rose-50 text-rose-700'
-                                                                                  : 'border-amber-200 bg-amber-50 text-amber-700'
+                                                                                  : cuota.estado ===
+                                                                                        'EXONERADA'
+                                                                                    ? 'border-violet-200 bg-violet-50 text-violet-700'
+                                                                                    : 'border-amber-200 bg-amber-50 text-amber-700'
                                                                         }
                                                                         variant="outline"
                                                                     >
