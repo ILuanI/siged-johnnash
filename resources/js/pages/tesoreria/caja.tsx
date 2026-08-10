@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import AppLayout from '@/layouts/app-layout';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -146,7 +145,7 @@ export default function CajaGeneralIndex({
     };
 
     return (
-        <AppLayout>
+        <>
             <Head title="Caja General - Movimiento Económico" />
 
             <div className="space-y-6 p-6">
@@ -516,6 +515,6 @@ export default function CajaGeneralIndex({
                     </form>
                 </DialogContent>
             </Dialog>
-        </AppLayout>
+        </>
     );
 }

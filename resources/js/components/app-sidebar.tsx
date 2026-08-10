@@ -11,6 +11,7 @@ import {
     Settings,
     ShieldCheck,
     Users,
+    Wallet,
 } from 'lucide-react';
 import {
     index as tesoreriaIndex,
@@ -68,6 +69,12 @@ const mainNavItems: (NavItem & { modulo: string })[] = [
         title: 'Pagos',
         href: tesoreriaIndex(),
         icon: CreditCard,
+        modulo: 'pagos',
+    },
+    {
+        title: 'Caja General',
+        href: '/tesoreria/caja',
+        icon: Wallet,
         modulo: 'pagos',
     },
     {

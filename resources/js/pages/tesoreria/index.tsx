@@ -1,5 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { History, Minus, Pencil, Plus, Search } from 'lucide-react';
+import { History, Minus, Pencil, Plus, Search, Wallet } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -629,7 +629,7 @@ export default function TesoreriaIndex({
     );
     const lastMatricula = activeAlumno?.matriculas?.[0];
     const comprobantes = lastMatricula?.comprobantes_pago || [];
-    const cuotas: (ComprobanteCuotaItem & { estado: string })[] =
+    const cuotas: (ComprobanteCuotaItem & { estado: any })[] =
         comprobantes.flatMap((c: any) =>
             (c.cuotas || []).map((cu: any) => ({
                 ...cu,
@@ -703,6 +703,15 @@ export default function TesoreriaIndex({
                         </p>
                     </div>
                     <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="cursor-pointer gap-2 bg-[#ff7043]/10 text-[#ff7043] border-[#ff7043]/20 hover:bg-[#ff7043]/20 hover:text-[#ff7043]"
+                            onClick={() => router.visit('/tesoreria/caja')}
+                        >
+                            <Wallet className="size-3.5" />
+                            Caja General
+                        </Button>
                         <Button
                             variant="outline"
                             size="sm"
