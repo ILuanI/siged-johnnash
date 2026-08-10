@@ -18,6 +18,13 @@ class Egreso extends Model
 
     protected $guarded = [];
 
+    protected $appends = ['concepto'];
+
+    public function getConceptoAttribute(): string
+    {
+        return $this->tipo_egreso ?? '';
+    }
+
     protected function casts(): array
     {
         return [

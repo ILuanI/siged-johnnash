@@ -27,6 +27,12 @@ Route::middleware(['auth', 'verified', 'permiso'])
         Route::patch('estudiantes/{alumno}/desactivar', [EstudianteWebController::class, 'desactivar'])
             ->name('estudiantes.desactivar');
 
+        Route::post('estudiantes/{alumno}/retirar', [EstudianteWebController::class, 'desactivar'])
+            ->name('estudiantes.retirar');
+
+        Route::delete('estudiantes/{alumno}', [EstudianteWebController::class, 'destroy'])
+            ->name('estudiantes.destroy');
+
         Route::patch('estudiantes/{alumno}/carrera', [EstudianteWebController::class, 'updateCarrera'])
             ->name('estudiantes.carrera.update');
 

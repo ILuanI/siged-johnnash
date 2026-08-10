@@ -48,8 +48,12 @@ class CursoController extends Controller
             'eventos' => $eventos,
             'cicloSeleccionadoId' => $cicloSeleccionadoId,
             'ciclos' => Ciclo::query()
+                ->with('periodo')
                 ->orderByDesc('fecha_inicio')
-                ->get(['id_ciclo', 'nombre', 'tipo_ciclo', 'estado']),
+                ->get(['id_ciclo', 'id_periodo', 'nombre', 'tipo_ciclo', 'fecha_inicio', 'fecha_fin', 'costo_base', 'estado']),
+            'periodos' => PeriodoAcademico::query()
+                ->orderByDesc('anio')
+                ->get(['id_periodo', 'nombre', 'anio', 'estado']),
             'docentes' => Docente::query()
                 ->orderBy('apellidos')
                 ->orderBy('nombres')
@@ -244,6 +248,7 @@ class CursoController extends Controller
     {
         $validated = $request->validate([
             'nombre' => ['required', 'string', 'max:60', 'unique:ciclo,nombre'],
+            'id_periodo' => ['nullable', 'integer', 'exists:periodo_academico,id_periodo'],
             'tipo_ciclo' => ['nullable', 'string', 'max:40'],
             'fecha_inicio' => ['required', 'date'],
             'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_inicio'],
@@ -261,15 +266,48 @@ class CursoController extends Controller
             'costo_base.min' => 'El costo base no puede ser negativo.',
         ]);
 
-        $periodo = PeriodoAcademico::where('estado', 'ABIERTO')->first()
-            ?? PeriodoAcademico::orderBy('anio', 'desc')->first();
+        if (empty($validated['id_periodo'])) {
+            $periodo = PeriodoAcademico::where('estado', 'ABIERTO')->first()
+                ?? PeriodoAcademico::orderBy('anio', 'desc')->first();
+            $validated['id_periodo'] = $periodo ? $periodo->id_periodo : null;
+        }
 
-        $validated['id_periodo'] = $periodo ? $periodo->id_periodo : null;
         $validated['estado'] = EstadoCiclo::Abierto;
 
         Ciclo::create($validated);
 
         return redirect()->back()->with('success', 'Ciclo académico creado correctamente.');
+    }
+
+    public function updateCiclo(Request $request, Ciclo $ciclo): RedirectResponse
+    {
+        $validated = $request->validate([
+            'nombre' => ['required', 'string', 'max:60', 'unique:ciclo,nombre,'.$ciclo->id_ciclo.',id_ciclo'],
+            'id_periodo' => ['nullable', 'integer', 'exists:periodo_academico,id_periodo'],
+            'tipo_ciclo' => ['nullable', 'string', 'max:40'],
+            'fecha_inicio' => ['required', 'date'],
+            'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_inicio'],
+            'costo_base' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $ciclo->update($validated);
+
+        return redirect()->back()->with('success', 'Ciclo académico actualizado correctamente.');
+    }
+
+    public function destroyCiclo(Ciclo $ciclo): RedirectResponse
+    {
+        if ($ciclo->matriculas()->exists()) {
+            return redirect()->back()->with('error', 'No se puede eliminar el ciclo porque tiene alumnos matriculados asociados.');
+        }
+
+        if ($ciclo->asignacionesDocentes()->exists()) {
+            $ciclo->asignacionesDocentes()->delete();
+        }
+
+        $ciclo->delete();
+
+        return redirect()->back()->with('success', 'Ciclo académico eliminado correctamente.');
     }
 
     public function storeAula(Request $request): RedirectResponse

@@ -13,6 +13,7 @@ import {
     Smartphone,
     User,
     UserX,
+    Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -151,9 +152,9 @@ export function StudentProfileModal({
 
     const desactivarAlumno = async () => {
         const confirmed = await confirmAction({
-            title: '¿Desactivar estudiante?',
-            text: `${perfil.nombre_completo} pasará a estado RETIRADO.`,
-            confirmButtonText: 'Desactivar',
+            title: '¿Retirar estudiante?',
+            text: `${perfil.nombre_completo} pasará a estado RETIRADO. Su expediente e historial académico serán conservados.`,
+            confirmButtonText: 'Retirar Estudiante',
             cancelButtonText: 'Cancelar',
             icon: 'warning',
         });
@@ -162,9 +163,39 @@ export function StudentProfileModal({
             return;
         }
 
-        router.patch(desactivarAlumnoAction.url(perfil.id_alumno), {}, {
+        router.post(`/matriculas/estudiantes/${perfil.id_alumno}/retirar`, {}, {
             preserveScroll: true,
-            onSuccess: () => onClose(),
+            onSuccess: () => {
+                toast.success('Estudiante retirado correctamente.');
+                onClose();
+            },
+            onError: (errors) => {
+                Object.values(errors).forEach((message) =>
+                    toast.error(String(message)),
+                );
+            },
+        });
+    };
+
+    const eliminarAlumno = async () => {
+        const confirmed = await confirmAction({
+            title: '⚠️ ¿ELIMINAR ESTUDIANTE PERMANENTEMENTE?',
+            text: `¡ADVERTENCIA CRÍTICA! Se eliminará a ${perfil.nombre_completo} y TODAS sus matrículas, asistencias y cuotas asociadas de forma irreversible.`,
+            confirmButtonText: 'Sí, Eliminar Definitivamente',
+            cancelButtonText: 'Cancelar',
+            icon: 'warning',
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        router.delete(`/matriculas/estudiantes/${perfil.id_alumno}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Estudiante eliminado completamente.');
+                onClose();
+            },
             onError: (errors) => {
                 Object.values(errors).forEach((message) =>
                     toast.error(String(message)),
@@ -596,16 +627,27 @@ export function StudentProfileModal({
                         ))}
                 </div>
 
-                <div className="flex gap-3 border-t bg-slate-50 px-6 py-4">
+                <div className="flex flex-wrap gap-3 border-t bg-slate-50 px-6 py-4">
                     {puedeEditar && perfil.estado !== 'RETIRADO' && (
                         <Button
                             type="button"
                             variant="outline"
-                            className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                            className="flex-1 border-amber-300 text-amber-800 hover:bg-amber-100"
                             onClick={desactivarAlumno}
                         >
                             <UserX className="size-4" />
-                            Desactivar
+                            Retirar Alumno
+                        </Button>
+                    )}
+                    {puedeEditar && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 border-rose-300 text-rose-700 hover:bg-rose-100 hover:text-rose-900 font-semibold"
+                            onClick={eliminarAlumno}
+                        >
+                            <Trash2 className="size-4" />
+                            Eliminar Alumno
                         </Button>
                     )}
                     {puedeEditar && (
@@ -615,7 +657,7 @@ export function StudentProfileModal({
                             onClick={openEdit}
                         >
                             <Pencil className="size-4" />
-                            Editar
+                            Editar Datos
                         </Button>
                     )}
                 </div>

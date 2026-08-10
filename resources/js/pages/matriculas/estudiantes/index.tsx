@@ -63,20 +63,27 @@ type ColegioProcedencia = {
     nombre: string;
 };
 
+type CicloSimple = {
+    id_ciclo: number;
+    nombre: string;
+};
+
 type PageProps = {
     estudiantes: EstudianteListItem[];
     consolidado: ConsolidadoAlumno | null;
     alumnoId: number | null;
+    ciclos: CicloSimple[];
     carreras: CarreraOption[];
     areas: Area[];
     colegios: ColegioProcedencia[];
-    filters: { q?: string; filtro?: string; sort?: 'asc' | 'desc' };
+    filters: { q?: string; filtro?: string; ciclo_id?: string; sort?: 'asc' | 'desc' };
 };
 
 export default function EstudiantesIndex({
     estudiantes,
     consolidado,
     alumnoId,
+    ciclos = [],
     carreras = [],
     areas = [],
     colegios = [],
@@ -85,6 +92,7 @@ export default function EstudiantesIndex({
     const getInitials = useInitials();
     const [busqueda, setBusqueda] = useState(filters.q ?? '');
     const [filtroEstado, setFiltroEstado] = useState(filters.filtro ?? 'todos');
+    const [filtroCicloId, setFiltroCicloId] = useState(filters.ciclo_id ?? 'todos');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(
         filters.sort ?? 'asc',
     );
@@ -125,6 +133,7 @@ export default function EstudiantesIndex({
                 alumno: id,
                 q: filters.q || undefined,
                 filtro: filters.filtro || undefined,
+                ciclo_id: filters.ciclo_id || undefined,
                 sort: filters.sort || undefined,
             },
             { preserveState: true, preserveScroll: true },
@@ -137,18 +146,20 @@ export default function EstudiantesIndex({
             {
                 q: filters.q || undefined,
                 filtro: filters.filtro || undefined,
+                ciclo_id: filters.ciclo_id || undefined,
                 sort: filters.sort || undefined,
             },
             { preserveState: true, preserveScroll: true },
         );
     };
 
-    const actualizarLista = (q: string, filtro: string, sort: string) => {
+    const actualizarLista = (q: string, filtro: string, cicloId: string, sort: string) => {
         router.get(
             estudiantesIndex.url(),
             {
                 q: q || undefined,
                 filtro: filtro !== 'todos' ? filtro : undefined,
+                ciclo_id: cicloId !== 'todos' ? cicloId : undefined,
                 sort: sort !== 'asc' ? sort : undefined,
             },
             { preserveState: true, preserveScroll: true },
@@ -157,12 +168,17 @@ export default function EstudiantesIndex({
 
     const buscar = (e: FormEvent) => {
         e.preventDefault();
-        actualizarLista(busqueda, filtroEstado, sortOrder);
+        actualizarLista(busqueda, filtroEstado, filtroCicloId, sortOrder);
     };
 
     const onFiltroChange = (val: string) => {
         setFiltroEstado(val);
-        actualizarLista(busqueda, val, sortOrder);
+        actualizarLista(busqueda, val, filtroCicloId, sortOrder);
+    };
+
+    const onCicloChange = (val: string) => {
+        setFiltroCicloId(val);
+        actualizarLista(busqueda, filtroEstado, val, sortOrder);
     };
 
     const toggleSort = () => {
@@ -304,6 +320,20 @@ export default function EstudiantesIndex({
                             <SelectItem value="vencidos">
                                 Con pagos vencidos
                             </SelectItem>
+                        </SelectContent>
+                    </Select>
+
+                    <Select value={filtroCicloId} onValueChange={onCicloChange}>
+                        <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Filtrar por Ciclo..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="todos">Todos los ciclos</SelectItem>
+                            {ciclos.map((c) => (
+                                <SelectItem key={c.id_ciclo} value={String(c.id_ciclo)}>
+                                    {c.nombre}
+                                </SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
 

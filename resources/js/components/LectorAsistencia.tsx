@@ -134,8 +134,14 @@ export default function LectorAsistencia({
                             maxLength={8}
                             onBlur={() =>
                                 window.setTimeout(
-                                    () => inputRef.current?.focus(),
-                                    50,
+                                    () => {
+                                        const activeEl = document.activeElement;
+                                        if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT' || activeEl.tagName === 'TEXTAREA')) {
+                                            return;
+                                        }
+                                        inputRef.current?.focus();
+                                    },
+                                    100,
                                 )
                             }
                             onChange={(e) =>

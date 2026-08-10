@@ -17,6 +17,7 @@ use App\Models\Alumno;
 use App\Models\Apoderado;
 use App\Models\Area;
 use App\Models\Carrera;
+use App\Models\Ciclo;
 use App\Models\ColegioProcedencia;
 use App\Services\Matriculas\AlumnoRegistroService;
 use App\Services\Matriculas\ConsolidadoAlumnoService;
@@ -39,6 +40,7 @@ class EstudianteWebController extends Controller
     {
         $busqueda = $request->string('q')->trim()->toString();
         $filtroEstado = $request->string('filtro')->toString();
+        $cicloId = $request->integer('ciclo_id') ?: null;
         $sort = $request->input('sort', 'asc');
 
         $estudiantes = Alumno::query()
@@ -48,6 +50,9 @@ class EstudianteWebController extends Controller
                         ->orWhere('apellidos', 'like', "%{$busqueda}%")
                         ->orWhere('dni', 'like', "%{$busqueda}%");
                 });
+            })
+            ->when($cicloId, function (Builder $query) use ($cicloId): void {
+                $query->whereHas('matriculas', fn ($q) => $q->where('id_ciclo', $cicloId));
             })
             ->when($filtroEstado === 'matriculados', function (Builder $query): void {
                 $query->whereHas('matriculas', fn ($q) => $q->where('estado', EstadoMatricula::Vigente));
@@ -78,7 +83,7 @@ class EstudianteWebController extends Controller
             ->orderBy('apellidos', $sort)
             ->orderBy('nombres', $sort)
             ->with(['matriculas' => function ($q) {
-                $q->latest('fecha_matricula')->with(['comprobantePago.cuotas']);
+                $q->latest('fecha_matricula')->with(['comprobantePago.cuotas', 'ciclo']);
             }])
             ->get(['id_alumno', 'nombres', 'apellidos', 'dni', 'estado', 'telefono']);
 
@@ -93,10 +98,11 @@ class EstudianteWebController extends Controller
             'estudiantes' => AlumnoResource::collection($estudiantes)->resolve(),
             'consolidado' => $consolidado,
             'alumnoId' => $alumnoId,
+            'ciclos' => Ciclo::query()->orderByDesc('fecha_inicio')->get(['id_ciclo', 'nombre']),
             'carreras' => CarreraResource::collection(Carrera::query()->with('area')->orderBy('nombre')->get())->resolve(),
             'areas' => AreaResource::collection(Area::query()->orderBy('codigo')->get())->resolve(),
             'colegios' => ColegioProcedenciaResource::collection(ColegioProcedencia::query()->orderBy('nombre')->get())->resolve(),
-            'filters' => (object) $request->only(['q', 'filtro', 'sort']),
+            'filters' => (object) $request->only(['q', 'filtro', 'ciclo_id', 'sort']),
         ]);
     }
 
@@ -156,7 +162,33 @@ class EstudianteWebController extends Controller
 
         return redirect()
             ->route('matriculas.estudiantes.index')
-            ->with('success', 'Estudiante desactivado correctamente.');
+            ->with('success', 'Estudiante retirado del ciclo. Su expediente e historial han sido conservados.');
+    }
+
+    public function destroy(Alumno $alumno): RedirectResponse
+    {
+        DB::transaction(function () use ($alumno): void {
+            $alumno->load(['matriculas.comprobantesPago.cuotas.pagos']);
+
+            foreach ($alumno->matriculas as $matricula) {
+                foreach ($matricula->comprobantesPago as $comprobante) {
+                    foreach ($comprobante->cuotas as $cuota) {
+                        $cuota->pagos()->delete();
+                    }
+                    $comprobante->cuotas()->delete();
+                }
+                $matricula->comprobantesPago()->delete();
+            }
+
+            $alumno->matriculas()->delete();
+            $alumno->asistencias()->delete();
+            $alumno->resultadosExamen()->delete();
+            $alumno->delete();
+        });
+
+        return redirect()
+            ->route('matriculas.estudiantes.index')
+            ->with('success', 'Estudiante y sus registros asociados eliminados completamente.');
     }
 
     public function downloadPdf(Alumno $alumno)

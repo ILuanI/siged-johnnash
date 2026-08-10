@@ -73,8 +73,19 @@ type EventoHorario = {
 
 type CicloOption = {
     id_ciclo: number;
+    id_periodo: number | null;
     nombre: string;
     tipo_ciclo: string | null;
+    fecha_inicio: string;
+    fecha_fin: string;
+    costo_base: string | number;
+    estado: string;
+};
+
+type PeriodoOption = {
+    id_periodo: number;
+    nombre: string;
+    anio: number;
     estado: string;
 };
 
@@ -107,6 +118,7 @@ type PageProps = {
     eventos: EventoHorario[];
     cicloSeleccionadoId: number | null;
     ciclos: CicloOption[];
+    periodos: PeriodoOption[];
     docentes: DocenteOption[];
     aulas: AulaOption[];
     dias: Record<string, string>;
@@ -276,6 +288,7 @@ export default function CursosIndex({
     eventos,
     cicloSeleccionadoId,
     ciclos,
+    periodos = [],
     docentes,
     aulas,
     dias,
@@ -295,50 +308,110 @@ export default function CursosIndex({
     const [cicloCostoBase, setCicloCostoBase] = useState('0');
     const [cicloErrors, setCicloErrors] = useState<any>({});
     const [cicloLoading, setCicloLoading] = useState(false);
+    const [editingCiclo, setEditingCiclo] = useState<CicloOption | null>(null);
+    const [cicloPeriodoId, setCicloPeriodoId] = useState('');
+
+    const openCreateCiclo = () => {
+        setEditingCiclo(null);
+        setCicloNombre('');
+        setCicloTipo('');
+        setCicloFechaInicio('');
+        setCicloFechaFin('');
+        setCicloCostoBase('0');
+        setCicloPeriodoId('');
+        setIsCicloDialogOpen(true);
+    };
+
+    const openEditCiclo = (ciclo: CicloOption) => {
+        setEditingCiclo(ciclo);
+        setCicloNombre(ciclo.nombre);
+        setCicloTipo(ciclo.tipo_ciclo || '');
+        setCicloFechaInicio(ciclo.fecha_inicio ? ciclo.fecha_inicio.split('T')[0] : '');
+        setCicloFechaFin(ciclo.fecha_fin ? ciclo.fecha_fin.split('T')[0] : '');
+        setCicloCostoBase(String(ciclo.costo_base));
+        setCicloPeriodoId(ciclo.id_periodo ? String(ciclo.id_periodo) : '');
+        setIsCicloDialogOpen(true);
+    };
 
     const handleCreateCiclo = (e: React.FormEvent) => {
         e.preventDefault();
         setCicloLoading(true);
         setCicloErrors({});
 
-        router.post(
-            '/cursos/ciclos',
-            {
-                nombre: cicloNombre,
-                tipo_ciclo: cicloTipo || null,
-                fecha_inicio: cicloFechaInicio,
-                fecha_fin: cicloFechaFin,
-                costo_base: parseFloat(cicloCostoBase) || 0,
+        const dataPayload = {
+            nombre: cicloNombre,
+            tipo_ciclo: cicloTipo || null,
+            id_periodo: cicloPeriodoId ? parseInt(cicloPeriodoId) : null,
+            fecha_inicio: cicloFechaInicio,
+            fecha_fin: cicloFechaFin,
+            costo_base: parseFloat(cicloCostoBase) || 0,
+        };
+
+        if (editingCiclo) {
+            router.put(
+                `/cursos/ciclos/${editingCiclo.id_ciclo}`,
+                dataPayload,
+                {
+                    onSuccess: () => {
+                        setIsCicloDialogOpen(false);
+                        openCreateCiclo();
+                        toast.success('Ciclo académico actualizado exitosamente');
+                    },
+                    onError: (errs) => {
+                        setCicloErrors(errs);
+                        Object.values(errs).forEach((err: any) => toast.error(err));
+                    },
+                    onFinish: () => setCicloLoading(false),
+                    preserveState: true,
+                }
+            );
+        } else {
+            router.post(
+                '/cursos/ciclos',
+                dataPayload,
+                {
+                    onSuccess: () => {
+                        setIsCicloDialogOpen(false);
+                        openCreateCiclo();
+                        toast.success('Ciclo académico creado exitosamente');
+                    },
+                    onError: (errs) => {
+                        setCicloErrors(errs);
+                        Object.values(errs).forEach((err: any) => toast.error(err));
+                    },
+                    onFinish: () => setCicloLoading(false),
+                    preserveState: true,
+                }
+            );
+        }
+    };
+
+    const handleDeleteCiclo = async (ciclo: CicloOption) => {
+        const confirmed = await confirmAction({
+            title: `Eliminar ciclo ${ciclo.nombre}`,
+            text: '¡ADVERTENCIA! Se eliminará el ciclo y todas sus configuraciones asociadas. Si hay alumnos matriculados, la acción fallará.',
+            confirmButtonText: 'Eliminar Ciclo',
+            cancelButtonText: 'Cancelar',
+            icon: 'warning',
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        router.delete(`/cursos/ciclos/${ciclo.id_ciclo}`, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Ciclo académico eliminado exitosamente');
             },
-            {
-                onSuccess: () => {
-                    setIsCicloDialogOpen(false);
-                    setCicloNombre('');
-                    setCicloTipo('');
-                    setCicloFechaInicio('');
-                    setCicloFechaFin('');
-                    setCicloCostoBase('0');
-                    toast.success('Ciclo académico creado exitosamente');
-                },
-                onError: (errs) => {
-                    setCicloErrors(errs);
-                    const fieldsOrder = [
-                        'nombre',
-                        'tipo_ciclo',
-                        'fecha_inicio',
-                        'fecha_fin',
-                        'costo_base',
-                    ] as const;
-                    fieldsOrder.forEach((field) => {
-                        if (errs[field]) {
-                            toast.error(errs[field]);
-                        }
-                    });
-                },
-                onFinish: () => setCicloLoading(false),
-                preserveState: true,
-            },
-        );
+            onError: (errs: any) => {
+                if (errs.error) {
+                    toast.error(errs.error);
+                } else {
+                    toast.error('No se pudo eliminar el ciclo. Verifique si tiene alumnos asociados.');
+                }
+            }
+        });
     };
 
     // Aula Dialog
@@ -551,12 +624,36 @@ export default function CursosIndex({
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setIsCicloDialogOpen(true)}
+                                onClick={openCreateCiclo}
                                 title="Nuevo Ciclo Académico"
                                 className="h-9 px-2 text-slate-600 hover:text-[#ff7043]"
                             >
                                 <Plus className="size-4" />
                             </Button>
+                            {cicloSeleccionado && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openEditCiclo(cicloSeleccionado)}
+                                    title="Editar Ciclo Académico"
+                                    className="h-9 px-2 text-slate-600 hover:text-[#ff7043]"
+                                >
+                                    <Pencil className="size-4" />
+                                </Button>
+                            )}
+                            {cicloSeleccionado && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDeleteCiclo(cicloSeleccionado)}
+                                    title="Eliminar Ciclo Académico"
+                                    className="h-9 px-2 text-rose-600 hover:text-rose-700 hover:border-rose-200"
+                                >
+                                    <Trash2 className="size-4" />
+                                </Button>
+                            )}
                         </div>
                         <Button
                             type="button"
@@ -1059,7 +1156,7 @@ export default function CursosIndex({
                 </DialogContent>
             </Dialog>
 
-            {/* Dialog para Nuevo Ciclo */}
+            {/* Dialog para Nuevo/Editar Ciclo */}
             <Dialog
                 open={isCicloDialogOpen}
                 onOpenChange={setIsCicloDialogOpen}
@@ -1067,11 +1164,10 @@ export default function CursosIndex({
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle className="text-[#0b145f]">
-                            Nuevo Ciclo Académico
+                            {editingCiclo ? 'Editar Ciclo Académico' : 'Nuevo Ciclo Académico'}
                         </DialogTitle>
                         <DialogDescription>
-                            Crea un nuevo ciclo de clases. Se asociará
-                            automáticamente al periodo académico vigente.
+                            Configure los datos del ciclo académico y el periodo asociado.
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleCreateCiclo}>
@@ -1092,6 +1188,28 @@ export default function CursosIndex({
                                 {cicloErrors.nombre && (
                                     <p className="text-sm text-destructive">
                                         {cicloErrors.nombre}
+                                    </p>
+                                )}
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="ciclo_periodo">Periodo Académico *</Label>
+                                <select
+                                    id="ciclo_periodo"
+                                    value={cicloPeriodoId}
+                                    onChange={(e) => setCicloPeriodoId(e.target.value)}
+                                    required
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
+                                >
+                                    <option value="">Seleccionar periodo</option>
+                                    {periodos.map((p) => (
+                                        <option key={p.id_periodo} value={String(p.id_periodo)}>
+                                            {p.nombre} ({p.anio})
+                                        </option>
+                                    ))}
+                                </select>
+                                {cicloErrors.id_periodo && (
+                                    <p className="text-sm text-destructive">
+                                        {cicloErrors.id_periodo}
                                     </p>
                                 )}
                             </div>
@@ -1188,7 +1306,9 @@ export default function CursosIndex({
                                 disabled={cicloLoading}
                                 className="bg-[#ff7043] text-white hover:bg-[#f4511e]"
                             >
-                                {cicloLoading ? 'Creando...' : 'Crear Ciclo'}
+                                {editingCiclo
+                                    ? (cicloLoading ? 'Guardando...' : 'Guardar Cambios')
+                                    : (cicloLoading ? 'Creando...' : 'Crear Ciclo')}
                             </Button>
                         </DialogFooter>
                     </form>

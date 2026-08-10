@@ -1,5 +1,5 @@
 import { Head, router, Link } from '@inertiajs/react';
-import { ArrowLeft, Minus, Plus } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
@@ -19,6 +19,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogTrigger,
+    DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -79,6 +80,11 @@ function CuotaItem({
     const [diasProrroga, setDiasProrroga] = useState('7');
     const [processing, setProcessing] = useState(false);
 
+    const [openEditCuota, setOpenEditCuota] = useState(false);
+    const [cuotaMonto, setCuotaMonto] = useState(String(cuota.monto));
+    const [cuotaFecha, setCuotaFecha] = useState(cuota.fecha_vencimiento ? cuota.fecha_vencimiento.split('T')[0] : '');
+    const [updatingCuota, setUpdatingCuota] = useState(false);
+
     const handleProrroga = (e: React.FormEvent) => {
         e.preventDefault();
         setProcessing(true);
@@ -92,6 +98,28 @@ function CuotaItem({
                 },
                 onFinish: () => setProcessing(false),
             },
+        );
+    };
+
+    const handleEditCuotaSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setUpdatingCuota(true);
+        router.put(
+            `/tesoreria/cuotas/${cuota.id_cuota}`,
+            {
+                monto: parseFloat(cuotaMonto) || 0,
+                fecha_vencimiento: cuotaFecha,
+            },
+            {
+                onSuccess: () => {
+                    setOpenEditCuota(false);
+                    toast.success('Cuota corregida correctamente.');
+                },
+                onError: () => {
+                    toast.error('Ocurrió un error al actualizar la cuota.');
+                },
+                onFinish: () => setUpdatingCuota(false),
+            }
         );
     };
 
@@ -231,6 +259,55 @@ function CuotaItem({
                                 </form>
                             </DialogContent>
                         </Dialog>
+
+                        <Dialog open={openEditCuota} onOpenChange={setOpenEditCuota}>
+                            <DialogTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                    Editar
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>
+                                        Corregir Cuota
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <form
+                                    onSubmit={handleEditCuotaSubmit}
+                                    className="space-y-4"
+                                >
+                                    <div className="space-y-2">
+                                        <Label htmlFor="cuota_monto_input">Monto de la Cuota (S/.) *</Label>
+                                        <Input
+                                            id="cuota_monto_input"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={cuotaMonto}
+                                            onChange={(e) => setCuotaMonto(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="cuota_fecha_input">Fecha de Vencimiento *</Label>
+                                        <Input
+                                            id="cuota_fecha_input"
+                                            type="date"
+                                            value={cuotaFecha}
+                                            onChange={(e) => setCuotaFecha(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <Button
+                                        type="submit"
+                                        disabled={updatingCuota}
+                                        className="w-full"
+                                    >
+                                        {updatingCuota ? 'Guardando...' : 'Guardar Cambios'}
+                                    </Button>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 )}
             </div>
@@ -242,7 +319,7 @@ export default function EstadoCuentaShow({ alumno }: any) {
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const lastMatricula = alumno.matriculas?.[0];
     const comprobantes = lastMatricula?.comprobantes_pago || [];
-    const cuotas: (ComprobanteCuotaItem & { estado: string })[] =
+    const cuotas: (ComprobanteCuotaItem & { estado: any })[] =
         comprobantes.flatMap((c: any) =>
             (c.cuotas || []).map((cu: any) => ({
                 ...cu,
@@ -372,6 +449,39 @@ export default function EstadoCuentaShow({ alumno }: any) {
                                 </CardContent>
                             </Card>
                         </div>
+ 
+                        <Card>
+                            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                                <CardTitle className="text-base font-semibold">
+                                    Conceptos Registrados
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0 space-y-3">
+                                {comprobantes.map((c: any) => (
+                                    <div key={c.id_comprobante_pago} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50/50 transition">
+                                        <div>
+                                            <span className="font-semibold text-sm block">
+                                                {CONCEPTO_LABEL[c.concepto] || c.concepto}
+                                            </span>
+                                            <span className="text-xs text-slate-500">
+                                                N° Comprobante: {c.numero || 'S/N'}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <span className="font-bold text-sm block">
+                                                    {formatCurrency(c.costo_total)}
+                                                </span>
+                                                <span className="text-xs text-slate-500">
+                                                    Pendiente: {formatCurrency(c.saldo_pendiente)}
+                                                </span>
+                                            </div>
+                                            <ComprobanteCostEditor comprobante={c} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </CardContent>
+                        </Card>
 
                         <Card>
                             <CardHeader className="pb-3">
@@ -417,5 +527,70 @@ export default function EstadoCuentaShow({ alumno }: any) {
                 </Card>
             )}
         </div>
+    );
+}
+
+function ComprobanteCostEditor({ comprobante }: { comprobante: any }) {
+    const [openEdit, setOpenEdit] = useState(false);
+    const [nuevoCosto, setNuevoCosto] = useState(String(comprobante.costo_total));
+    const [processing, setProcessing] = useState(false);
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setProcessing(true);
+        router.put(
+            `/tesoreria/comprobantes/${comprobante.id_comprobante_pago}`,
+            { costo_total: parseFloat(nuevoCosto) || 0 },
+            {
+                onSuccess: () => {
+                    setOpenEdit(false);
+                    toast.success('Monto total actualizado y cuotas recalculadas correctamente.');
+                },
+                onError: () => {
+                    toast.error('Ocurrió un error al actualizar el costo total.');
+                },
+                onFinish: () => setProcessing(false),
+            }
+        );
+    };
+
+    return (
+        <Dialog open={openEdit} onOpenChange={setOpenEdit}>
+            <DialogTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-slate-500 hover:text-[#0b145f]">
+                    <Pencil className="h-4 w-4" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                    <DialogTitle>Corregir Costo Total</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                        <Label htmlFor={`costo_${comprobante.id_comprobante_pago}`}>Costo Total del Concepto (S/.) *</Label>
+                        <Input
+                            id={`costo_${comprobante.id_comprobante_pago}`}
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={nuevoCosto}
+                            onChange={(e) => setNuevoCosto(e.target.value)}
+                            required
+                        />
+                        <p className="text-[11px] text-slate-500 leading-normal">
+                            Al cambiar el costo total, se actualizará el saldo pendiente y se recalcularán proporcionalmente las cuotas no pagadas asociadas.
+                        </p>
+                    </div>
+                    <DialogFooter className="pt-2">
+                        <Button type="button" variant="outline" onClick={() => setOpenEdit(false)}>
+                            Cancelar
+                        </Button>
+                        <Button type="submit" disabled={processing} className="bg-[#1a237e] text-white hover:bg-[#0b145f]">
+                            {processing ? 'Guardando...' : 'Guardar Cambios'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
     );
 }
