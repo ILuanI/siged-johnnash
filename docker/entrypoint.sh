@@ -23,6 +23,7 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
     while [ $i -lt 30 ]; do
         if php artisan migrate --force; then
             echo "Migraciones completadas exitosamente."
+            php artisan db:seed --force || echo "Seeders ya fueron ejecutados previamente."
             break
         fi
         echo "Reintentando migraciones en 2 segundos... ($i/30)"

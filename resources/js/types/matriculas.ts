@@ -5,6 +5,7 @@ export type EstudianteListItem = {
     dni: string | null;
     estado: string;
     telefono: string | null;
+    fecha_nac: string | null;
     cuotas?: { estado: string; fecha_vencimiento: string }[];
     apoderado?: {
         id_apoderado: number;

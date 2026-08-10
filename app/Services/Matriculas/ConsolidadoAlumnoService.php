@@ -175,7 +175,7 @@ class ConsolidadoAlumnoService
                     ];
                 }
 
-                $comprobantes = $matricula->comprobantesPago()->with(['cuotas.pagos'])->get();
+                $comprobantes = $matricula->comprobantesPago()->with(['cuotas.pagos', 'cuotas.auditorias.usuario'])->get();
                 $saldoPendiente = $comprobantes->sum(fn ($c) => floatval($c->saldo_pendiente));
                 $costoTotal = floatval($matricula->costo_total);
 
@@ -186,7 +186,9 @@ class ConsolidadoAlumnoService
                 foreach ($comprobantes as $comprobante) {
                     foreach ($comprobante->cuotas as $cuota) {
                         $estadoCuota = $cuota->estado;
-                        $vencida = $estadoCuota !== 'PAGADA' && $cuota->fecha_vencimiento->lt(today());
+                        $vencida = $estadoCuota !== 'PAGADA'
+                            && $estadoCuota !== 'EXONERADA'
+                            && $cuota->fecha_vencimiento->lt(today());
                         if ($vencida) {
                             $estadoCuota = 'VENCIDA';
                             $tieneDeudaVencida = true;
@@ -199,6 +201,13 @@ class ConsolidadoAlumnoService
                             'fecha_vencimiento' => $cuota->fecha_vencimiento?->toDateString(),
                             'estado' => $estadoCuota,
                             'concepto' => $comprobante->concepto?->value,
+                            'auditorias' => $cuota->auditorias->map(fn ($auditoria) => [
+                                'id' => $auditoria->id,
+                                'accion' => $auditoria->accion,
+                                'motivo' => $auditoria->motivo,
+                                'created_at' => $auditoria->created_at?->toDateTimeString(),
+                                'usuario' => $auditoria->usuario ? ['name' => $auditoria->usuario->name] : null,
+                            ])->toArray(),
                         ];
 
                         foreach ($cuota->pagos as $pago) {

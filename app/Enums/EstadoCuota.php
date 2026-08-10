@@ -7,4 +7,5 @@ enum EstadoCuota: string
     case Pendiente = 'PENDIENTE';
     case Pagada = 'PAGADA';
     case Vencida = 'VENCIDA';
+    case Exonerada = 'EXONERADA';
 }

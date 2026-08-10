@@ -50,7 +50,9 @@ export function getPaymentStatus(cuotas: { estado: string; fecha_vencimiento: st
         return 'sin_pagos';
     }
 
-    const pendientes = cuotas.filter((c) => c.estado !== 'PAGADA');
+    const pendientes = cuotas.filter(
+        (c) => c.estado !== 'PAGADA' && c.estado !== 'EXONERADA',
+    );
 
     if (pendientes.length === 0) {
         return 'al_dia';

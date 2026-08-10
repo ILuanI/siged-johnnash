@@ -76,6 +76,10 @@ resources/js/
 ├── components/matriculas/
 │   ├── matriculas-sidebar.tsx      # Sidebar estilo prototipo Job Nash
 │   └── student-profile-modal.tsx   # Modal perfil (tabs Información / Pagos / Notas / Asistencia)
+│                                   #   · Tab Pagos: resumen financiero (Costo Total / Pagado / Saldo
+│                                   #     Pendiente), semáforo de pagos, tabla de cuotas con badges de
+│                                   #     estado y tabla de pagos realizados — alimentado por
+│                                   #     `consolidado.finanzas` (ConsolidadoAlumnoService).
 ├── layouts/matriculas-layout.tsx   # Layout del módulo (registrado en app.tsx)
 ├── pages/matriculas/
 │   ├── estudiantes/index.tsx       # Directorio de estudiantes

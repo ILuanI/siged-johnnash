@@ -12,7 +12,10 @@ import {
     ShieldCheck,
     Users,
 } from 'lucide-react';
-import { index as tesoreriaIndex } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
+import {
+    index as tesoreriaIndex,
+    movimientos as tesoreriaMovimientos,
+} from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {

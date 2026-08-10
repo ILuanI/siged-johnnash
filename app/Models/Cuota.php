@@ -44,4 +44,9 @@ class Cuota extends Model
     {
         return $this->hasMany(Pago::class, 'id_cuota', 'id_cuota');
     }
+
+    public function auditorias(): HasMany
+    {
+        return $this->hasMany(AuditoriaCuota::class, 'cuota_id', 'id_cuota');
+    }
 }

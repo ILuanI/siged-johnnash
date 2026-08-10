@@ -3,12 +3,17 @@ import { ArrowLeft, Minus, Plus, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import {
+    exonerar as exonerarCuota,
     index as tesoreriaIndex,
-    pagar as tesoreriaPagar,
     prorrogar as tesoreriaProrrogar,
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import { ComprobantePago } from '@/components/pagos/ComprobantePago';
 import type { ComprobanteCuotaItem } from '@/components/pagos/ComprobantePago';
+import {
+    AuditoriaExoneracionTooltip,
+    type AuditoriaCuotaItem,
+} from '@/components/pagos/AuditoriaExoneracionTooltip';
+import { PagoRow } from '@/components/pagos/PagoRow';
 import { SemaforoPagos } from '@/components/pagos/SemaforoPagos';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,13 +28,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { usePermisos } from '@/hooks/use-permisos';
 
 function formatCurrency(amount: string | number) {
     return new Intl.NumberFormat('es-PE', {
@@ -40,6 +40,7 @@ function formatCurrency(amount: string | number) {
 
 function parseDate(dateStr: string) {
     const [y, m, d] = dateStr.split('T')[0].split('-');
+
     return new Date(Number(y), Number(m) - 1, Number(d));
 }
 
@@ -68,17 +69,26 @@ const CONCEPTO_LABEL: Record<string, string> = {
 function CuotaItem({
     cuota,
     isSelected,
+    montoPagar,
     onAdd,
     onRemove,
+    onAmountChange,
 }: {
     cuota: any;
     isSelected: boolean;
+    montoPagar: number;
     onAdd: () => void;
     onRemove: () => void;
+    onAmountChange: (amount: number) => void;
 }) {
     const [openProrroga, setOpenProrroga] = useState(false);
     const [diasProrroga, setDiasProrroga] = useState('7');
     const [processing, setProcessing] = useState(false);
+    const [openExonerar, setOpenExonerar] = useState(false);
+    const [motivoExonerar, setMotivoExonerar] = useState('');
+    const [processingExonerar, setProcessingExonerar] = useState(false);
+    const { puede } = usePermisos();
+    const puedeExonerar = puede('pagos', 'eliminar');
 
     const [openEditCuota, setOpenEditCuota] = useState(false);
     const [cuotaMonto, setCuotaMonto] = useState(String(cuota.monto));
@@ -97,6 +107,25 @@ function CuotaItem({
                     toast.success('Fecha de vencimiento prorrogada');
                 },
                 onFinish: () => setProcessing(false),
+            },
+        );
+    };
+
+    const handleExonerar = () => {
+        setProcessingExonerar(true);
+        router.post(
+            exonerarCuota.url({ cuota: cuota.id_cuota }),
+            { motivo: motivoExonerar },
+            {
+                onSuccess: () => {
+                    setOpenExonerar(false);
+                    setMotivoExonerar('');
+                    toast.success('Cuota exonerada correctamente');
+                },
+                onError: () => {
+                    toast.error('No se pudo exonerar la cuota');
+                },
+                onFinish: () => setProcessingExonerar(false),
             },
         );
     };
@@ -124,8 +153,13 @@ function CuotaItem({
     };
 
     const isPagada = cuota.estado === 'PAGADA';
+    const esExonerada = cuota.estado === 'EXONERADA';
+    const noAccionable = isPagada || esExonerada;
     const totalPagado =
-        cuota.pagos?.reduce((sum: number, p: any) => sum + Number(p.monto), 0) || 0;
+        cuota.pagos?.reduce(
+            (sum: number, p: any) => sum + Number(p.monto),
+            0,
+        ) || 0;
     const restante = Math.max(0, Number(cuota.monto) - totalPagado);
 
     return (
@@ -141,7 +175,7 @@ function CuotaItem({
                         <span
                             className={`ml-2 inline-block rounded-full border px-2 py-0.5 text-[10px] font-medium ${
                                 CONCEPTO_BADGE[cuota.concepto] ??
-                                'bg-gray-100 text-gray-700 border-gray-200'
+                                'border-gray-200 bg-gray-100 text-gray-700'
                             }`}
                         >
                             {CONCEPTO_LABEL[cuota.concepto] ?? cuota.concepto}
@@ -156,27 +190,65 @@ function CuotaItem({
                         Abonado: {formatCurrency(totalPagado)}
                     </div>
                 )}
+                {cuota.pagos?.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                        {cuota.pagos.map((p: any) => (
+                            <PagoRow key={p.id_pago} pago={p} />
+                        ))}
+                    </div>
+                )}
+                {isSelected && (
+                    <div className="mt-2 flex items-center gap-2">
+                        <Label className="text-xs text-slate-500">
+                            A pagar:
+                        </Label>
+                        <div className="flex items-center gap-1">
+                            <span className="text-xs text-slate-500">S/</span>
+                            <Input
+                                type="number"
+                                min="0.01"
+                                max={restante}
+                                step="0.01"
+                                value={montoPagar}
+                                onChange={(e) => {
+                                    const val = parseFloat(e.target.value) || 0;
+                                    onAmountChange(Math.min(val, restante));
+                                }}
+                                className="h-7 w-24 border-0 border-b border-dotted border-slate-400 bg-transparent px-1 py-0 text-xs font-semibold text-slate-900 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
             <div className="flex items-center gap-2">
                 <div className="text-right">
                     <p className="font-bold text-slate-900">
                         {formatCurrency(restante > 0 ? restante : cuota.monto)}
                     </p>
-                    <Badge
-                        variant="outline"
-                        className={
-                            isPagada
-                                ? 'bg-green-100 text-green-700'
-                                : cuota.estado === 'VENCIDA'
-                                  ? 'bg-red-100 text-red-700'
-                                  : 'bg-yellow-100 text-yellow-700'
-                        }
-                    >
-                        {cuota.estado}
-                    </Badge>
+                    <div className="flex items-center justify-end">
+                        <Badge
+                            variant="outline"
+                            className={
+                                isPagada
+                                    ? 'bg-green-100 text-green-700'
+                                    : cuota.estado === 'VENCIDA'
+                                      ? 'bg-red-100 text-red-700'
+                                      : esExonerada
+                                        ? 'bg-violet-100 text-violet-700'
+                                        : 'bg-yellow-100 text-yellow-700'
+                            }
+                        >
+                            {cuota.estado}
+                        </Badge>
+                        {esExonerada && (
+                            <AuditoriaExoneracionTooltip
+                                auditorias={cuota.auditorias}
+                            />
+                        )}
+                    </div>
                 </div>
 
-                {!isPagada && (
+                {!noAccionable && (
                     <div className="flex gap-1">
                         <Button
                             size="sm"
@@ -199,7 +271,89 @@ function CuotaItem({
                             )}
                         </Button>
 
-                        <Dialog open={openProrroga} onOpenChange={setOpenProrroga}>
+                        {puedeExonerar && (
+                            <Dialog
+                                open={openExonerar}
+                                onOpenChange={setOpenExonerar}
+                            >
+                                <DialogTrigger asChild>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-violet-700 hover:bg-violet-50 hover:text-violet-800"
+                                    >
+                                        Exonerar
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>
+                                            Exonerar Cuota
+                                        </DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                        <p className="text-sm text-slate-600">
+                                            ¿Estás seguro de que deseas exonerar
+                                            la cuota{' '}
+                                            <strong>
+                                                {cuota.numero_cuota}
+                                            </strong>{' '}
+                                            de{' '}
+                                            <strong>
+                                                {formatCurrency(cuota.monto)}
+                                            </strong>
+                                            ? Esta acción no se puede deshacer.
+                                        </p>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="motivo-exoneracion">
+                                                Motivo de exoneración
+                                            </Label>
+                                            <Textarea
+                                                id="motivo-exoneracion"
+                                                value={motivoExonerar}
+                                                onChange={(e) =>
+                                                    setMotivoExonerar(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                placeholder="Indica el motivo de la exoneración (obligatorio)"
+                                                maxLength={500}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="flex justify-end gap-2">
+                                            <Button
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setOpenExonerar(false)
+                                                }
+                                                disabled={processingExonerar}
+                                            >
+                                                Cancelar
+                                            </Button>
+                                            <Button
+                                                variant="default"
+                                                className="bg-violet-600 hover:bg-violet-700"
+                                                onClick={handleExonerar}
+                                                disabled={
+                                                    processingExonerar ||
+                                                    !motivoExonerar.trim()
+                                                }
+                                            >
+                                                {processingExonerar
+                                                    ? 'Exonerando...'
+                                                    : 'Sí, exonerar cuota'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+
+                        <Dialog
+                            open={openProrroga}
+                            onOpenChange={setOpenProrroga}
+                        >
                             <DialogTrigger asChild>
                                 <Button size="sm" variant="outline">
                                     Prorrogar
@@ -224,9 +378,7 @@ function CuotaItem({
                                             min="1"
                                             value={diasProrroga}
                                             onChange={(e) =>
-                                                setDiasProrroga(
-                                                    e.target.value,
-                                                )
+                                                setDiasProrroga(e.target.value)
                                             }
                                             required
                                         />
@@ -244,6 +396,7 @@ function CuotaItem({
                                                                   diasProrroga,
                                                               ),
                                                       );
+
                                                       return formatDate(d);
                                                   })()
                                                 : '...'}
@@ -317,6 +470,9 @@ function CuotaItem({
 
 export default function EstadoCuentaShow({ alumno }: any) {
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [selectedAmounts, setSelectedAmounts] = useState<
+        Record<number, number>
+    >({});
     const lastMatricula = alumno.matriculas?.[0];
     const comprobantes = lastMatricula?.comprobantes_pago || [];
     const cuotas: (ComprobanteCuotaItem & { estado: any })[] =
@@ -341,13 +497,39 @@ export default function EstadoCuentaShow({ alumno }: any) {
     const toggleCuota = (id: number) => {
         setSelectedIds((prev) => {
             const next = new Set(prev);
+
             if (next.has(id)) {
                 next.delete(id);
+                setSelectedAmounts((prev) => {
+                    const next2 = { ...prev };
+                    delete next2[id];
+
+                    return next2;
+                });
             } else {
                 next.add(id);
+                const cuota = cuotas.find((c) => c.id_cuota === id);
+
+                if (cuota) {
+                    const totalPagado =
+                        cuota.pagos?.reduce(
+                            (sum: number, p: any) => sum + Number(p.monto),
+                            0,
+                        ) || 0;
+                    const restante = Math.max(
+                        0,
+                        Number(cuota.monto) - totalPagado,
+                    );
+                    setSelectedAmounts((prev) => ({ ...prev, [id]: restante }));
+                }
             }
+
             return next;
         });
+    };
+
+    const handleAmountChange = (id: number, amount: number) => {
+        setSelectedAmounts((prev) => ({ ...prev, [id]: amount }));
     };
 
     return (
@@ -388,8 +570,11 @@ export default function EstadoCuentaShow({ alumno }: any) {
                     <div className="lg:col-span-2">
                         <ComprobantePago
                             selectedCuotas={selectedCuotas}
-                            onRemove={(id) => toggleCuota(id)}
-                            onClear={() => setSelectedIds(new Set())}
+                            amounts={selectedAmounts}
+                            onClear={() => {
+                                setSelectedIds(new Set());
+                                setSelectedAmounts({});
+                            }}
                             alumno={alumno}
                             cicloNombre={lastMatricula?.ciclo?.nombre}
                             modalidad={lastMatricula?.modalidad}
@@ -411,8 +596,7 @@ export default function EstadoCuentaShow({ alumno }: any) {
                                         {formatCurrency(costoTotal)}
                                     </div>
                                     <p className="mt-1 text-[10px] text-slate-400">
-                                        Matrícula{' '}
-                                        {lastMatricula?.ciclo?.nombre}
+                                        Matrícula {lastMatricula?.ciclo?.nombre}
                                     </p>
                                 </CardContent>
                             </Card>
@@ -499,6 +683,38 @@ export default function EstadoCuentaShow({ alumno }: any) {
                                                 isSelected={selectedIds.has(
                                                     cuota.id_cuota,
                                                 )}
+                                                montoPagar={
+                                                    selectedAmounts[
+                                                        cuota.id_cuota
+                                                    ] ??
+                                                    (() => {
+                                                        const totalPagado =
+                                                            cuota.pagos?.reduce(
+                                                                (
+                                                                    sum: number,
+                                                                    p: any,
+                                                                ) =>
+                                                                    sum +
+                                                                    Number(
+                                                                        p.monto,
+                                                                    ),
+                                                                0,
+                                                            ) || 0;
+
+                                                        return Math.max(
+                                                            0,
+                                                            Number(
+                                                                cuota.monto,
+                                                            ) - totalPagado,
+                                                        );
+                                                    })()
+                                                }
+                                                onAmountChange={(amount) =>
+                                                    handleAmountChange(
+                                                        cuota.id_cuota,
+                                                        amount,
+                                                    )
+                                                }
                                                 onAdd={() =>
                                                     toggleCuota(cuota.id_cuota)
                                                 }

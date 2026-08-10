@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pago extends Model
 {
@@ -22,6 +23,7 @@ class Pago extends Model
         'fecha_pago',
         'monto',
         'metodo_pago',
+        'estado',
     ];
 
     protected function casts(): array
@@ -29,6 +31,7 @@ class Pago extends Model
         return [
             'fecha_pago' => 'datetime',
             'monto' => 'decimal:2',
+            'estado' => 'string', // O podrías usar un Enum si tienes uno definido
         ];
     }
 
@@ -40,5 +43,10 @@ class Pago extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function auditorias(): HasMany
+    {
+        return $this->hasMany(AuditoriaPago::class, 'pago_id', 'id_pago');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Bi;
 
+use App\Enums\ConceptoPago;
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
 use App\Models\Asistencia;
@@ -45,6 +46,12 @@ class DashboardBiController extends Controller
         $tasaAsistenciaPromedio = 0.0;
         $promedioNotasGlobal = 0.0;
         $tasaRecaudacion = 0.0;
+        $recaudacionPorConcepto = [
+            'matricula' => 0.0,
+            'simulacros' => 0.0,
+            'carnet' => 0.0,
+            'otros' => 0.0,
+        ];
 
         if ($selectedCycleId) {
             $totalMatriculados = Matricula::where('id_ciclo', $selectedCycleId)
@@ -74,13 +81,33 @@ class DashboardBiController extends Controller
                 ->where('estado', 'VIGENTE')
                 ->sum('costo_total');
 
-            $totalPagado = Pago::whereHas('cuota.comprobantePago.matricula', function ($q) use ($selectedCycleId) {
-                $q->where('id_ciclo', $selectedCycleId)->where('estado', 'VIGENTE');
-            })->sum('monto');
+            $totalPagado = Pago::where('estado', '!=', 'ANULADO')
+                ->whereHas('cuota.comprobantePago.matricula', function ($q) use ($selectedCycleId) {
+                    $q->where('id_ciclo', $selectedCycleId)->where('estado', 'VIGENTE');
+                })->sum('monto');
 
             if ($totalCosto > 0) {
                 $tasaRecaudacion = ($totalPagado / $totalCosto) * 100;
             }
+
+            // Recaudación por concepto (excluye pagos ANULADO)
+            $totalesPorConcepto = Pago::query()
+                ->join('cuota', 'pago.id_cuota', '=', 'cuota.id_cuota')
+                ->join('comprobante_pago', 'cuota.id_comprobante', '=', 'comprobante_pago.id_comprobante')
+                ->join('matricula', 'comprobante_pago.id_matricula', '=', 'matricula.id_matricula')
+                ->where('pago.estado', '!=', 'ANULADO')
+                ->where('matricula.id_ciclo', $selectedCycleId)
+                ->where('matricula.estado', 'VIGENTE')
+                ->selectRaw('comprobante_pago.concepto as concepto, SUM(pago.monto) as total')
+                ->groupBy('comprobante_pago.concepto')
+                ->pluck('total', 'concepto');
+
+            $recaudacionPorConcepto = [
+                'matricula' => (float) ($totalesPorConcepto[ConceptoPago::Matricula->value] ?? 0.0),
+                'simulacros' => (float) ($totalesPorConcepto[ConceptoPago::Simulacro->value] ?? 0.0),
+                'carnet' => (float) ($totalesPorConcepto[ConceptoPago::Carnet->value] ?? 0.0),
+                'otros' => (float) ($totalesPorConcepto[ConceptoPago::Extraordinario->value] ?? 0.0),
+            ];
         }
 
         // Student List Search (for autocomplete)
@@ -118,6 +145,7 @@ class DashboardBiController extends Controller
                 'tasa_asistencia' => $tasaAsistenciaPromedio,
                 'promedio_notas' => floatval($promedioNotasGlobal),
                 'tasa_recaudacion' => $tasaRecaudacion,
+                'recaudacion_por_concepto' => $recaudacionPorConcepto,
             ],
             'studentList' => $studentList,
             'consolidado' => $consolidado,
