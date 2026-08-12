@@ -211,7 +211,7 @@ export default function CajaGeneralIndex({
                             </Button>
                         </Link>
 
-                        <Link href="/tesoreria/categorias">
+                        <Link href="/ajustes?tab=categorias">
                             <Button variant="outline">
                                 Categorías Financieras
                             </Button>

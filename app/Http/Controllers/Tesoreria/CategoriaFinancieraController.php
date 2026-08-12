@@ -16,17 +16,9 @@ use Inertia\Response;
 
 class CategoriaFinancieraController extends Controller
 {
-    public function index(): Response
+    public function index(): RedirectResponse
     {
-        $categorias = CategoriaFinanciera::query()
-            ->orderByRaw("FIELD(tipo, 'INGRESO', 'EGRESO')")
-            ->orderBy('es_por_defecto', 'desc')
-            ->orderBy('nombre')
-            ->get();
-
-        return Inertia::render('tesoreria/categorias', [
-            'categorias' => $categorias,
-        ]);
+        return redirect()->route('ajustes.index', ['tab' => 'categorias']);
     }
 
     public function store(Request $request): RedirectResponse

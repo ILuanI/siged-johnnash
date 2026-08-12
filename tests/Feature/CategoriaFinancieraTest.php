@@ -22,16 +22,16 @@ function usuarioCategorias(string $rolNombre): User
     ]);
 }
 
-test('index lista las categorias iniciales del seeder', function () {
+test('index lista las categorias iniciales del seeder en ajustes', function () {
     $this->seed(CategoriaFinancieraSeeder::class);
 
     $admin = usuarioCategorias('Administrador');
 
     $this->actingAs($admin)
-        ->get(route('tesoreria.categorias.index'))
+        ->get(route('ajustes.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('tesoreria/categorias')
+            ->component('ajustes/index')
             ->has('categorias', 11));
 });
 

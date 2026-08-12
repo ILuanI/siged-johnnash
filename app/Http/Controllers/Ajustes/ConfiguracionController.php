@@ -36,6 +36,7 @@ class ConfiguracionController extends Controller
             'colegios' => ColegioResource::collection(
                 ColegioProcedencia::query()->withCount('alumnos')->orderBy('nombre')->get()
             )->resolve(),
+            'categorias' => \App\Models\CategoriaFinanciera::query()->orderBy('tipo')->orderBy('nombre')->get(),
         ]);
     }
 

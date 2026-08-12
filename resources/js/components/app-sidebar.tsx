@@ -10,11 +10,10 @@ import {
     ScanBarcode,
     Settings,
     ShieldCheck,
-    Tags,
     Users,
     Wallet,
 } from 'lucide-react';
-import { index as categoriasIndex } from '@/actions/App/Http/Controllers/Tesoreria/CategoriaFinancieraController';
+
 import { index as tesoreriaIndex } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -76,12 +75,7 @@ const mainNavItems: (NavItem & { modulo: string })[] = [
         icon: Wallet,
         modulo: 'pagos',
     },
-    {
-        title: 'Categorías Financieras',
-        href: categoriasIndex(),
-        icon: Tags,
-        modulo: 'pagos',
-    },
+
     {
         title: 'Reportes',
         href: '/reportes',
