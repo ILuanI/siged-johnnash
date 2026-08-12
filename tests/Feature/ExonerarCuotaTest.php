@@ -5,6 +5,7 @@ use App\Models\AuditoriaCuota;
 use App\Models\ComprobantePago;
 use App\Models\Cuota;
 use App\Models\Matricula;
+use App\Models\Pago;
 use App\Models\Rol;
 use App\Models\User;
 use Database\Seeders\RolSeeder;
@@ -173,7 +174,7 @@ test('exonerar una cuota con pagos parciales descuenta solo el saldo restante', 
     $admin = usuarioExonerador('Administrador');
     [, $comprobante, $cuota] = crearCuotaExonerable('PENDIENTE', 500, 300);
 
-    \App\Models\Pago::factory()->create([
+    Pago::factory()->create([
         'id_cuota' => $cuota->id_cuota,
         'monto' => 200,
         'estado' => 'PAGADO',

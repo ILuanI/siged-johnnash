@@ -294,16 +294,18 @@ comprobante_pago 1 ── * cuota 1 ── * pago 1 ── * auditoria_pago
 ```
 
 ### ComprobantePago (`comprobante_pago`)
-Cada concepto de una matrícula genera su propio comprobante.
+Cada concepto de una matrícula genera su propio comprobante. Los ingresos
+generales de caja (sin alumno) generan comprobantes con `id_matricula = null`.
 
 | Campo | Tipo | Descripción |
 |---|---|---|
 | `id_comprobante` | PK | |
-| `id_matricula` | FK → `matricula` | |
-| `numero` | varchar(20) | N° de comprobante |
+| `id_matricula` | FK → `matricula`, **nullable** | `null` = ingreso general (sin alumno) |
+| `numero` | varchar(20) | N° de comprobante (`EXT-GEN-####` en ingresos generales) |
 | `tipo` | enum | `BOLETA` / `FACTURA` / `RECIBO` / `NINGUNO` |
 | `concepto` | varchar(30) | `MATRICULA`, `SIMULACRO`, `CARNET`, `EXTRAORDINARIO` |
-| `descripcion` | varchar(255) | |
+| `categoria` | varchar(60) | Categoría contable: valores del mantenedor `categoria_financiera` (tipo `INGRESO`) o del enum `CategoriaIngreso` (default `ACADEMICO`) |
+| `descripcion` | varchar(255) | Concepto libre del cobro (máx. 60 en extraordinarios) |
 | `fecha_emision` | date | |
 | `costo_total` | decimal(8,2) | |
 | `saldo_pendiente` | decimal(8,2) | |
@@ -369,6 +371,10 @@ Generada por el módulo de IA.
 
 ## 10. Egresos
 
+```
+egreso 1 ── * auditoria_egreso
+```
+
 ### Egreso (`egreso`)
 Registro contable de gastos.
 
@@ -377,16 +383,45 @@ Registro contable de gastos.
 | `id_egreso` | PK | |
 | `fecha` | date | |
 | `tipo_egreso` | varchar(60) | |
-| `categoria` | varchar(60) | `OPERATIVO` / `ADMINISTRATIVO` / `MANTENIMIENTO` / `SERVICIOS` / `ACADEMICO` / `OTROS` (default `OPERATIVO`) |
+| `categoria` | varchar(60) | Categoría contable: valores del mantenedor `categoria_financiera` (tipo `EGRESO`) o del enum `CategoriaEgreso` (default `OPERATIVO`) |
 | `descripcion` | varchar(160) | |
 | `cantidad` | decimal(8,2) | |
 | `precio` | decimal(8,2) | |
 | `igv` | decimal(8,2) | |
-| `total` | decimal(10,2) | |
+| `total` | decimal(10,2) | Columna generada: `cantidad * precio + igv` |
 | `metodo_pago` | enum | `EFECTIVO` / `TRANSFERENCIA` / `TARJETA` / `YAPE` / `PLIN` |
 | `tipo_comprobante` | enum | `FACTURA` / `BOLETA` / `RECIBO` / `NINGUNO` |
 | `personal` | varchar(120) | |
 | `user_id` | FK → `users` | |
+| `estado` | enum | `REGISTRADO` / `ANULADO` (default `REGISTRADO`) |
+
+### AuditoriaEgreso (`auditoria_egreso`)
+Registro de auditoría de anulaciones de egresos.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | PK | |
+| `egreso_id` | FK → `egreso` | Egreso auditado |
+| `usuario_id` | FK → `users` | Quien ejecutó la acción |
+| `accion` | varchar(50) | `ANULACION` |
+| `motivo` | text | Obligatorio al anular |
+| `created_at` | timestamp | Momento del registro |
+
+**Reglas:** la anulación de un egreso (`estado` → `ANULADO`) es irreversible, requiere `motivo` obligatorio y permiso `pagos.eliminar`, y registra una entrada en `auditoria_egreso` con `accion = ANULACION`. Los egresos anulados no cuentan en el total de egresos de la caja.
+
+### CategoriaFinanciera (`categoria_financiera`)
+Catálogo gestionable de categorías contables para ingresos y egresos.
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | PK | |
+| `nombre` | varchar(60) | Único por `tipo` |
+| `tipo` | enum | `INGRESO` / `EGRESO` |
+| `descripcion` | varchar(160) | Nullable |
+| `es_por_defecto` | boolean | Única por `tipo` |
+| `created_at` / `updated_at` | timestamp | |
+
+**Reglas:** la categoría por defecto es única por `tipo` (`setDefault` desmarca las demás del mismo tipo). No se elimina la categoría por defecto ni una en uso por `egreso.categoria` o `comprobante_pago.categoria`. `comprobante_pago.categoria` y `egreso.categoria` se almacenan como string libre (valores del mantenedor o de los enums `CategoriaIngreso` / `CategoriaEgreso` como fallback).
 
 ---
 
@@ -452,6 +487,7 @@ ciclo → asignacion_docente → curso
 | Pagos / Cuotas | Tesorería (`/tesoreria/estado-cuenta`) | `EstadoCuentaController` |
 | Movimientos (libro diario) | Tesorería (`/tesoreria/movimientos`) | `EstadoCuentaController::movimientos` |
 | Egresos | Tesorería Caja (`/tesoreria/caja`) | `EgresoController` |
+| Categorías financieras | Tesorería (`/tesoreria/categorias`) | `CategoriaFinancieraController` |
 | Reportes | Reportes (`/reportes`) | `ReportesController` |
 | IA Deserción | IA (`/ia/desercion`) | `DesercionController` |
 | Ajustes (turnos, periodos, colegios) | Ajustes (`/ajustes`) | `ConfiguracionController` |
@@ -466,5 +502,6 @@ ciclo → asignacion_docente → curso
 - **Los rankings de exámenes** se agrupan por área de la carrera del alumno.
 - **Cada concepto de matrícula** (matrícula, simulacro, carnet) genera su propio `ComprobantePago` con cuotas independientes.
 - **Carnet siempre 1 cuota.**
-- **El módulo de egresos** se gestiona desde Tesorería → Caja General (`/tesoreria/caja`): registro, listado y eliminación de egresos con categoría del catálogo `OPERATIVO`/`ADMINISTRATIVO`/`MANTENIMIENTO`/`SERVICIOS`/`ACADEMICO`/`OTROS`.
+- **El módulo de egresos** se gestiona desde Tesorería → Caja General (`/tesoreria/caja`): registro, listado y **anulación** de egresos con categoría del catálogo `categoria_financiera` (tipo `EGRESO`) o del enum `CategoriaEgreso` como fallback.
+- **Las categorías contables** (ingresos y egresos) se gestionan desde Tesorería → Categorías Financieras (`/tesoreria/categorias`); los formularios de caja y pagos extraordinarios consumen el catálogo dinámico con fallback a los enums.
 - **Justificado** es un estado válido de asistencia además de ASISTIO, FALTO y TARDANZA.

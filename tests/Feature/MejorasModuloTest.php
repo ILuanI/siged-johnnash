@@ -97,7 +97,7 @@ test('rechaza registrar un egreso sin categoria', function () {
     $this->assertDatabaseMissing('egreso', ['tipo_egreso' => 'Pago de Servicios']);
 });
 
-test('permite eliminar un egreso registrado', function () {
+test('permite anular un egreso registrado conservando el registro', function () {
     $user = crearUsuarioAdmin();
 
     $egreso = Egreso::create([
@@ -111,9 +111,20 @@ test('permite eliminar un egreso registrado', function () {
         'user_id' => $user->id,
     ]);
 
-    $responseDestroy = $this->actingAs($user)->delete(route('tesoreria.egresos.destroy', $egreso->id_egreso));
-    $responseDestroy->assertRedirect();
-    $this->assertDatabaseMissing('egreso', ['id_egreso' => $egreso->id_egreso]);
+    $responseAnular = $this->actingAs($user)->post(route('tesoreria.egresos.anular', $egreso->id_egreso), [
+        'motivo' => 'Registro duplicado por error del cajero',
+    ]);
+    $responseAnular->assertRedirect();
+    $this->assertDatabaseHas('egreso', [
+        'id_egreso' => $egreso->id_egreso,
+        'estado' => 'ANULADO',
+    ]);
+    $this->assertDatabaseHas('auditoria_egreso', [
+        'egreso_id' => $egreso->id_egreso,
+        'usuario_id' => $user->id,
+        'accion' => 'ANULACION',
+        'motivo' => 'Registro duplicado por error del cajero',
+    ]);
 });
 
 test('rechaza registrar o actualizar un egreso con categoria fuera del catalogo permitido', function () {

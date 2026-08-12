@@ -23,6 +23,7 @@ class ComprobantePago extends Model
         'numero',
         'tipo',
         'concepto',
+        'categoria',
         'descripcion',
         'fecha_emision',
         'costo_total',
@@ -36,6 +37,10 @@ class ComprobantePago extends Model
             'costo_total' => 'decimal:2',
             'saldo_pendiente' => 'decimal:2',
             'concepto' => ConceptoPago::class,
+            // La categoría es un string libre: puede ser un valor del enum
+            // CategoriaIngreso o una categoría dinámica del mantenedor
+            // `categoria_financiera`.
+            'categoria' => 'string',
         ];
     }
 

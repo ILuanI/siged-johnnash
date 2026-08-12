@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Egreso extends Model
 {
@@ -33,11 +34,17 @@ class Egreso extends Model
             'precio' => 'float',
             'igv' => 'float',
             'total' => 'float',
+            'estado' => 'string',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id', 'id');
+    }
+
+    public function auditorias(): HasMany
+    {
+        return $this->hasMany(AuditoriaEgreso::class, 'egreso_id', 'id_egreso');
     }
 }

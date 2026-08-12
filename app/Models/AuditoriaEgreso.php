@@ -2,17 +2,12 @@
 
 namespace App\Models;
 
-use Database\Factories\AuditoriaCuotaFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class AuditoriaCuota extends Model
+class AuditoriaEgreso extends Model
 {
-    /** @use HasFactory<AuditoriaCuotaFactory> */
-    use HasFactory;
-
-    protected $table = 'auditoria_cuotas';
+    protected $table = 'auditoria_egreso';
 
     /**
      * La tabla solo mantiene un timestamp (created_at) como registro inmutable
@@ -21,15 +16,15 @@ class AuditoriaCuota extends Model
     public const UPDATED_AT = null;
 
     protected $fillable = [
-        'cuota_id',
+        'egreso_id',
         'usuario_id',
         'accion',
         'motivo',
     ];
 
-    public function cuota(): BelongsTo
+    public function egreso(): BelongsTo
     {
-        return $this->belongsTo(Cuota::class, 'cuota_id', 'id_cuota');
+        return $this->belongsTo(Egreso::class, 'egreso_id', 'id_egreso');
     }
 
     public function usuario(): BelongsTo

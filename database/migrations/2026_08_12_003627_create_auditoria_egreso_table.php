@@ -11,18 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('auditoria_cuotas', function (Blueprint $table) {
+        Schema::create('auditoria_egreso', function (Blueprint $table) {
             $table->increments('id');
-            $table->unsignedInteger('cuota_id');
+            $table->unsignedInteger('egreso_id');
             $table->unsignedBigInteger('usuario_id');
             $table->string('accion', 50);
             $table->text('motivo')->nullable();
             $table->timestamp('created_at')->nullable();
 
-            $table->foreign('cuota_id')->references('id_cuota')->on('cuota')->restrictOnDelete();
+            $table->foreign('egreso_id')->references('id_egreso')->on('egreso')->restrictOnDelete();
             $table->foreign('usuario_id')->references('id')->on('users')->restrictOnDelete();
 
-            $table->index('cuota_id');
+            $table->index('egreso_id');
             $table->index('usuario_id');
         });
     }
@@ -32,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('auditoria_cuotas');
+        Schema::dropIfExists('auditoria_egreso');
     }
 };

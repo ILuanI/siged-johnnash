@@ -2,6 +2,10 @@
 
 ## Hecho ✅
 
+- **009 — Anulación de Egresos y Libro Diario Consolidado**: soft delete de
+  egresos con auditoría (`auditoria_egreso`), libro diario unificado de pagos y
+  egresos en `/tesoreria/movimientos` con filtro por tipo, modal de anulación
+  en la caja. Tests: 187 passed, 2 skipped.
 
 ## Siguiente 🔜
 

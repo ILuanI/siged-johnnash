@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Tesoreria\CategoriaFinancieraController;
 use App\Http\Controllers\Tesoreria\EgresoController;
 use App\Http\Controllers\Tesoreria\EstadoCuentaController;
 use App\Http\Controllers\Tesoreria\PagoExtraordinarioController;
@@ -24,5 +25,11 @@ Route::middleware(['auth', 'verified', 'permiso'])->prefix('tesoreria')->name('t
 
     Route::post('egresos', [EgresoController::class, 'store'])->name('egresos.store');
     Route::put('egresos/{egreso}', [EgresoController::class, 'update'])->name('egresos.update');
-    Route::delete('egresos/{egreso}', [EgresoController::class, 'destroy'])->name('egresos.destroy');
+    Route::post('egresos/{egreso}/anular', [EgresoController::class, 'anular'])->name('egresos.anular');
+
+    Route::get('categorias', [CategoriaFinancieraController::class, 'index'])->name('categorias.index');
+    Route::post('categorias', [CategoriaFinancieraController::class, 'store'])->name('categorias.store');
+    Route::put('categorias/{categoria}', [CategoriaFinancieraController::class, 'update'])->name('categorias.update');
+    Route::delete('categorias/{categoria}', [CategoriaFinancieraController::class, 'destroy'])->name('categorias.destroy');
+    Route::post('categorias/{categoria}/default', [CategoriaFinancieraController::class, 'setDefault'])->name('categorias.set-default');
 });

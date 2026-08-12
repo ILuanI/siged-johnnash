@@ -121,8 +121,15 @@ Auto-registered by `FortifyServiceProvider`. Rate limits: login 5/min, 2FA 5/min
 - Account statements (index + per-student): cuotas de todos los conceptos (MATRICULA, SIMULACRO, CARNET, EXTRAORDINARIO)
 - Fee payment/deferral per cuota, prórroga
 - **Anulación de pago**: `POST /tesoreria/pagos/{pago}/anular` (motivo obligatorio, estado `PAGADO` → `ANULADO`, registra auditoría)
-- **Reporte de movimientos (libro diario)**: `GET /tesoreria/movimientos` — filtros por rango de fechas, método de pago y estado; ordenamiento por fecha/monto
-- **Pago extraordinario**: registro manual de cobros ad-hoc con descripción libre
+- **Reporte de movimientos (libro diario)**: `GET /tesoreria/movimientos` — consolida pagos (ingresos) y egresos (salidas); filtros por rango de fechas, tipo (`todos`/`ingresos`/`egresos`), método de pago y estado; ordenamiento por fecha/monto
+- **Egresos**: `POST /tesoreria/egresos`, `PUT /tesoreria/egresos/{egreso}`, `POST /tesoreria/egresos/{egreso}/anular` (motivo obligatorio, estado `REGISTRADO` → `ANULADO`, registra auditoría; sustituye al antiguo `DELETE`). `categoria` se valida contra `categoria_financiera` (tipo `EGRESO`) + enum `CategoriaEgreso` como fallback
+- **Pago extraordinario**: registro manual de cobros ad-hoc con descripción libre. `categoria` se valida contra `categoria_financiera` (tipo `INGRESO`) + enum `CategoriaIngreso` como fallback
+- **Mantenedor de categorías financieras** (`CategoriaFinancieraController`, prefix `tesoreria/categorias`, módulo `pagos`):
+  - `GET /tesoreria/categorias` → `index` (página Inertia `tesoreria/categorias`)
+  - `POST /tesoreria/categorias` → `store`
+  - `PUT /tesoreria/categorias/{categoria}` → `update`
+  - `DELETE /tesoreria/categorias/{categoria}` → `destroy` (requiere `pagos.eliminar`; rechaza por defecto o en uso)
+  - `POST /tesoreria/categorias/{categoria}/default` → `setDefault` (única por tipo)
 - WhatsApp notification templates
 
 ### Reportes (con `permiso`)

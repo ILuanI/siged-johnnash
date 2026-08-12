@@ -12,6 +12,8 @@ import {
     index as tesoreriaIndex,
     movimientos as movimientosIndex,
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
+import { AuditoriaAnulacionTooltip } from '@/components/pagos/AuditoriaAnulacionTooltip';
+import type { AuditoriaPagoItem } from '@/components/pagos/AuditoriaAnulacionTooltip';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,7 +34,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { AuditoriaAnulacionTooltip } from '@/components/pagos/AuditoriaAnulacionTooltip';
 import { cn } from '@/lib/utils';
 
 type PagoMovimiento = {
@@ -42,13 +43,7 @@ type PagoMovimiento = {
     metodo_pago: string;
     estado: string;
     user: { name: string } | null;
-    auditorias?: {
-        id: number;
-        accion: string;
-        motivo?: string | null;
-        created_at?: string | null;
-        usuario?: { name: string } | null;
-    }[];
+    auditorias?: AuditoriaPagoItem[];
     cuota: {
         comprobante_pago: {
             matricula: {
@@ -62,24 +57,40 @@ type PagoMovimiento = {
     };
 };
 
+type EgresoMovimiento = {
+    id_egreso: number;
+    fecha: string;
+    concepto: string;
+    categoria: string;
+    descripcion: string | null;
+    cantidad: number;
+    precio: number;
+    igv: number;
+    total: string;
+    metodo_pago: string;
+    estado: string;
+    user: { name: string } | null;
+    auditorias?: AuditoriaPagoItem[];
+};
+
 /**
- * Un movimiento del libro diario. Un pago anulado se descompone en dos
- * movimientos: el pago original (PAGO) y su reverso (ANULACION).
+ * Un movimiento del libro diario. Un pago o egreso anulado se descompone en
+ * dos movimientos: el original (PAGO/EGRESO) y su reverso (ANULACION).
  */
 type Movimiento = {
     key: string;
-    tipo: 'PAGO' | 'ANULACION';
+    tipo: 'PAGO' | 'EGRESO' | 'ANULACION';
     fecha: string;
-    alumno: string;
+    detalle: string;
     monto: number;
     metodo_pago: string;
-    estado: 'PAGADO' | 'ANULADO';
+    estado: 'PAGADO' | 'REGISTRADO' | 'ANULADO';
     registradoPor: string;
-    auditorias?: PagoMovimiento['auditorias'];
+    auditorias?: AuditoriaPagoItem[];
 };
 
-type PaginatedPagos = {
-    data: PagoMovimiento[];
+type PaginatedCollection<T> = {
+    data: T[];
     current_page: number;
     last_page: number;
     from: number | null;
@@ -90,12 +101,14 @@ type PaginatedPagos = {
 };
 
 type MovimientosProps = {
-    pagos: PaginatedPagos;
+    pagos: PaginatedCollection<PagoMovimiento>;
+    egresos: PaginatedCollection<EgresoMovimiento>;
     filters: {
         fecha_inicio?: string | null;
         fecha_fin?: string | null;
         metodo_pago?: string | null;
         estado?: string | null;
+        tipo?: 'todos' | 'ingresos' | 'egresos' | null;
         sort?: 'fecha' | 'monto' | null;
         direction?: 'asc' | 'desc' | null;
     };
@@ -111,8 +124,17 @@ const METODOS_PAGO = [
 
 const ESTADOS = [
     { value: 'PAGADO', label: 'Pagado' },
+    { value: 'REGISTRADO', label: 'Registrado' },
     { value: 'ANULADO', label: 'Anulado' },
 ];
+
+const TIPOS = [
+    { value: 'todos', label: 'Todos' },
+    { value: 'ingresos', label: 'Ingresos' },
+    { value: 'egresos', label: 'Egresos' },
+];
+
+const POR_PAGINA = 15;
 
 function formatCurrency(amount: string | number) {
     return new Intl.NumberFormat('es-PE', {
@@ -131,11 +153,12 @@ function formatDate(dateStr: string) {
     }).format(new Date(Number(y), Number(m) - 1, Number(d)));
 }
 
-export default function Movimientos({ pagos, filters }: MovimientosProps) {
+export default function Movimientos({ pagos, egresos, filters }: MovimientosProps) {
     const [fechaInicio, setFechaInicio] = useState(filters.fecha_inicio ?? '');
     const [fechaFin, setFechaFin] = useState(filters.fecha_fin ?? '');
     const [metodoPago, setMetodoPago] = useState(filters.metodo_pago ?? '');
     const [estado, setEstado] = useState(filters.estado ?? '');
+    const [tipo, setTipo] = useState(filters.tipo ?? 'todos');
 
     const aplicarFiltros = (e: React.FormEvent) => {
         e.preventDefault();
@@ -146,6 +169,7 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                 fecha_fin: fechaFin || undefined,
                 metodo_pago: metodoPago || undefined,
                 estado: estado || undefined,
+                tipo: tipo || undefined,
                 sort: filters.sort || undefined,
                 direction: filters.direction || undefined,
             },
@@ -158,6 +182,7 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
         setFechaFin('');
         setMetodoPago('');
         setEstado('');
+        setTipo('todos');
         router.get(
             movimientosIndex.url(),
             {},
@@ -173,6 +198,7 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                 fecha_fin: filters.fecha_fin || undefined,
                 metodo_pago: filters.metodo_pago || undefined,
                 estado: filters.estado || undefined,
+                tipo: filters.tipo || undefined,
                 sort: filters.sort || undefined,
                 direction: filters.direction || undefined,
                 page,
@@ -194,6 +220,7 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                 fecha_fin: filters.fecha_fin || undefined,
                 metodo_pago: filters.metodo_pago || undefined,
                 estado: filters.estado || undefined,
+                tipo: filters.tipo || undefined,
                 sort: columna,
                 direction: nuevaDireccion,
             },
@@ -211,60 +238,109 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
         return `${alumno.apellidos}, ${alumno.nombres}`;
     };
 
-    // Construye el libro diario: cada pago anulado genera dos movimientos
-    // (el pago original y su anulación), cada pago vigente genera uno.
-    const movimientos: Movimiento[] = pagos.data.flatMap((pago) => {
-        const alumno = nombreAlumno(pago);
-        const anulacion = pago.auditorias
-            ?.filter((a) => a.accion === 'ANULACION')
-            .at(-1);
+    // Construye el libro diario: cada pago o egreso anulado genera dos
+    // movimientos (el original y su reverso), cada vigente genera uno.
+    // Los ingresos (pagos) son positivos; los egresos, negativos; el reverso
+    // de una anulación cancela el signo del movimiento original.
+    const movimientos: Movimiento[] = [
+        ...pagos.data.flatMap((pago) => {
+            const anulacion = pago.auditorias
+                ?.filter((a) => a.accion === 'ANULACION')
+                .at(-1);
 
-        const base = {
-            alumno,
-            metodo_pago: pago.metodo_pago,
-            auditorias: pago.auditorias,
-        };
+            const base = {
+                detalle: nombreAlumno(pago),
+                metodo_pago: pago.metodo_pago,
+                auditorias: pago.auditorias,
+            };
 
-        if (pago.estado === 'ANULADO') {
+            if (pago.estado === 'ANULADO') {
+                return [
+                    {
+                        ...base,
+                        key: `pago-${pago.id_pago}-pago`,
+                        tipo: 'PAGO' as const,
+                        fecha: pago.fecha_pago,
+                        monto: Number(pago.monto),
+                        estado: 'PAGADO' as const,
+                        registradoPor: pago.user?.name ?? '—',
+                    },
+                    {
+                        ...base,
+                        key: `pago-${pago.id_pago}-anulacion`,
+                        tipo: 'ANULACION' as const,
+                        fecha: anulacion?.created_at ?? pago.fecha_pago,
+                        monto: -Number(pago.monto),
+                        estado: 'ANULADO' as const,
+                        registradoPor: anulacion?.usuario?.name ?? '—',
+                    },
+                ];
+            }
+
             return [
                 {
                     ...base,
-                    key: `${pago.id_pago}-pago`,
+                    key: `pago-${pago.id_pago}-pago`,
                     tipo: 'PAGO' as const,
                     fecha: pago.fecha_pago,
                     monto: Number(pago.monto),
                     estado: 'PAGADO' as const,
                     registradoPor: pago.user?.name ?? '—',
                 },
+            ];
+        }),
+        ...egresos.data.flatMap((egreso) => {
+            const anulacion = egreso.auditorias
+                ?.filter((a) => a.accion === 'ANULACION')
+                .at(-1);
+
+            const base = {
+                detalle: egreso.concepto,
+                metodo_pago: egreso.metodo_pago || 'EFECTIVO',
+                auditorias: egreso.auditorias,
+            };
+
+            if (egreso.estado === 'ANULADO') {
+                return [
+                    {
+                        ...base,
+                        key: `egreso-${egreso.id_egreso}-egreso`,
+                        tipo: 'EGRESO' as const,
+                        fecha: egreso.fecha,
+                        monto: -Number(egreso.total),
+                        estado: 'REGISTRADO' as const,
+                        registradoPor: egreso.user?.name ?? '—',
+                    },
+                    {
+                        ...base,
+                        key: `egreso-${egreso.id_egreso}-anulacion`,
+                        tipo: 'ANULACION' as const,
+                        fecha: anulacion?.created_at ?? egreso.fecha,
+                        monto: Number(egreso.total),
+                        estado: 'ANULADO' as const,
+                        registradoPor: anulacion?.usuario?.name ?? '—',
+                    },
+                ];
+            }
+
+            return [
                 {
                     ...base,
-                    key: `${pago.id_pago}-anulacion`,
-                    tipo: 'ANULACION' as const,
-                    fecha: anulacion?.created_at ?? pago.fecha_pago,
-                    monto: -Number(pago.monto),
-                    estado: 'ANULADO' as const,
-                    registradoPor: anulacion?.usuario?.name ?? '—',
+                    key: `egreso-${egreso.id_egreso}-egreso`,
+                    tipo: 'EGRESO' as const,
+                    fecha: egreso.fecha,
+                    monto: -Number(egreso.total),
+                    estado: 'REGISTRADO' as const,
+                    registradoPor: egreso.user?.name ?? '—',
                 },
             ];
-        }
+        }),
+    ];
 
-        return [
-            {
-                ...base,
-                key: `${pago.id_pago}-pago`,
-                tipo: 'PAGO' as const,
-                fecha: pago.fecha_pago,
-                monto: Number(pago.monto),
-                estado: 'PAGADO' as const,
-                registradoPor: pago.user?.name ?? '—',
-            },
-        ];
-    });
-
-    // El backend ya ordena los pagos en SQL; aquí se reordena el array
+    // El backend ya ordena cada colección en SQL; aquí se reordena el array
     // transformado para que las líneas de ANULACION (cuya fecha es la de la
-    // auditoría, no la del pago) queden en la posición correcta dentro de la
-    // página según el orden activo. El sort de JS es estable.
+    // auditoría, no la del movimiento original) queden en la posición correcta
+    // dentro de la página según el orden activo. El sort de JS es estable.
     const sortColumn = filters.sort ?? 'fecha';
     const sortDirection = filters.direction ?? 'desc';
 
@@ -272,7 +348,7 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
         const comparacion =
             sortColumn === 'monto'
                 ? a.monto - b.monto
-                : a.fecha.localeCompare(b.fecha);
+                : a.fecha.slice(0, 10).localeCompare(b.fecha.slice(0, 10));
 
         return sortDirection === 'asc' ? comparacion : -comparacion;
     });
@@ -281,7 +357,19 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
         Boolean(filters.fecha_inicio) ||
         Boolean(filters.fecha_fin) ||
         Boolean(filters.metodo_pago) ||
-        Boolean(filters.estado);
+        Boolean(filters.estado) ||
+        Boolean(filters.tipo && filters.tipo !== 'todos');
+
+    // Paginación combinada de ambas colecciones (misma página en cada una).
+    const pagination = {
+        current_page: Math.max(pagos.current_page, egresos.current_page),
+        last_page: Math.max(pagos.last_page, egresos.last_page),
+        total: (pagos.total ?? 0) + (egresos.total ?? 0),
+    };
+    const desde = pagination.total > 0
+        ? (pagination.current_page - 1) * POR_PAGINA + 1
+        : 0;
+    const hasta = Math.min(pagination.current_page * POR_PAGINA, pagination.total);
 
     return (
         <>
@@ -301,7 +389,8 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                     Movimientos de Tesorería
                 </h1>
                 <p className="text-sm text-slate-500">
-                    Reporte de pagos registrados y anulados
+                    Libro diario de ingresos (pagos) y egresos registrados y
+                    anulados
                 </p>
             </header>
 
@@ -310,7 +399,7 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                     <CardContent className="pt-6">
                         <form
                             onSubmit={aplicarFiltros}
-                            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+                            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"
                         >
                             <div className="space-y-2">
                                 <Label htmlFor="fecha_inicio">
@@ -336,6 +425,35 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                                         setFechaFin(e.target.value)
                                     }
                                 />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="tipo">Tipo</Label>
+                                <Select
+                                    value={tipo}
+                                    onValueChange={(val) =>
+                                        setTipo(
+                                            val as
+                                                | 'todos'
+                                                | 'ingresos'
+                                                | 'egresos',
+                                        )
+                                    }
+                                >
+                                    <SelectTrigger id="tipo">
+                                        <SelectValue placeholder="Todos" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {TIPOS.map((t) => (
+                                            <SelectItem
+                                                key={t.value}
+                                                value={t.value}
+                                            >
+                                                {t.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             <div className="space-y-2">
@@ -394,7 +512,7 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                                 </Select>
                             </div>
 
-                            <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
+                            <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-5">
                                 <Button
                                     type="submit"
                                     className="gap-2 bg-[#1a237e] hover:bg-[#0d1557]"
@@ -419,7 +537,7 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
 
                 <Card>
                     <CardContent className="pt-6">
-                        {pagos.data.length === 0 ? (
+                        {movimientos.length === 0 ? (
                             <div className="rounded-xl border border-dashed bg-white p-12 text-center">
                                 <p className="text-slate-600">
                                     No hay movimientos que coincidan con los
@@ -459,7 +577,7 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                                                         )}
                                                     </button>
                                                 </TableHead>
-                                                <TableHead>Alumno</TableHead>
+                                                <TableHead>Detalle</TableHead>
                                                 <TableHead className="text-right">
                                                     <button
                                                         type="button"
@@ -501,7 +619,7 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                                                         {formatDate(mov.fecha)}
                                                     </TableCell>
                                                     <TableCell>
-                                                        {mov.alumno}
+                                                        {mov.detalle}
                                                     </TableCell>
                                                     <TableCell
                                                         className={cn(
@@ -509,7 +627,10 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                                                             mov.tipo ===
                                                                 'ANULACION'
                                                                 ? 'text-red-600'
-                                                                : 'text-slate-900',
+                                                                : mov.tipo ===
+                                                                    'EGRESO'
+                                                                  ? 'text-rose-600'
+                                                                  : 'text-slate-900',
                                                         )}
                                                     >
                                                         {formatCurrency(
@@ -525,9 +646,14 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                                                                 variant="outline"
                                                                 className={cn(
                                                                     mov.estado ===
-                                                                        'PAGADO'
-                                                                        ? 'bg-green-100 text-green-700'
-                                                                        : 'bg-red-100 text-red-700',
+                                                                        'PAGADO' &&
+                                                                        'bg-green-100 text-green-700',
+                                                                    mov.estado ===
+                                                                        'REGISTRADO' &&
+                                                                        'bg-blue-100 text-blue-700',
+                                                                    mov.estado ===
+                                                                        'ANULADO' &&
+                                                                        'bg-red-100 text-red-700',
                                                                 )}
                                                             >
                                                                 {mov.estado}
@@ -551,22 +677,23 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                                     </Table>
                                 </div>
 
-                                {pagos.last_page > 1 && (
+                                {pagination.last_page > 1 && (
                                     <div className="mt-6 flex flex-col items-center gap-3">
                                         <p className="text-xs text-slate-400">
-                                            Mostrando {pagos.from}–{pagos.to} de{' '}
-                                            {pagos.total} movimientos
+                                            Mostrando {desde}–{hasta} de{' '}
+                                            {pagination.total} movimientos
                                         </p>
                                         <div className="flex items-center gap-1">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
                                                 disabled={
-                                                    pagos.current_page === 1
+                                                    pagination.current_page === 1
                                                 }
                                                 onClick={() =>
                                                     irAPagina(
-                                                        pagos.current_page - 1,
+                                                        pagination.current_page -
+                                                            1,
                                                     )
                                                 }
                                                 className="cursor-pointer"
@@ -574,24 +701,30 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                                                 Anterior
                                             </Button>
                                             {Array.from(
-                                                { length: pagos.last_page },
+                                                {
+                                                    length: pagination.last_page,
+                                                },
                                                 (_, i) => i + 1,
                                             ).map((page) => {
                                                 const isActive =
-                                                    page === pagos.current_page;
+                                                    page ===
+                                                    pagination.current_page;
                                                 const show =
                                                     page === 1 ||
-                                                    page === pagos.last_page ||
+                                                    page ===
+                                                        pagination.last_page ||
                                                     Math.abs(
                                                         page -
-                                                            pagos.current_page,
+                                                            pagination
+                                                                .current_page,
                                                     ) <= 2;
 
                                                 if (!show) {
                                                     if (
                                                         page === 2 ||
                                                         page ===
-                                                            pagos.last_page - 1
+                                                            pagination
+                                                                .last_page - 1
                                                     ) {
                                                         return (
                                                             <span
@@ -632,12 +765,13 @@ export default function Movimientos({ pagos, filters }: MovimientosProps) {
                                                 variant="outline"
                                                 size="sm"
                                                 disabled={
-                                                    pagos.current_page ===
-                                                    pagos.last_page
+                                                    pagination.current_page ===
+                                                    pagination.last_page
                                                 }
                                                 onClick={() =>
                                                     irAPagina(
-                                                        pagos.current_page + 1,
+                                                        pagination.current_page +
+                                                            1,
                                                     )
                                                 }
                                                 className="cursor-pointer"

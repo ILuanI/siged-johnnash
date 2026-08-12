@@ -26,6 +26,7 @@ test('genera comprobante de matricula con concepto', function () {
     );
 
     expect($comprobante->concepto)->toBe(ConceptoPago::Matricula)
+        ->and($comprobante->categoria)->toBe('ACADEMICO')
         ->and((float) $comprobante->costo_total)->toBe(500.0)
         ->and($comprobante->cuotas)->toHaveCount(1)
         ->and($comprobante->numero)->toMatch('/^MAT-/');
@@ -45,6 +46,7 @@ test('genera comprobante de simulacro con concepto', function () {
     );
 
     expect($comprobante->concepto)->toBe(ConceptoPago::Simulacro)
+        ->and($comprobante->categoria)->toBe('EVENTOS')
         ->and((float) $comprobante->costo_total)->toBe(100.0)
         ->and($comprobante->numero)->toMatch('/^SIM-/');
 });
@@ -63,6 +65,7 @@ test('carnet siempre genera una sola cuota', function () {
     );
 
     expect($comprobante->concepto)->toBe(ConceptoPago::Carnet)
+        ->and($comprobante->categoria)->toBe('SERVICIOS')
         ->and((float) $comprobante->costo_total)->toBe(30.0)
         ->and($comprobante->cuotas)->toHaveCount(1)
         ->and($comprobante->numero)->toMatch('/^CAR-/');
@@ -126,21 +129,50 @@ test('comprobantePago() scoped devuelve solo el de matricula', function () {
     expect($all)->toHaveCount(2);
 });
 
-test('genera comprobante extraordinario con descripcion', function () {
+test('genera comprobante extraordinario con descripcion y categoria', function () {
     $matricula = Matricula::factory()->create(['costo_total' => 500]);
 
     $service = app(PagoExtraordinarioService::class);
     $comprobante = $service->registrar(
         matricula: $matricula,
         monto: 25.50,
-        descripcion: 'Examen de Conocimiento - Matemática',
+        descripcion: 'Examen de Conocimiento - MatemÃ¡tica',
         numCuotas: 1,
+        categoria: 'ACADEMICO',
     );
 
     expect($comprobante->concepto)->toBe(ConceptoPago::Extraordinario)
-        ->and($comprobante->descripcion)->toBe('Examen de Conocimiento - Matemática')
+        ->and($comprobante->categoria)->toBe('ACADEMICO')
+        ->and($comprobante->descripcion)->toBe('Examen de Conocimiento - MatemÃ¡tica')
         ->and((float) $comprobante->costo_total)->toBe(25.50)
         ->and($comprobante->numero)->toMatch('/^EXT-/');
+});
+
+test('extraordinario sin categoria explicita usa ADMINISTRATIVO por defecto', function () {
+    $matricula = Matricula::factory()->create(['costo_total' => 500]);
+
+    $service = app(PagoExtraordinarioService::class);
+    $comprobante = $service->registrar(
+        matricula: $matricula,
+        monto: 40,
+        descripcion: 'Certificado de estudios',
+    );
+
+    expect($comprobante->categoria)->toBe('ADMINISTRATIVO');
+});
+
+test('categoria explicita sobreescribe el valor por defecto del concepto', function () {
+    $matricula = Matricula::factory()->create(['costo_total' => 500]);
+
+    $comprobante = app(PlanPagoMatriculaService::class)->generar(
+        matricula: $matricula,
+        concepto: ConceptoPago::Matricula,
+        costo: 500,
+        numCuotas: 1,
+        categoria: 'EVENTOS',
+    );
+
+    expect($comprobante->categoria)->toBe('EVENTOS');
 });
 
 test('comprobante es idempotente por concepto', function () {
@@ -151,4 +183,35 @@ test('comprobante es idempotente por concepto', function () {
     $segundo = $service->generar($matricula, ConceptoPago::Matricula, 500, 1);
 
     expect($primero->id_comprobante)->toBe($segundo->id_comprobante);
+});
+
+test('registra ingreso general sin matricula con id_matricula null', function () {
+    $service = app(PagoExtraordinarioService::class);
+
+    $comprobante = $service->registrar(
+        matricula: null,
+        monto: 100.00,
+        descripcion: 'DonaciÃ³n',
+        numCuotas: 1,
+        categoria: 'OTROS',
+    );
+
+    expect($comprobante->id_matricula)->toBeNull()
+        ->and($comprobante->concepto)->toBe(ConceptoPago::Extraordinario)
+        ->and($comprobante->categoria)->toBe('OTROS')
+        ->and($comprobante->descripcion)->toBe('DonaciÃ³n')
+        ->and((float) $comprobante->costo_total)->toBe(100.0)
+        ->and($comprobante->numero)->toMatch('/^EXT-GEN-/')
+        ->and($comprobante->cuotas)->toHaveCount(1);
+});
+
+test('cada ingreso general genera un comprobante nuevo (sin idempotencia)', function () {
+    $service = app(PagoExtraordinarioService::class);
+
+    $primero = $service->registrar(null, 50, 'Alquiler de auditorio');
+    $segundo = $service->registrar(null, 50, 'Alquiler de auditorio');
+
+    expect($primero->id_comprobante)->not->toBe($segundo->id_comprobante)
+        ->and($primero->numero)->toBe('EXT-GEN-0001')
+        ->and($segundo->numero)->toBe('EXT-GEN-0002');
 });

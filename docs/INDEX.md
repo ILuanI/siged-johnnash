@@ -11,7 +11,7 @@ No reemplaza las reglas operativas de `AGENTS.md`.
 | `requirements/modelo-academico.md` | Modelo de datos completo: tablas, columnas, relaciones |
 | `requirements/alumno.md` | Schema del alumno, consolidado, contactos |
 | `requirements/ciclos.md` | Tipos de ciclo, comportamiento |
-| `requirements/pagos.md` | Conceptos de pago, estructura comprobante/cuota/pago |
+| `requirements/pagos.md` | Conceptos de pago, estructura comprobante/cuota/pago, egresos, auditorías y categorías financieras |
 | `requirements/seminarios.md` | Ingresos por seminarios |
 
 Usa un archivo por area. Estas specs describen el comportamiento vigente del

@@ -1,4 +1,4 @@
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import {
     ArrowDownLeft,
     ArrowUpRight,
@@ -7,12 +7,12 @@ import {
     FileSpreadsheet,
     Plus,
     Receipt,
-    Trash2,
     Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import InputError from '@/components/input-error';
+import { AnularEgresoDialog } from '@/components/pagos/AnularEgresoDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,9 +38,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { confirmAction } from '@/lib/confirm';
 
-const CATEGORIAS_EGRESO = [
+const CATEGORIAS_EGRESO_FALLBACK = [
     'OPERATIVO',
     'ADMINISTRATIVO',
     'MANTENIMIENTO',
@@ -48,6 +47,12 @@ const CATEGORIAS_EGRESO = [
     'ACADEMICO',
     'OTROS',
 ] as const;
+
+type CategoriaEgresoItem = {
+    nombre: string;
+    descripcion: string | null;
+    es_por_defecto: boolean;
+};
 
 function categoriaBadgeClass(categoria: string): string {
     switch (categoria.toUpperCase()) {
@@ -83,10 +88,18 @@ type Egreso = {
     igv: number;
     total: number;
     fecha: string;
+    estado?: string | null;
     user?: {
         id: number;
         name: string;
     };
+    auditorias?: {
+        id: number;
+        accion: string;
+        motivo?: string | null;
+        created_at?: string | null;
+        usuario?: { name: string } | null;
+    }[];
 };
 
 type PagoReciente = {
@@ -123,6 +136,7 @@ type PageProps = {
         links: any[];
     };
     pagosRecientes: PagoReciente[];
+    categoriasEgreso?: CategoriaEgresoItem[];
     filters: {
         fecha_inicio: string;
         fecha_fin: string;
@@ -136,12 +150,22 @@ export default function CajaGeneralIndex({
     saldoDisponible,
     egresos,
     pagosRecientes,
+    categoriasEgreso,
 }: PageProps) {
     const [isEgresoModalOpen, setIsEgresoModalOpen] = useState(false);
 
+    // Categorías dinámicas del mantenedor con fallback al catálogo fijo.
+    const categoriasEgresoDisponibles =
+        categoriasEgreso && categoriasEgreso.length > 0
+            ? categoriasEgreso.map((c) => c.nombre)
+            : [...CATEGORIAS_EGRESO_FALLBACK];
+
+    const categoriaEgresoPorDefecto =
+        categoriasEgreso?.find((c) => c.es_por_defecto)?.nombre ?? 'OPERATIVO';
+
     const { data, setData, post, processing, errors, reset } = useForm({
         concepto: '',
-        categoria: 'OPERATIVO',
+        categoria: categoriaEgresoPorDefecto,
         descripcion: '',
         cantidad: '1',
         precio: '',
@@ -161,21 +185,6 @@ export default function CajaGeneralIndex({
                 toast.error('Ocurrió un error al registrar el egreso.');
             },
         });
-    };
-
-    const handleDeleteEgreso = async (egreso: Egreso) => {
-        const confirmed = await confirmAction({
-            title: 'Eliminar Egreso',
-            text: `¿Estás seguro de eliminar el egreso de S/ ${egreso.total.toFixed(2)} por "${egreso.concepto}"?`,
-            confirmButtonText: 'Sí, eliminar',
-        });
-
-        if (confirmed) {
-            router.delete(`/tesoreria/egresos/${egreso.id_egreso}`, {
-                onSuccess: () =>
-                    toast.success('Egreso eliminado correctamente.'),
-            });
-        }
     };
 
     return (
@@ -199,6 +208,12 @@ export default function CajaGeneralIndex({
                         <Link href="/tesoreria/estado-cuenta">
                             <Button variant="outline">
                                 Ver Estado de Cuentas Alumnos
+                            </Button>
+                        </Link>
+
+                        <Link href="/tesoreria/categorias">
+                            <Button variant="outline">
+                                Categorías Financieras
                             </Button>
                         </Link>
 
@@ -394,8 +409,21 @@ export default function CajaGeneralIndex({
                                                         {egreso.fecha}
                                                     </td>
                                                     <td className="p-3">
-                                                        <span className="block font-semibold text-slate-900">
-                                                            {egreso.concepto}
+                                                        <span className="flex items-center gap-2">
+                                                            <span className="block font-semibold text-slate-900">
+                                                                {
+                                                                    egreso.concepto
+                                                                }
+                                                            </span>
+                                                            {egreso.estado ===
+                                                                'ANULADO' && (
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className="bg-red-100 text-red-700"
+                                                                >
+                                                                    ANULADO
+                                                                </Badge>
+                                                            )}
                                                         </span>
                                                         {egreso.descripcion && (
                                                             <span className="block text-xs text-slate-500">
@@ -428,18 +456,9 @@ export default function CajaGeneralIndex({
                                                         )}
                                                     </td>
                                                     <td className="p-3 text-center">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() =>
-                                                                handleDeleteEgreso(
-                                                                    egreso,
-                                                                )
-                                                            }
-                                                            className="text-rose-600 hover:text-rose-800"
-                                                        >
-                                                            <Trash2 className="size-4" />
-                                                        </Button>
+                                                        <AnularEgresoDialog
+                                                            egreso={egreso}
+                                                        />
                                                     </td>
                                                 </tr>
                                             ))
@@ -555,14 +574,16 @@ export default function CajaGeneralIndex({
                                     <SelectValue placeholder="Seleccionar categoría" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {CATEGORIAS_EGRESO.map((categoria) => (
-                                        <SelectItem
-                                            key={categoria}
-                                            value={categoria}
-                                        >
-                                            {categoria}
-                                        </SelectItem>
-                                    ))}
+                                    {categoriasEgresoDisponibles.map(
+                                        (categoria) => (
+                                            <SelectItem
+                                                key={categoria}
+                                                value={categoria}
+                                            >
+                                                {categoria}
+                                            </SelectItem>
+                                        ),
+                                    )}
                                 </SelectContent>
                             </Select>
                             <InputError message={errors.categoria} />

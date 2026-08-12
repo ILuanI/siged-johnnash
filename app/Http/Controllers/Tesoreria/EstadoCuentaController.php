@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Tesoreria;
 
 use App\Enums\EstadoCuota;
+use App\Enums\TipoCategoriaFinanciera;
 use App\Http\Controllers\Controller;
 use App\Models\Alumno;
 use App\Models\AuditoriaCuota;
 use App\Models\AuditoriaPago;
+use App\Models\CategoriaFinanciera;
 use App\Models\ComprobantePago;
 use App\Models\Configuracion;
 use App\Models\Cuota;
@@ -96,7 +98,8 @@ class EstadoCuentaController extends Controller
             'fecha_inicio' => ['nullable', 'date'],
             'fecha_fin' => ['nullable', 'date'],
             'metodo_pago' => ['nullable', 'string', 'in:EFECTIVO,YAPE,PLIN,TRANSFERENCIA,TARJETA'],
-            'estado' => ['nullable', 'string', 'in:PAGADO,ANULADO'],
+            'estado' => ['nullable', 'string', 'in:PAGADO,REGISTRADO,ANULADO'],
+            'tipo' => ['nullable', 'string', 'in:todos,ingresos,egresos'],
             'sort' => ['nullable', 'string', 'in:fecha,monto'],
             'direction' => ['nullable', 'string', 'in:asc,desc'],
         ];
@@ -109,20 +112,37 @@ class EstadoCuentaController extends Controller
 
         $sort = $validated['sort'] ?? 'fecha';
         $direction = $validated['direction'] ?? 'desc';
+        $tipo = $validated['tipo'] ?? 'todos';
 
-        $pagos = Pago::query()
-            ->with(['cuota.comprobantePago.matricula.alumno', 'user', 'auditorias.usuario'])
-            ->when($validated['fecha_inicio'] ?? null, fn ($query, $fechaInicio) => $query->whereDate('fecha_pago', '>=', $fechaInicio))
-            ->when($validated['fecha_fin'] ?? null, fn ($query, $fechaFin) => $query->whereDate('fecha_pago', '<=', $fechaFin))
-            ->when($validated['metodo_pago'] ?? null, fn ($query, $metodoPago) => $query->where('metodo_pago', $metodoPago))
-            ->when($validated['estado'] ?? null, fn ($query, $estado) => $query->where('estado', $estado))
-            ->orderBy($sort === 'monto' ? 'monto' : 'fecha_pago', $direction)
-            ->paginate(15)
-            ->withQueryString();
+        // Ingresos: pagos registrados contra cuotas (con sus auditorías).
+        $pagos = $tipo === 'egresos'
+            ? Pago::query()->whereRaw('1 = 0')->paginate(15)
+            : Pago::query()
+                ->with(['cuota.comprobantePago.matricula.alumno', 'user', 'auditorias.usuario'])
+                ->when($validated['fecha_inicio'] ?? null, fn ($query, $fechaInicio) => $query->whereDate('fecha_pago', '>=', $fechaInicio))
+                ->when($validated['fecha_fin'] ?? null, fn ($query, $fechaFin) => $query->whereDate('fecha_pago', '<=', $fechaFin))
+                ->when($validated['metodo_pago'] ?? null, fn ($query, $metodoPago) => $query->where('metodo_pago', $metodoPago))
+                ->when($validated['estado'] ?? null, fn ($query, $estado) => $query->where('estado', $estado))
+                ->orderBy($sort === 'monto' ? 'monto' : 'fecha_pago', $direction)
+                ->paginate(15)
+                ->withQueryString();
+
+        // Egresos: salidas de caja (con sus auditorías de anulación).
+        $egresos = $tipo === 'ingresos'
+            ? Egreso::query()->whereRaw('1 = 0')->paginate(15)
+            : Egreso::query()
+                ->with(['user:id,name', 'auditorias.usuario'])
+                ->when($validated['fecha_inicio'] ?? null, fn ($query, $fechaInicio) => $query->whereDate('fecha', '>=', $fechaInicio))
+                ->when($validated['fecha_fin'] ?? null, fn ($query, $fechaFin) => $query->whereDate('fecha', '<=', $fechaFin))
+                ->when($validated['estado'] ?? null, fn ($query, $estado) => $query->where('estado', $estado))
+                ->orderBy($sort === 'monto' ? 'total' : 'fecha', $direction)
+                ->paginate(15)
+                ->withQueryString();
 
         return Inertia::render('tesoreria/movimientos', [
             'pagos' => $pagos,
-            'filters' => $request->only(['fecha_inicio', 'fecha_fin', 'metodo_pago', 'estado', 'sort', 'direction']),
+            'egresos' => $egresos,
+            'filters' => $request->only(['fecha_inicio', 'fecha_fin', 'metodo_pago', 'estado', 'tipo', 'sort', 'direction']),
         ]);
     }
 
@@ -435,13 +455,15 @@ class EstadoCuentaController extends Controller
             $totalIngresosRecaudados += $totalMonto;
         }
 
-        // Total egresos
-        $totalEgresos = (float) Egreso::query()->sum('total');
+        // Total egresos (los anulados dejan de contar como salida de caja)
+        $totalEgresos = (float) Egreso::query()
+            ->where('estado', '!=', 'ANULADO')
+            ->sum('total');
         $saldoDisponible = $totalIngresosRecaudados - $totalEgresos;
 
-        // Lista de egresos
+        // Lista de egresos (incluye anulados con su auditoría)
         $egresos = Egreso::query()
-            ->with('user:id,name')
+            ->with(['user:id,name', 'auditorias.usuario'])
             ->latest('fecha')
             ->paginate(15)
             ->withQueryString();
@@ -453,6 +475,13 @@ class EstadoCuentaController extends Controller
             ->take(10)
             ->get();
 
+        // Categorías de egreso dinámicas (mantenedor) para el formulario
+        $categoriasEgreso = CategoriaFinanciera::query()
+            ->where('tipo', TipoCategoriaFinanciera::Egreso)
+            ->orderBy('es_por_defecto', 'desc')
+            ->orderBy('nombre')
+            ->get(['nombre', 'descripcion', 'es_por_defecto']);
+
         return Inertia::render('tesoreria/caja', [
             'ingresosPorConcepto' => $ingresosPorConcepto,
             'totalIngresos' => $totalIngresosRecaudados,
@@ -460,6 +489,7 @@ class EstadoCuentaController extends Controller
             'saldoDisponible' => $saldoDisponible,
             'egresos' => $egresos,
             'pagosRecientes' => $pagosRecientes,
+            'categoriasEgreso' => $categoriasEgreso,
             'filters' => [
                 'fecha_inicio' => $fechaInicio,
                 'fecha_fin' => $fechaFin,
