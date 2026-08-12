@@ -6,6 +6,7 @@ use App\Models\Alumno;
 use App\Models\Aula;
 use App\Models\Ciclo;
 use App\Models\ComprobantePago;
+use App\Models\Egreso;
 use App\Models\Matricula;
 use App\Models\PeriodoAcademico;
 use App\Models\Rol;
@@ -33,6 +34,7 @@ test('usuario autenticado puede acceder a la caja general y registrar un egreso'
 
     $responseStore = $this->actingAs($user)->post(route('tesoreria.egresos.store'), [
         'concepto' => 'Pago de Servicios',
+        'categoria' => 'SERVICIOS',
         'descripcion' => 'Luz y agua local central',
         'cantidad' => 1,
         'precio' => 250.50,
@@ -43,8 +45,143 @@ test('usuario autenticado puede acceder a la caja general y registrar un egreso'
     $responseStore->assertRedirect();
     $this->assertDatabaseHas('egreso', [
         'tipo_egreso' => 'Pago de Servicios',
+        'categoria' => 'SERVICIOS',
         'total' => 250.50,
     ]);
+});
+
+test('permite actualizar la categoria de un egreso existente', function () {
+    $user = crearUsuarioAdmin();
+
+    $egreso = Egreso::create([
+        'tipo_egreso' => 'Compra de útiles',
+        'categoria' => 'ACADEMICO',
+        'descripcion' => 'Lapiceros y cuadernos',
+        'cantidad' => 10,
+        'precio' => 5.00,
+        'igv' => 0,
+        'fecha' => now()->toDateString(),
+        'user_id' => $user->id,
+    ]);
+
+    $responseUpdate = $this->actingAs($user)->put(route('tesoreria.egresos.update', $egreso->id_egreso), [
+        'concepto' => 'Compra de útiles',
+        'categoria' => 'ADMINISTRATIVO',
+        'descripcion' => 'Lapiceros y cuadernos',
+        'cantidad' => 10,
+        'precio' => 5.00,
+        'igv' => 0,
+        'fecha' => now()->toDateString(),
+    ]);
+
+    $responseUpdate->assertRedirect();
+    $this->assertDatabaseHas('egreso', [
+        'id_egreso' => $egreso->id_egreso,
+        'categoria' => 'ADMINISTRATIVO',
+    ]);
+});
+
+test('rechaza registrar un egreso sin categoria', function () {
+    $user = crearUsuarioAdmin();
+
+    $responseStore = $this->actingAs($user)->post(route('tesoreria.egresos.store'), [
+        'concepto' => 'Pago de Servicios',
+        'descripcion' => 'Luz y agua local central',
+        'cantidad' => 1,
+        'precio' => 250.50,
+        'igv' => 0,
+        'fecha' => now()->toDateString(),
+    ]);
+
+    $responseStore->assertSessionHasErrors('categoria');
+    $this->assertDatabaseMissing('egreso', ['tipo_egreso' => 'Pago de Servicios']);
+});
+
+test('permite eliminar un egreso registrado', function () {
+    $user = crearUsuarioAdmin();
+
+    $egreso = Egreso::create([
+        'tipo_egreso' => 'Pago de limpieza',
+        'categoria' => 'MANTENIMIENTO',
+        'descripcion' => 'Limpieza general del local',
+        'cantidad' => 1,
+        'precio' => 80.00,
+        'igv' => 0,
+        'fecha' => now()->toDateString(),
+        'user_id' => $user->id,
+    ]);
+
+    $responseDestroy = $this->actingAs($user)->delete(route('tesoreria.egresos.destroy', $egreso->id_egreso));
+    $responseDestroy->assertRedirect();
+    $this->assertDatabaseMissing('egreso', ['id_egreso' => $egreso->id_egreso]);
+});
+
+test('rechaza registrar o actualizar un egreso con categoria fuera del catalogo permitido', function () {
+    $user = crearUsuarioAdmin();
+
+    $egreso = Egreso::create([
+        'tipo_egreso' => 'Compra de útiles',
+        'categoria' => 'ACADEMICO',
+        'descripcion' => 'Lapiceros y cuadernos',
+        'cantidad' => 10,
+        'precio' => 5.00,
+        'igv' => 0,
+        'fecha' => now()->toDateString(),
+        'user_id' => $user->id,
+    ]);
+
+    // store rechaza una categoría fuera del catálogo
+    $responseStore = $this->actingAs($user)->post(route('tesoreria.egresos.store'), [
+        'concepto' => 'Pago de Servicios',
+        'categoria' => 'INVENTARIO',
+        'descripcion' => 'Luz y agua local central',
+        'cantidad' => 1,
+        'precio' => 250.50,
+        'igv' => 0,
+        'fecha' => now()->toDateString(),
+    ]);
+    $responseStore->assertSessionHasErrors('categoria');
+    $this->assertDatabaseMissing('egreso', ['tipo_egreso' => 'Pago de Servicios']);
+
+    // update rechaza una categoría fuera del catálogo
+    $responseUpdate = $this->actingAs($user)->put(route('tesoreria.egresos.update', $egreso->id_egreso), [
+        'concepto' => 'Compra de útiles',
+        'categoria' => 'INVENTARIO',
+        'descripcion' => 'Lapiceros y cuadernos',
+        'cantidad' => 10,
+        'precio' => 5.00,
+        'igv' => 0,
+        'fecha' => now()->toDateString(),
+    ]);
+    $responseUpdate->assertSessionHasErrors('categoria');
+    $this->assertDatabaseHas('egreso', [
+        'id_egreso' => $egreso->id_egreso,
+        'categoria' => 'ACADEMICO',
+    ]);
+});
+
+test('la pagina de caja entrega la categoria poblada en la estructura de egresos', function () {
+    $user = crearUsuarioAdmin();
+
+    Egreso::create([
+        'tipo_egreso' => 'Pago de Servicios',
+        'categoria' => 'SERVICIOS',
+        'descripcion' => 'Luz y agua local central',
+        'cantidad' => 1,
+        'precio' => 250.50,
+        'igv' => 0,
+        'fecha' => now()->toDateString(),
+        'user_id' => $user->id,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('tesoreria.caja.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('tesoreria/caja')
+            ->has('egresos.data', 1)
+            ->where('egresos.data.0.categoria', 'SERVICIOS')
+            ->where('egresos.data.0.concepto', 'Pago de Servicios'));
 });
 
 test('administrador puede crear, editar y eliminar un ciclo especificando el periodo', function () {

@@ -27,6 +27,7 @@ function crearCuotaPendiente(int $monto = 500, int $saldo = 500): array
     ]);
     $cuota = Cuota::factory()->create([
         'id_comprobante' => $comprobante->id_comprobante,
+        'numero_cuota' => 1,
         'monto' => $monto,
         'fecha_vencimiento' => now()->addDays(10)->toDateString(),
         'estado' => EstadoCuota::Pendiente,
@@ -77,6 +78,7 @@ test('pagarComprobante paga varias cuotas de forma atómica', function () {
     [, $comprobante, $cuota1] = crearCuotaPendiente();
     $cuota2 = Cuota::factory()->create([
         'id_comprobante' => $comprobante->id_comprobante,
+        'numero_cuota' => 2,
         'monto' => 300,
         'fecha_vencimiento' => now()->addDays(20)->toDateString(),
         'estado' => EstadoCuota::Pendiente,

@@ -377,6 +377,7 @@ Registro contable de gastos.
 | `id_egreso` | PK | |
 | `fecha` | date | |
 | `tipo_egreso` | varchar(60) | |
+| `categoria` | varchar(60) | `OPERATIVO` / `ADMINISTRATIVO` / `MANTENIMIENTO` / `SERVICIOS` / `ACADEMICO` / `OTROS` (default `OPERATIVO`) |
 | `descripcion` | varchar(160) | |
 | `cantidad` | decimal(8,2) | |
 | `precio` | decimal(8,2) | |
@@ -450,6 +451,7 @@ ciclo → asignacion_docente → curso
 | Asistencias | Asistencias (`/asistencias`) | `AsistenciaController` / `LectorAsistenciaController` |
 | Pagos / Cuotas | Tesorería (`/tesoreria/estado-cuenta`) | `EstadoCuentaController` |
 | Movimientos (libro diario) | Tesorería (`/tesoreria/movimientos`) | `EstadoCuentaController::movimientos` |
+| Egresos | Tesorería Caja (`/tesoreria/caja`) | `EgresoController` |
 | Reportes | Reportes (`/reportes`) | `ReportesController` |
 | IA Deserción | IA (`/ia/desercion`) | `DesercionController` |
 | Ajustes (turnos, periodos, colegios) | Ajustes (`/ajustes`) | `ConfiguracionController` |
@@ -464,5 +466,5 @@ ciclo → asignacion_docente → curso
 - **Los rankings de exámenes** se agrupan por área de la carrera del alumno.
 - **Cada concepto de matrícula** (matrícula, simulacro, carnet) genera su propio `ComprobantePago` con cuotas independientes.
 - **Carnet siempre 1 cuota.**
-- **El módulo de egresos** existe en BD pero no tiene UI implementada.
+- **El módulo de egresos** se gestiona desde Tesorería → Caja General (`/tesoreria/caja`): registro, listado y eliminación de egresos con categoría del catálogo `OPERATIVO`/`ADMINISTRATIVO`/`MANTENIMIENTO`/`SERVICIOS`/`ACADEMICO`/`OTROS`.
 - **Justificado** es un estado válido de asistencia además de ASISTIO, FALTO y TARDANZA.

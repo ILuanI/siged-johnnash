@@ -97,6 +97,23 @@
   - Ordenamiento por `fecha_pago` o `monto` (asc/desc), paginado (15) con `withQueryString`.
   - Carga `cuota.comprobantePago.matricula.alumno`, `user` y `auditorias.usuario`.
 
+### 9. Egresos (Caja General)
+
+**Frontend**
+- `resources/js/pages/tesoreria/caja.tsx`: página de caja general con arqueo (ingresos por concepto, total egresos, saldo disponible), tabla de egresos y últimos ingresos.
+- Modal "Registrar Egreso / Salida de Dinero": campos concepto, **categoría** (Select con `OPERATIVO`, `ADMINISTRATIVO`, `MANTENIMIENTO`, `SERVICIOS`, `ACADEMICO`, `OTROS`; default `OPERATIVO`), descripción, cantidad, precio, fecha.
+- Tabla de egresos: columna **Categoría** con `<Badge>` coloreado por categoría (`categoriaBadgeClass`).
+
+**Backend**
+- `EstadoCuentaController::caja()`: GET `/tesoreria/caja` — totales de ingresos/egresos, saldo, egresos paginados (15) con `user`, pagos recientes.
+- `EgresoController`:
+  - `store()`: POST `/tesoreria/egresos` — valida `concepto`, `categoria` (`required` + catálogo `OPERATIVO`/`ADMINISTRATIVO`/`MANTENIMIENTO`/`SERVICIOS`/`ACADEMICO`/`OTROS` vía `CategoriaEgreso`), `descripcion`, `cantidad`, `precio`, `igv`, `fecha`; crea `Egreso` con `user_id = auth()->id()`.
+  - `update()`: PUT `/tesoreria/egresos/{egreso}` — misma validación (incluye el catálogo estricto de `categoria`), actualiza el egreso.
+  - `destroy()`: DELETE `/tesoreria/egresos/{egreso}`.
+
+**Modelo involucrado:**
+- `app/Models/Egreso.php` → tabla `egreso`, PK `id_egreso`, `$guarded = []`, `$appends = ['concepto']` (mapea `tipo_egreso`), relación `user()`.
+
 ---
 
 ## Diagrama de flujo
@@ -138,4 +155,10 @@ Anulación de pago
 Reporte de movimientos
   → GET /tesoreria/movimientos
   → Libro diario con filtros y ordenamiento por fecha_pago
+
+Egresos (caja general)
+  → GET /tesoreria/caja
+  → POST /tesoreria/egresos { concepto, categoria, descripcion, cantidad, precio, igv, fecha }
+  → PUT /tesoreria/egresos/{egreso}
+  → DELETE /tesoreria/egresos/{egreso}
 ```

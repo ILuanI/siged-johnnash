@@ -2,10 +2,8 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowDownLeft,
     ArrowUpRight,
-    Banknote,
     Building2,
     CreditCard,
-    DollarSign,
     FileSpreadsheet,
     Plus,
     Receipt,
@@ -33,7 +31,40 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { confirmAction } from '@/lib/confirm';
+
+const CATEGORIAS_EGRESO = [
+    'OPERATIVO',
+    'ADMINISTRATIVO',
+    'MANTENIMIENTO',
+    'SERVICIOS',
+    'ACADEMICO',
+    'OTROS',
+] as const;
+
+function categoriaBadgeClass(categoria: string): string {
+    switch (categoria.toUpperCase()) {
+        case 'OPERATIVO':
+            return 'border-blue-200 bg-blue-50 text-blue-700';
+        case 'ADMINISTRATIVO':
+            return 'border-purple-200 bg-purple-50 text-purple-700';
+        case 'MANTENIMIENTO':
+            return 'border-amber-200 bg-amber-50 text-amber-700';
+        case 'SERVICIOS':
+            return 'border-cyan-200 bg-cyan-50 text-cyan-700';
+        case 'ACADEMICO':
+            return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+        default:
+            return 'border-slate-200 bg-slate-50 text-slate-600';
+    }
+}
 
 function formatCurrency(amount: string | number) {
     return new Intl.NumberFormat('es-PE', {
@@ -45,6 +76,7 @@ function formatCurrency(amount: string | number) {
 type Egreso = {
     id_egreso: number;
     concepto: string;
+    categoria: string;
     descripcion: string | null;
     cantidad: number;
     precio: number;
@@ -109,6 +141,7 @@ export default function CajaGeneralIndex({
 
     const { data, setData, post, processing, errors, reset } = useForm({
         concepto: '',
+        categoria: 'OPERATIVO',
         descripcion: '',
         cantidad: '1',
         precio: '',
@@ -139,7 +172,8 @@ export default function CajaGeneralIndex({
 
         if (confirmed) {
             router.delete(`/tesoreria/egresos/${egreso.id_egreso}`, {
-                onSuccess: () => toast.success('Egreso eliminado correctamente.'),
+                onSuccess: () =>
+                    toast.success('Egreso eliminado correctamente.'),
             });
         }
     };
@@ -156,7 +190,8 @@ export default function CajaGeneralIndex({
                             Caja General y Tesorería
                         </h1>
                         <p className="text-sm text-slate-500">
-                            Arqueo de ingresos por concepto, egresos y movimiento económico general
+                            Arqueo de ingresos por concepto, egresos y
+                            movimiento económico general
                         </p>
                     </div>
 
@@ -169,7 +204,7 @@ export default function CajaGeneralIndex({
 
                         <Button
                             onClick={() => setIsEgresoModalOpen(true)}
-                            className="bg-[#ff7043] hover:bg-[#f4511e] text-white gap-2"
+                            className="gap-2 bg-[#ff7043] text-white hover:bg-[#f4511e]"
                         >
                             <Plus className="size-4" />
                             Registrar Egreso
@@ -190,7 +225,7 @@ export default function CajaGeneralIndex({
                             <div className="text-2xl font-bold text-slate-900">
                                 {formatCurrency(totalIngresos)}
                             </div>
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="mt-1 text-xs text-slate-500">
                                 Cobrado a través de matrículas, cuotas y pagos
                             </p>
                         </CardContent>
@@ -207,7 +242,7 @@ export default function CajaGeneralIndex({
                             <div className="text-2xl font-bold text-slate-900">
                                 {formatCurrency(totalEgresos)}
                             </div>
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="mt-1 text-xs text-slate-500">
                                 Gastos y salidas de caja de la institución
                             </p>
                         </CardContent>
@@ -221,10 +256,12 @@ export default function CajaGeneralIndex({
                             <Wallet className="size-5 text-[#0b145f]" />
                         </CardHeader>
                         <CardContent>
-                            <div className={`text-2xl font-bold ${saldoDisponible >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            <div
+                                className={`text-2xl font-bold ${saldoDisponible >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}
+                            >
                                 {formatCurrency(saldoDisponible)}
                             </div>
-                            <p className="text-xs text-slate-500 mt-1">
+                            <p className="mt-1 text-xs text-slate-500">
                                 Ingresos Totales - Egresos Totales
                             </p>
                         </CardContent>
@@ -233,62 +270,70 @@ export default function CajaGeneralIndex({
 
                 {/* Desglose de Ingresos por Concepto */}
                 <div>
-                    <h2 className="text-lg font-semibold text-[#0b145f] mb-3">
+                    <h2 className="mb-3 text-lg font-semibold text-[#0b145f]">
                         Consolidado de Ingresos por Concepto
                     </h2>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <Card className="bg-blue-50/50 border-blue-200">
+                        <Card className="border-blue-200 bg-blue-50/50">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm text-blue-900 flex items-center gap-2">
+                                <CardTitle className="flex items-center gap-2 text-sm text-blue-900">
                                     <Building2 className="size-4 text-blue-600" />
                                     Matrículas
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-xl font-bold text-blue-950">
-                                    {formatCurrency(ingresosPorConcepto.MATRICULA || 0)}
+                                    {formatCurrency(
+                                        ingresosPorConcepto.MATRICULA || 0,
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-amber-50/50 border-amber-200">
+                        <Card className="border-amber-200 bg-amber-50/50">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm text-amber-900 flex items-center gap-2">
+                                <CardTitle className="flex items-center gap-2 text-sm text-amber-900">
                                     <FileSpreadsheet className="size-4 text-amber-600" />
                                     Simulacros
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-xl font-bold text-amber-950">
-                                    {formatCurrency(ingresosPorConcepto.SIMULACRO || 0)}
+                                    {formatCurrency(
+                                        ingresosPorConcepto.SIMULACRO || 0,
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-purple-50/50 border-purple-200">
+                        <Card className="border-purple-200 bg-purple-50/50">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm text-purple-900 flex items-center gap-2">
+                                <CardTitle className="flex items-center gap-2 text-sm text-purple-900">
                                     <CreditCard className="size-4 text-purple-600" />
                                     Carnets
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-xl font-bold text-purple-950">
-                                    {formatCurrency(ingresosPorConcepto.CARNET || 0)}
+                                    {formatCurrency(
+                                        ingresosPorConcepto.CARNET || 0,
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-slate-50/50 border-slate-200">
+                        <Card className="border-slate-200 bg-slate-50/50">
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm text-slate-900 flex items-center gap-2">
+                                <CardTitle className="flex items-center gap-2 text-sm text-slate-900">
                                     <Receipt className="size-4 text-slate-600" />
                                     Extraordinarios
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="text-xl font-bold text-slate-950">
-                                    {formatCurrency(ingresosPorConcepto.EXTRAORDINARIO || 0)}
+                                    {formatCurrency(
+                                        ingresosPorConcepto.EXTRAORDINARIO || 0,
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -304,55 +349,93 @@ export default function CajaGeneralIndex({
                                 Registro de Egresos y Salidas de Dinero
                             </CardTitle>
                             <CardDescription>
-                                Listado detallado de gastos realizados por la institución
+                                Listado detallado de gastos realizados por la
+                                institución
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
-                                    <thead className="bg-slate-50 text-slate-700 uppercase text-xs">
+                                    <thead className="bg-slate-50 text-xs text-slate-700 uppercase">
                                         <tr>
                                             <th className="p-3">Fecha</th>
-                                            <th className="p-3">Concepto / Descripción</th>
-                                            <th className="p-3 text-right">Cant. x Precio</th>
-                                            <th className="p-3 text-right">Total</th>
-                                            <th className="p-3 text-center">Acciones</th>
+                                            <th className="p-3">
+                                                Concepto / Descripción
+                                            </th>
+                                            <th className="p-3">Categoría</th>
+                                            <th className="p-3 text-right">
+                                                Cant. x Precio
+                                            </th>
+                                            <th className="p-3 text-right">
+                                                Total
+                                            </th>
+                                            <th className="p-3 text-center">
+                                                Acciones
+                                            </th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {egresos.data.length === 0 ? (
                                             <tr>
-                                                <td colSpan={5} className="p-6 text-center text-slate-500">
+                                                <td
+                                                    colSpan={6}
+                                                    className="p-6 text-center text-slate-500"
+                                                >
                                                     No hay egresos registrados.
                                                 </td>
                                             </tr>
                                         ) : (
                                             egresos.data.map((egreso) => (
-                                                <tr key={egreso.id_egreso} className="hover:bg-slate-50/50">
+                                                <tr
+                                                    key={egreso.id_egreso}
+                                                    className="hover:bg-slate-50/50"
+                                                >
                                                     <td className="p-3 whitespace-nowrap text-slate-600">
                                                         {egreso.fecha}
                                                     </td>
                                                     <td className="p-3">
-                                                        <span className="font-semibold text-slate-900 block">
+                                                        <span className="block font-semibold text-slate-900">
                                                             {egreso.concepto}
                                                         </span>
                                                         {egreso.descripcion && (
-                                                            <span className="text-xs text-slate-500 block">
-                                                                {egreso.descripcion}
+                                                            <span className="block text-xs text-slate-500">
+                                                                {
+                                                                    egreso.descripcion
+                                                                }
                                                             </span>
                                                         )}
                                                     </td>
-                                                    <td className="p-3 text-right text-slate-600 whitespace-nowrap">
-                                                        {egreso.cantidad} x S/ {Number(egreso.precio).toFixed(2)}
+                                                    <td className="p-3">
+                                                        <Badge
+                                                            variant="outline"
+                                                            className={categoriaBadgeClass(
+                                                                egreso.categoria,
+                                                            )}
+                                                        >
+                                                            {egreso.categoria}
+                                                        </Badge>
                                                     </td>
-                                                    <td className="p-3 text-right font-bold text-rose-600 whitespace-nowrap">
-                                                        - {formatCurrency(egreso.total)}
+                                                    <td className="p-3 text-right whitespace-nowrap text-slate-600">
+                                                        {egreso.cantidad} x S/{' '}
+                                                        {Number(
+                                                            egreso.precio,
+                                                        ).toFixed(2)}
+                                                    </td>
+                                                    <td className="p-3 text-right font-bold whitespace-nowrap text-rose-600">
+                                                        -{' '}
+                                                        {formatCurrency(
+                                                            egreso.total,
+                                                        )}
                                                     </td>
                                                     <td className="p-3 text-center">
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            onClick={() => handleDeleteEgreso(egreso)}
+                                                            onClick={() =>
+                                                                handleDeleteEgreso(
+                                                                    egreso,
+                                                                )
+                                                            }
                                                             className="text-rose-600 hover:text-rose-800"
                                                         >
                                                             <Trash2 className="size-4" />
@@ -380,25 +463,34 @@ export default function CajaGeneralIndex({
                         <CardContent>
                             <div className="space-y-3">
                                 {pagosRecientes.length === 0 ? (
-                                    <p className="text-sm text-slate-500 text-center py-4">
+                                    <p className="py-4 text-center text-sm text-slate-500">
                                         No hay pagos recientes.
                                     </p>
                                 ) : (
                                     pagosRecientes.map((pago) => {
-                                        const alumno = pago.cuota?.comprobante_pago?.matricula?.alumno;
-                                        const concepto = pago.cuota?.comprobante_pago?.concepto || 'PAGO';
+                                        const alumno =
+                                            pago.cuota?.comprobante_pago
+                                                ?.matricula?.alumno;
+                                        const concepto =
+                                            pago.cuota?.comprobante_pago
+                                                ?.concepto || 'PAGO';
 
                                         return (
                                             <div
                                                 key={pago.id_pago}
-                                                className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-100"
+                                                className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-3"
                                             >
                                                 <div className="min-w-0 pr-2">
-                                                    <p className="text-xs font-semibold text-slate-900 truncate">
-                                                        {alumno ? `${alumno.nombres} ${alumno.apellidos}` : 'Ingreso General'}
+                                                    <p className="truncate text-xs font-semibold text-slate-900">
+                                                        {alumno
+                                                            ? `${alumno.nombres} ${alumno.apellidos}`
+                                                            : 'Ingreso General'}
                                                     </p>
-                                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                                        <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                                    <div className="mt-0.5 flex items-center gap-1.5">
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="px-1 py-0 text-[10px]"
+                                                        >
                                                             {concepto}
                                                         </Badge>
                                                         <span className="text-[11px] text-slate-400">
@@ -407,8 +499,9 @@ export default function CajaGeneralIndex({
                                                     </div>
                                                 </div>
 
-                                                <span className="font-bold text-emerald-600 text-sm whitespace-nowrap">
-                                                    + {formatCurrency(pago.monto)}
+                                                <span className="text-sm font-bold whitespace-nowrap text-emerald-600">
+                                                    +{' '}
+                                                    {formatCurrency(pago.monto)}
                                                 </span>
                                             </div>
                                         );
@@ -421,7 +514,10 @@ export default function CajaGeneralIndex({
             </div>
 
             {/* Modal para Registrar Egreso */}
-            <Dialog open={isEgresoModalOpen} onOpenChange={setIsEgresoModalOpen}>
+            <Dialog
+                open={isEgresoModalOpen}
+                onOpenChange={setIsEgresoModalOpen}
+            >
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle className="text-[#0b145f]">
@@ -436,19 +532,53 @@ export default function CajaGeneralIndex({
                                 id="concepto"
                                 placeholder="Ej: Servicio de Luz, Pago de Fotocopias, Mantenimiento"
                                 value={data.concepto}
-                                onChange={(e) => setData('concepto', e.target.value)}
+                                onChange={(e) =>
+                                    setData('concepto', e.target.value)
+                                }
                                 required
                             />
                             <InputError message={errors.concepto} />
                         </div>
 
                         <div>
-                            <Label htmlFor="descripcion">Descripción (Opcional)</Label>
+                            <Label htmlFor="categoria">Categoría</Label>
+                            <Select
+                                value={data.categoria}
+                                onValueChange={(val) =>
+                                    setData('categoria', val)
+                                }
+                            >
+                                <SelectTrigger
+                                    id="categoria"
+                                    className="w-full"
+                                >
+                                    <SelectValue placeholder="Seleccionar categoría" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {CATEGORIAS_EGRESO.map((categoria) => (
+                                        <SelectItem
+                                            key={categoria}
+                                            value={categoria}
+                                        >
+                                            {categoria}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <InputError message={errors.categoria} />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="descripcion">
+                                Descripción (Opcional)
+                            </Label>
                             <Input
                                 id="descripcion"
                                 placeholder="Detalle adicional del gasto"
                                 value={data.descripcion}
-                                onChange={(e) => setData('descripcion', e.target.value)}
+                                onChange={(e) =>
+                                    setData('descripcion', e.target.value)
+                                }
                             />
                             <InputError message={errors.descripcion} />
                         </div>
@@ -462,14 +592,18 @@ export default function CajaGeneralIndex({
                                     step="0.01"
                                     min="0.01"
                                     value={data.cantidad}
-                                    onChange={(e) => setData('cantidad', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('cantidad', e.target.value)
+                                    }
                                     required
                                 />
                                 <InputError message={errors.cantidad} />
                             </div>
 
                             <div>
-                                <Label htmlFor="precio">Precio Unitario / Costo</Label>
+                                <Label htmlFor="precio">
+                                    Precio Unitario / Costo
+                                </Label>
                                 <Input
                                     id="precio"
                                     type="number"
@@ -477,7 +611,9 @@ export default function CajaGeneralIndex({
                                     min="0"
                                     placeholder="0.00"
                                     value={data.precio}
-                                    onChange={(e) => setData('precio', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('precio', e.target.value)
+                                    }
                                     required
                                 />
                                 <InputError message={errors.precio} />
@@ -490,7 +626,9 @@ export default function CajaGeneralIndex({
                                 id="fecha"
                                 type="date"
                                 value={data.fecha}
-                                onChange={(e) => setData('fecha', e.target.value)}
+                                onChange={(e) =>
+                                    setData('fecha', e.target.value)
+                                }
                                 required
                             />
                             <InputError message={errors.fecha} />
@@ -507,7 +645,7 @@ export default function CajaGeneralIndex({
                             <Button
                                 type="submit"
                                 disabled={processing}
-                                className="bg-[#ff7043] hover:bg-[#f4511e] text-white"
+                                className="bg-[#ff7043] text-white hover:bg-[#f4511e]"
                             >
                                 Guardar Egreso
                             </Button>

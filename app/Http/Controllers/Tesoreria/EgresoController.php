@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Tesoreria;
 
+use App\Enums\CategoriaEgreso;
 use App\Http\Controllers\Controller;
 use App\Models\Egreso;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class EgresoController extends Controller
 {
@@ -13,6 +15,7 @@ class EgresoController extends Controller
     {
         $validated = $request->validate([
             'concepto' => ['required', 'string', 'max:60'],
+            'categoria' => ['required', Rule::enum(CategoriaEgreso::class)],
             'descripcion' => ['nullable', 'string', 'max:160'],
             'cantidad' => ['required', 'numeric', 'min:0.01'],
             'precio' => ['required', 'numeric', 'min:0'],
@@ -20,6 +23,8 @@ class EgresoController extends Controller
             'fecha' => ['required', 'date'],
         ], [
             'concepto.required' => 'El concepto o tipo de egreso es obligatorio.',
+            'categoria.required' => 'La categoría del egreso es obligatoria.',
+            'categoria.enum' => 'La categoría seleccionada no es válida.',
             'cantidad.required' => 'La cantidad es obligatoria.',
             'precio.required' => 'El precio unitario o costo es obligatorio.',
             'fecha.required' => 'La fecha del egreso es obligatoria.',
@@ -31,6 +36,7 @@ class EgresoController extends Controller
 
         Egreso::create([
             'tipo_egreso' => $validated['concepto'],
+            'categoria' => $validated['categoria'],
             'descripcion' => $validated['descripcion'] ?? null,
             'cantidad' => $cantidad,
             'precio' => $precio,
@@ -46,6 +52,7 @@ class EgresoController extends Controller
     {
         $validated = $request->validate([
             'concepto' => ['required', 'string', 'max:60'],
+            'categoria' => ['required', Rule::enum(CategoriaEgreso::class)],
             'descripcion' => ['nullable', 'string', 'max:160'],
             'cantidad' => ['required', 'numeric', 'min:0.01'],
             'precio' => ['required', 'numeric', 'min:0'],
@@ -59,6 +66,7 @@ class EgresoController extends Controller
 
         $egreso->update([
             'tipo_egreso' => $validated['concepto'],
+            'categoria' => $validated['categoria'],
             'descripcion' => $validated['descripcion'] ?? null,
             'cantidad' => $cantidad,
             'precio' => $precio,
