@@ -2,11 +2,14 @@
 
 use App\Models\Alumno;
 use App\Models\ComprobantePago;
+use App\Models\Cuota;
 use App\Models\Matricula;
+use App\Models\Pago;
 use App\Models\Rol;
 use App\Models\User;
 use Database\Seeders\RolSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses(RefreshDatabase::class);
 
@@ -198,4 +201,138 @@ test('store rechaza un id_alumno inexistente', function () {
         ->assertSessionHasErrors('id_alumno');
 
     expect(ComprobantePago::query()->count())->toBe(0);
+});
+
+test('store crea el Pago completo, marca cuotas PAGADAS y saldo en 0.00', function () {
+    $cajero = usuarioPagoExtraordinario();
+    $matricula = matriculaVigente();
+
+    $this->actingAs($cajero)
+        ->post(route('tesoreria.pago-extraordinario.store'), [
+            'id_alumno' => $matricula->id_alumno,
+            'monto' => 100.00,
+            'descripcion' => 'Examen de Conocimiento',
+            'num_cuotas' => 2,
+            'categoria' => 'SERVICIOS',
+            'metodo_pago' => 'YAPE',
+        ])
+        ->assertRedirect(route('tesoreria.estado-cuenta.show', $matricula->alumno));
+
+    $comprobante = ComprobantePago::query()->where('id_matricula', $matricula->id_matricula)->first();
+
+    // El comprobante quedó totalmente saldado.
+    expect($comprobante)->not->toBeNull()
+        ->and((float) $comprobante->saldo_pendiente)->toBe(0.0);
+
+    // Todas las cuotas quedaron PAGADAS.
+    $cuotas = $comprobante->cuotas;
+    expect($cuotas)->toHaveCount(2);
+    foreach ($cuotas as $cuota) {
+        expect($cuota->estado->value)->toBe('PAGADA');
+    }
+
+    // Se crearon los Pagos correspondientes a cada cuota.
+    $pagos = Pago::query()->whereIn('id_cuota', $cuotas->pluck('id_cuota'))->get();
+    expect($pagos)->toHaveCount(2);
+    foreach ($pagos as $pago) {
+        expect($pago->metodo_pago)->toBe('YAPE')
+            ->and($pago->user_id)->toBe($cajero->id)
+            ->and($pago->estado)->toBe('PAGADO')
+            ->and((float) $pago->monto)->toBeGreaterThan(0);
+    }
+});
+
+test('store crea el Pago para un ingreso general sin alumno', function () {
+    $cajero = usuarioPagoExtraordinario();
+
+    $this->actingAs($cajero)
+        ->post(route('tesoreria.pago-extraordinario.store'), [
+            'monto' => 120.00,
+            'descripcion' => 'Donación de exalumno',
+            'num_cuotas' => 1,
+            'metodo_pago' => 'TRANSFERENCIA',
+        ])
+        ->assertRedirect(route('tesoreria.caja.index'));
+
+    $comprobante = ComprobantePago::query()->whereNull('id_matricula')->first();
+
+    expect($comprobante)->not->toBeNull()
+        ->and((float) $comprobante->saldo_pendiente)->toBe(0.0);
+
+    $pago = Pago::query()
+        ->whereIn('id_cuota', $comprobante->cuotas->pluck('id_cuota'))
+        ->first();
+
+    expect($pago)->not->toBeNull()
+        ->and($pago->metodo_pago)->toBe('TRANSFERENCIA')
+        ->and($pago->user_id)->toBe($cajero->id)
+        ->and($pago->estado)->toBe('PAGADO');
+});
+
+test('store usa EFECTIVO por defecto y rechaza metodo de pago invalido', function () {
+    $cajero = usuarioPagoExtraordinario();
+    $matricula = matriculaVigente();
+
+    // Sin metodo_pago -> EFECTIVO por defecto.
+    $this->actingAs($cajero)
+        ->post(route('tesoreria.pago-extraordinario.store'), [
+            'id_alumno' => $matricula->id_alumno,
+            'monto' => 50.00,
+            'descripcion' => 'Certificado',
+            'num_cuotas' => 1,
+        ])
+        ->assertRedirect();
+
+    $comprobante = ComprobantePago::query()->where('id_matricula', $matricula->id_matricula)->first();
+    $pago = Pago::query()
+        ->whereIn('id_cuota', $comprobante->cuotas->pluck('id_cuota'))
+        ->first();
+
+    expect($pago->metodo_pago)->toBe('EFECTIVO');
+
+    // metodo_pago invalido -> error de validacion (no crea nada).
+    $this->actingAs($cajero)
+        ->post(route('tesoreria.pago-extraordinario.store'), [
+            'id_alumno' => $matricula->id_alumno,
+            'monto' => 50.00,
+            'descripcion' => 'Certificado',
+            'num_cuotas' => 1,
+            'metodo_pago' => 'BITCOIN',
+        ])
+        ->assertSessionHasErrors('metodo_pago');
+
+    expect(ComprobantePago::query()->count())->toBe(1);
+});
+
+test('el pago extraordinario aparece en caja y movimientos', function () {
+    $cajero = usuarioPagoExtraordinario();
+
+    $this->actingAs($cajero)
+        ->post(route('tesoreria.pago-extraordinario.store'), [
+            'monto' => 120.00,
+            'descripcion' => 'Donación de exalumno',
+            'num_cuotas' => 1,
+            'metodo_pago' => 'TRANSFERENCIA',
+        ])
+        ->assertRedirect(route('tesoreria.caja.index'));
+
+    // Aparece en la caja (tabla paginada de ingresos del período).
+    $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('tesoreria/caja')
+            ->has('pagos.data', 1));
+
+    // El total de ingresos de caja refleja el pago registrado.
+    $totalIngresosCaja = DB::table('pago')->sum('monto');
+    expect((float) $totalIngresosCaja)->toBe(120.0);
+
+    // Aparece en movimientos (libro diario de Pago).
+    $this->actingAs($cajero)
+        ->get(route('tesoreria.movimientos.index'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('tesoreria/movimientos')
+            ->has('pagos.data', 1));
 });

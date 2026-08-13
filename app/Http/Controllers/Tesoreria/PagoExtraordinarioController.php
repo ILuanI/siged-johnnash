@@ -76,10 +76,12 @@ class PagoExtraordinarioController extends Controller
             'descripcion' => ['required', 'string', 'max:60'],
             'num_cuotas' => ['nullable', 'integer', 'min:1', 'max:4'],
             'categoria' => ['nullable', Rule::in($this->categoriasValidas())],
+            'metodo_pago' => ['nullable', Rule::in(['EFECTIVO', 'YAPE', 'PLIN', 'TRANSFERENCIA', 'TARJETA'])],
         ], [
             'id_alumno.exists' => 'El alumno seleccionado no existe.',
             'descripcion.max' => 'El concepto no puede superar los 60 caracteres.',
             'categoria.in' => 'La categoría contable seleccionada no es válida.',
+            'metodo_pago.in' => 'El método de pago seleccionado no es válido.',
         ]);
 
         // Si se indica un alumno, se vincula el comprobante a su matrícula
@@ -101,6 +103,8 @@ class PagoExtraordinarioController extends Controller
             descripcion: $validated['descripcion'],
             numCuotas: (int) ($validated['num_cuotas'] ?? 1),
             categoria: $validated['categoria'] ?? null,
+            metodoPago: $validated['metodo_pago'] ?? 'EFECTIVO',
+            userId: auth()->id(),
         );
 
         if ($matricula) {

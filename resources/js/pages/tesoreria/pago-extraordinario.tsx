@@ -34,6 +34,14 @@ const CATEGORIAS_INGRESO_FALLBACK: { value: string; label: string }[] = [
     { value: 'OTROS', label: 'Otros' },
 ];
 
+const METODOS_PAGO: { value: string; label: string }[] = [
+    { value: 'EFECTIVO', label: 'Efectivo' },
+    { value: 'YAPE', label: 'Yape' },
+    { value: 'PLIN', label: 'Plin' },
+    { value: 'TRANSFERENCIA', label: 'Transferencia' },
+    { value: 'TARJETA', label: 'Tarjeta' },
+];
+
 type CategoriaIngresoItem = {
     nombre: string;
     descripcion: string | null;
@@ -80,6 +88,7 @@ export default function PagoExtraordinario({
         descripcion: '',
         num_cuotas: '1',
         categoria: categoriaIngresoPorDefecto,
+        metodo_pago: 'EFECTIVO',
     });
 
     const alumnoOptions = alumnos.map((alumno) => ({
@@ -281,6 +290,36 @@ export default function PagoExtraordinario({
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.categoria} />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="metodo_pago">
+                                    Método de Pago *
+                                </Label>
+                                <Select
+                                    value={data.metodo_pago}
+                                    onValueChange={(val) =>
+                                        setData('metodo_pago', val)
+                                    }
+                                >
+                                    <SelectTrigger
+                                        className="w-full"
+                                        id="metodo_pago"
+                                    >
+                                        <SelectValue placeholder="Seleccionar método de pago" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {METODOS_PAGO.map((metodo) => (
+                                            <SelectItem
+                                                key={metodo.value}
+                                                value={metodo.value}
+                                            >
+                                                {metodo.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={errors.metodo_pago} />
                             </div>
 
                             <div className="grid gap-4 sm:grid-cols-2">

@@ -118,10 +118,12 @@ Auto-registered by `FortifyServiceProvider`. Rate limits: login 5/min, 2FA 5/min
 - Public parent portal: `/portal-padres` + `/consulta-notas` (by DNI, no auth)
 
 ### Tesorería
+- **Sidebar**: menú desplegable **"Tesorería"** (icono `Wallet`, visible con `pagos.ver`) con tres sub-items: *Alumnos y Cuotas* (`/tesoreria`), *Caja General* (`/tesoreria/caja`) e *Libro Diario / Movimientos* (`/tesoreria/movimientos`)
 - Account statements (index + per-student): cuotas de todos los conceptos (MATRICULA, SIMULACRO, CARNET, EXTRAORDINARIO)
 - Fee payment/deferral per cuota, prórroga
 - **Anulación de pago**: `POST /tesoreria/pagos/{pago}/anular` (motivo obligatorio, estado `PAGADO` → `ANULADO`, registra auditoría)
 - **Reporte de movimientos (libro diario)**: `GET /tesoreria/movimientos` — consolida pagos (ingresos) y egresos (salidas); filtros por rango de fechas, tipo (`todos`/`ingresos`/`egresos`), método de pago y estado; ordenamiento por fecha/monto
+- **Caja General** (`GET /tesoreria/caja`): arqueo (ingresos por concepto, total egresos, saldo), egresos paginados (15) y **ingresos del período paginados (15)**; el rango de fechas se aplica a todos los datos; el total de egresos excluye los anulados
 - **Egresos**: `POST /tesoreria/egresos`, `PUT /tesoreria/egresos/{egreso}`, `POST /tesoreria/egresos/{egreso}/anular` (motivo obligatorio, estado `REGISTRADO` → `ANULADO`, registra auditoría; sustituye al antiguo `DELETE`). `categoria` se valida contra `categoria_financiera` (tipo `EGRESO`) + enum `CategoriaEgreso` como fallback
 - **Pago extraordinario**: registro manual de cobros ad-hoc con descripción libre. `categoria` se valida contra `categoria_financiera` (tipo `INGRESO`) + enum `CategoriaIngreso` como fallback
 - **Mantenedor de categorías financieras** (`CategoriaFinancieraController`, prefix `tesoreria/categorias`, módulo `pagos`):

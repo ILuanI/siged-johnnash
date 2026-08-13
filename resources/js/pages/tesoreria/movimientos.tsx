@@ -1,6 +1,7 @@
 import { Head, router } from '@inertiajs/react';
 import {
     ArrowLeft,
+    CalendarDays,
     ChevronDown,
     ChevronUp,
     ChevronsUpDown,
@@ -111,6 +112,7 @@ type MovimientosProps = {
         tipo?: 'todos' | 'ingresos' | 'egresos' | null;
         sort?: 'fecha' | 'monto' | null;
         direction?: 'asc' | 'desc' | null;
+        search?: string | null;
     };
 };
 
@@ -163,6 +165,37 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
     const [metodoPago, setMetodoPago] = useState(filters.metodo_pago ?? '');
     const [estado, setEstado] = useState(filters.estado ?? '');
     const [tipo, setTipo] = useState(filters.tipo ?? 'todos');
+    const [search, setSearch] = useState(filters.search ?? '');
+
+    const hoy = () => {
+        const h = new Date().toISOString().split('T')[0];
+        setFechaInicio(h);
+        setFechaFin(h);
+    };
+
+    const esteMes = () => {
+        const now = new Date();
+        const inicio = new Date(now.getFullYear(), now.getMonth(), 1)
+            .toISOString()
+            .split('T')[0];
+        const fin = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+            .toISOString()
+            .split('T')[0];
+        setFechaInicio(inicio);
+        setFechaFin(fin);
+    };
+
+    const mesAnterior = () => {
+        const now = new Date();
+        const inicio = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+            .toISOString()
+            .split('T')[0];
+        const fin = new Date(now.getFullYear(), now.getMonth(), 0)
+            .toISOString()
+            .split('T')[0];
+        setFechaInicio(inicio);
+        setFechaFin(fin);
+    };
 
     const aplicarFiltros = (e: React.FormEvent) => {
         e.preventDefault();
@@ -174,6 +207,7 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
                 metodo_pago: metodoPago || undefined,
                 estado: estado || undefined,
                 tipo: tipo || undefined,
+                search: search || undefined,
                 sort: filters.sort || undefined,
                 direction: filters.direction || undefined,
             },
@@ -187,6 +221,7 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
         setMetodoPago('');
         setEstado('');
         setTipo('todos');
+        setSearch('');
         router.get(
             movimientosIndex.url(),
             {},
@@ -203,6 +238,7 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
                 metodo_pago: filters.metodo_pago || undefined,
                 estado: filters.estado || undefined,
                 tipo: filters.tipo || undefined,
+                search: filters.search || undefined,
                 sort: filters.sort || undefined,
                 direction: filters.direction || undefined,
                 page,
@@ -225,6 +261,7 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
                 metodo_pago: filters.metodo_pago || undefined,
                 estado: filters.estado || undefined,
                 tipo: filters.tipo || undefined,
+                search: filters.search || undefined,
                 sort: columna,
                 direction: nuevaDireccion,
             },
@@ -362,7 +399,8 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
         Boolean(filters.fecha_fin) ||
         Boolean(filters.metodo_pago) ||
         Boolean(filters.estado) ||
-        Boolean(filters.tipo && filters.tipo !== 'todos');
+        Boolean(filters.tipo && filters.tipo !== 'todos') ||
+        Boolean(filters.search);
 
     // Paginación combinada de ambas colecciones (misma página en cada una).
     const pagination = {
@@ -403,36 +441,91 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
                     <CardContent className="pt-6">
                         <form
                             onSubmit={aplicarFiltros}
-                            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5"
+                            className="space-y-4"
                         >
-                            <div className="space-y-2">
-                                <Label htmlFor="fecha_inicio">
-                                    Fecha inicio
-                                </Label>
-                                <Input
-                                    id="fecha_inicio"
-                                    type="date"
-                                    value={fechaInicio}
-                                    onChange={(e) =>
-                                        setFechaInicio(e.target.value)
-                                    }
-                                />
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                <div className="space-y-2 lg:col-span-2">
+                                    <Label htmlFor="search">
+                                        Buscar
+                                    </Label>
+                                    <div className="relative">
+                                        <Search className="absolute left-2.5 top-2.5 size-4 text-slate-400" />
+                                        <Input
+                                            id="search"
+                                            type="text"
+                                            placeholder="Alumno, DNI, concepto, descripción o usuario..."
+                                            value={search}
+                                            onChange={(e) =>
+                                                setSearch(e.target.value)
+                                            }
+                                            className="pl-8"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap items-end gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={hoy}
+                                        className="gap-1"
+                                    >
+                                        <CalendarDays className="size-3.5" />
+                                        Hoy
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={esteMes}
+                                        className="gap-1"
+                                    >
+                                        <CalendarDays className="size-3.5" />
+                                        Este mes
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={mesAnterior}
+                                        className="gap-1"
+                                    >
+                                        <CalendarDays className="size-3.5" />
+                                        Mes anterior
+                                    </Button>
+                                </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="fecha_fin">Fecha fin</Label>
-                                <Input
-                                    id="fecha_fin"
-                                    type="date"
-                                    value={fechaFin}
-                                    onChange={(e) =>
-                                        setFechaFin(e.target.value)
-                                    }
-                                />
-                            </div>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                                <div className="space-y-2">
+                                    <Label htmlFor="fecha_inicio">
+                                        Fecha inicio
+                                    </Label>
+                                    <Input
+                                        id="fecha_inicio"
+                                        type="date"
+                                        value={fechaInicio}
+                                        onChange={(e) =>
+                                            setFechaInicio(e.target.value)
+                                        }
+                                    />
+                                </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="tipo">Tipo</Label>
+                                <div className="space-y-2">
+                                    <Label htmlFor="fecha_fin">Fecha fin</Label>
+                                    <Input
+                                        id="fecha_fin"
+                                        type="date"
+                                        value={fechaFin}
+                                        onChange={(e) =>
+                                            setFechaFin(e.target.value)
+                                        }
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="tipo">Tipo</Label>
                                 <Select
                                     value={tipo}
                                     onValueChange={(val) =>
@@ -534,6 +627,7 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
                                     <X className="size-4" />
                                     Limpiar
                                 </Button>
+                            </div>
                             </div>
                         </form>
                     </CardContent>

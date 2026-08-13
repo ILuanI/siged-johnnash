@@ -68,11 +68,12 @@
 
 **Backend**
 - `app/Http/Controllers/Tesoreria/PagoExtraordinarioController.php`:
-  - `create()`: muestra formulario.
-  - `store()`: valida `id_alumno` (`nullable`, `exists:alumno,id_alumno`), `descripcion` (requerida, max 60), `categoria` con `Rule::enum(CategoriaIngreso::class)` (opcional).
+  - `create()`: muestra formulario (incluye `categoriasIngreso` dinámicas).
+  - `store()`: valida `id_alumno` (`nullable`, `exists:alumno,id_alumno`), `monto` (`required`, `numeric`, `min:0.01`), `descripcion` (requerida, max 60), `num_cuotas` (`nullable`, `min:1`, `max:4`), `categoria` (`Rule::in` del catálogo de ingreso + enums) y `metodo_pago` (`Rule::in(['EFECTIVO','YAPE','PLIN','TRANSFERENCIA','TARJETA'])`, por defecto `EFECTIVO`).
     - Si `id_alumno` viene y el alumno tiene matrícula vigente → comprobante vinculado a esa matrícula y redirige a `estado-cuenta.show`.
     - Si `id_alumno` viene pero no hay matrícula vigente, o no viene → **ingreso general** (`id_matricula = null`) y redirige a `tesoreria.caja.index`.
-- `app/Services/Tesoreria/PagoExtraordinarioService.php`: `registrar()` acepta `?Matricula $matricula` (null = ingreso general) y `?CategoriaIngreso $categoria`, delega a `PlanPagoMatriculaService::generar()`.
+  - Pasa `metodo_pago` (o `EFECTIVO` por defecto) y `auth()->id()` al servicio.
+- `app/Services/Tesoreria/PagoExtraordinarioService.php`: `registrar()` acepta `?Matricula $matricula` (null = ingreso general), `?CategoriaIngreso $categoria`, `?string $metodoPago` y `?int $userId`; delega la creación del comprobante y sus cuotas a `PlanPagoMatriculaService::generar()`. **Además, para el comprobante recién creado** (no en caso de idempotencia), genera un `Pago` por cada cuota con `fecha_pago = now()`, el `metodo_pago` indicado y el `user_id` autenticado, marca las cuotas como `PAGADA` y deja el `saldo_pendiente` del comprobante en `0.00` (el ingreso se cobra al momento).
 - `app/Services/Tesoreria/PlanPagoMatriculaService.php`: `generar()` acepta `?Matricula $matricula`; con `null` crea el comprobante con `id_matricula = null`, sin idempotencia y numeración `EXT-GEN-####`; si es `null` asigna por defecto según concepto (`MATRICULA` → `ACADEMICO`, `SIMULACRO` → `EVENTOS`, `CARNET` → `SERVICIOS`, `EXTRAORDINARIO` → `ADMINISTRATIVO`).
 
 ### 6. Plantillas WhatsApp
@@ -96,26 +97,32 @@
 ### 8. Reporte de movimientos (libro diario)
 
 **Frontend**
-- `resources/js/pages/tesoreria/movimientos.tsx`: libro diario consolidado de **pagos (ingresos)** y **egresos (salidas)**, con filtros (rango de fechas, tipo, método de pago, estado) y ordenamiento por fecha/monto.
+- `resources/js/pages/tesoreria/movimientos.tsx`: libro diario consolidado de **pagos (ingresos)** y **egresos (salidas)**, con filtros (búsqueda de texto, rango de fechas, tipo, método de pago, estado) y ordenamiento por fecha/monto.
 - Un pago o egreso anulado se descompone en dos líneas: el movimiento original (positivo para pagos, negativo para egresos) y su **reverso de anulación** (signo opuesto), con tooltip de auditoría (`AuditoriaAnulacionTooltip`) que muestra quién anuló, cuándo y el motivo.
 - Filtro **Tipo**: `Todos` / `Ingresos` / `Egresos`.
+- Campo de **búsqueda de texto** (`search`) en la barra de filtros, junto a las fechas, método de pago, estado y tipo.
+- **Presets de fecha** en la UI: botones de acceso rápido "Hoy", "Este mes" y "Mes anterior".
 
 **Backend**
 - `EstadoCuentaController::movimientos()`:
   - GET `/tesoreria/movimientos` (autoriza vía `PagoPolicy::viewAny`, permiso `pagos.ver`).
   - Consulta dos colecciones paginadas (15 c/u): `pagos` (con `cuota.comprobantePago.matricula.alumno`, `user`, `auditorias.usuario`) y `egresos` (con `user`, `auditorias.usuario`).
-  - Filtros: `fecha_inicio`, `fecha_fin`, `metodo_pago` (solo pagos), `estado` (`PAGADO`/`REGISTRADO`/`ANULADO`), `tipo` (`todos`/`ingresos`/`egresos`).
+  - Filtros: `fecha_inicio`, `fecha_fin`, `metodo_pago` (solo pagos), `estado` (`PAGADO`/`REGISTRADO`/`ANULADO`), `tipo` (`todos`/`ingresos`/`egresos`), `search` (máx. 255 caracteres).
+  - `search` filtra **pagos** por alumno (`nombres`, `apellidos`, `dni`) o por `concepto` del comprobante, y **egresos** por `tipo_egreso` (concepto), `descripcion` o nombre del `user` que registró.
   - Ordenamiento por `fecha_pago`/`fecha` o `monto`/`total` (asc/desc), paginado con `withQueryString`.
 
 ### 9. Egresos (Caja General)
 
 **Frontend**
-- `resources/js/pages/tesoreria/caja.tsx`: página de caja general con arqueo (ingresos por concepto, total egresos, saldo disponible), tabla de egresos y últimos ingresos.
+- `resources/js/pages/tesoreria/caja.tsx`: página de caja general con arqueo (ingresos por concepto, total egresos, saldo disponible), tabla de egresos y tabla paginada de **Ingresos del período** (15 por página, con controles de paginación que preservan el rango de fechas).
+- **Barra de filtros por rango de fechas**: selectores de Fecha de Inicio y Fecha de Fin, presets de acceso rápido ("Hoy", "Este mes", "Mes anterior") y botones Aplicar / Limpiar, usando Inertia `router`.
 - Modal "Registrar Egreso / Salida de Dinero": campos concepto, **categoría** (Select con `OPERATIVO`, `ADMINISTRATIVO`, `MANTENIMIENTO`, `SERVICIOS`, `ACADEMICO`, `OTROS`; default `OPERATIVO`), descripción, cantidad, precio, fecha.
 - Tabla de egresos: columna **Categoría** con `<Badge>` coloreado por categoría (`categoriaBadgeClass`), badge `ANULADO` para egresos anulados y botón **Anular** (`AnularEgresoDialog`) con modal que exige motivo obligatorio; los anulados muestran tooltip de auditoría.
 
 **Backend**
-- `EstadoCuentaController::caja()`: GET `/tesoreria/caja` — totales de ingresos/egresos, saldo, egresos paginados (15) con `user` y `auditorias.usuario`, pagos recientes. El total de egresos **excluye los anulados**.
+- `EstadoCuentaController::caja()`: GET `/tesoreria/caja` — totales de ingresos/egresos, saldo, egresos paginados (15) con `user` y `auditorias.usuario`, e **ingresos del período** paginados (15) con `cuota.comprobantePago.matricula.alumno` y `user`. El total de egresos **excluye los anulados**.
+  - Valida `fecha_inicio` y `fecha_fin` (`date`; si ambas presentes, `fecha_fin` debe ser `after_or_equal:fecha_inicio`). Por defecto abarca el **mes actual** cuando no se envían.
+  - El rango de fechas se aplica a **todos** los datos de la vista: consolidado de ingresos por concepto (`ingresosPorConceptoRaw`, por `pago.fecha_pago`), lista paginada de egresos (por `fecha`), ingresos del período paginados (por `fecha_pago`) y el total de egresos.
 - `EgresoController`:
   - `store()`: POST `/tesoreria/egresos` — valida `concepto`, `categoria` (`required` + catálogo `OPERATIVO`/`ADMINISTRATIVO`/`MANTENIMIENTO`/`SERVICIOS`/`ACADEMICO`/`OTROS` vía `CategoriaEgreso`), `descripcion`, `cantidad`, `precio`, `igv`, `fecha`; crea `Egreso` con `user_id = auth()->id()`, `estado = REGISTRADO` (default) y `fecha` = fecha seleccionada por el usuario combinada con la hora actual del registro (`Carbon::parse($validated['fecha'])->setTimeFromTimeString(now()->toTimeString())`); el día elegido en el formulario se respeta y solo se sobreescribe la hora con la del momento del guardado.
   - `update()`: PUT `/tesoreria/egresos/{egreso}` — misma validación (incluye el catálogo estricto de `categoria`), actualiza el egreso con `fecha` = fecha seleccionada por el usuario combinada con la hora actual del registro (mismo criterio que `store`).
@@ -174,9 +181,11 @@ Usuario prorroga cuota
 
 Pago extraordinario / ingreso general
   → GET /tesoreria/pago-extraordinario/nuevo
-  → POST /tesoreria/pago-extraordinario { id_alumno?, descripcion, monto, categoria }
+  → POST /tesoreria/pago-extraordinario { id_alumno?, descripcion, monto, categoria, metodo_pago? }
   → Con alumno y matrícula vigente: ComprobantePago (EXTRAORDINARIO) vinculado → redirige a estado-cuenta
   → Sin alumno o sin matrícula vigente: ComprobantePago (EXTRAORDINARIO) con id_matricula = null (EXT-GEN-####) → redirige a caja
+  → En ambos casos, se cobra al momento: por cada cuota se crea un Pago (fecha actual, metodo_pago, usuario), la cuota queda PAGADA y el saldo_pendiente del comprobante en 0.00
+  → El Pago aparece en tesoreria/movimientos (libro diario) y en tesoreria/caja (suma de pago.monto)
 
 Anulación de pago
   → POST /tesoreria/pagos/{pago}/anular { motivo }

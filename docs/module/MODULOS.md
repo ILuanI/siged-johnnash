@@ -93,6 +93,8 @@ Autorización por modelo vía `$user->tienePermiso($modulo, $accion)`:
 
 > La anulación de pagos y la consulta del reporte de movimientos quedan cubiertas por los permisos `pagos.eliminar` y `pagos.ver` respectivamente.
 
+**Navegación (sidebar):** los accesos financieros se agrupan en un menú desplegable **"Tesorería"** (icono `Wallet`) visible solo con `pagos.ver`, con tres sub-items: *Alumnos y Cuotas* (`/tesoreria`), *Caja General* (`/tesoreria/caja`) e *Libro Diario / Movimientos* (`/tesoreria/movimientos`). Todos heredan el permiso `pagos.ver`.
+
 ---
 
 ## Páginas Inertia por módulo (`resources/js/pages/`)

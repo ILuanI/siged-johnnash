@@ -3,6 +3,7 @@ import {
     BarChart3,
     BookOpen,
     Brain,
+    ChevronRight,
     CreditCard,
     GraduationCap,
     LayoutGrid,
@@ -13,16 +14,31 @@ import {
     Users,
     Wallet,
 } from 'lucide-react';
+import { useState } from 'react';
 
-import { index as tesoreriaIndex } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
+import {
+    caja as cajaIndex,
+    index as tesoreriaIndex,
+    movimientos as movimientosIndex,
+} from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
+    SidebarGroup,
     SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarMenuSub,
+    SidebarMenuSubButton,
+    SidebarMenuSubItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
+import { useCurrentUrl } from '@/hooks/use-current-url';
 import { usePermisos } from '@/hooks/use-permisos';
 import { dashboard } from '@/routes';
 import { index as ajustesIndex } from '@/routes/ajustes';
@@ -63,18 +79,6 @@ const mainNavItems: (NavItem & { modulo: string })[] = [
     { title: 'Usuarios', href: '/usuarios', icon: Users, modulo: 'usuarios' },
     { title: 'Roles', href: '/roles', icon: ShieldCheck, modulo: 'roles' },
     { title: 'Notas', href: '/notas', icon: BookOpen, modulo: 'academico' },
-    {
-        title: 'Pagos',
-        href: tesoreriaIndex(),
-        icon: CreditCard,
-        modulo: 'pagos',
-    },
-    {
-        title: 'Caja General',
-        href: '/tesoreria/caja',
-        icon: Wallet,
-        modulo: 'pagos',
-    },
 
     {
         title: 'Reportes',
@@ -98,11 +102,36 @@ const mainNavItems: (NavItem & { modulo: string })[] = [
 
 export function AppSidebar() {
     const { puede } = usePermisos();
+    const { isCurrentUrl } = useCurrentUrl();
+    const { isMobile, setOpenMobile } = useSidebar();
 
     const visibleNavItems = mainNavItems.filter((item) =>
         puede(item.modulo, 'ver'),
     );
     const puedeMatricular = puede('estudiantes', 'editar');
+    const puedeTesoreria = puede('pagos', 'ver');
+
+    // Sub-items del módulo financiero agrupados bajo "Tesorería".
+    const tesoreriaSubItems = [
+        {
+            title: 'Alumnos y Cuotas',
+            href: tesoreriaIndex(),
+            icon: CreditCard,
+        },
+        { title: 'Caja General', href: cajaIndex(), icon: Wallet },
+        {
+            title: 'Libro Diario / Movimientos',
+            href: movimientosIndex(),
+            icon: BookOpen,
+        },
+    ];
+
+    const algunaTesoreriaActiva = tesoreriaSubItems.some((item) =>
+        isCurrentUrl(item.href),
+    );
+    const [tesoreriaAbierto, setTesoreriaAbierto] = useState(
+        algunaTesoreriaActiva,
+    );
 
     return (
         <Sidebar collapsible="icon" variant="inset">
@@ -147,6 +176,64 @@ export function AppSidebar() {
                 )}
 
                 <NavMain items={visibleNavItems} />
+
+                {puedeTesoreria && (
+                    <SidebarGroup className="px-2 py-0">
+                        <SidebarMenu>
+                            <Collapsible
+                                open={tesoreriaAbierto}
+                                onOpenChange={setTesoreriaAbierto}
+                                className="group/collapsible"
+                            >
+                                <SidebarMenuItem>
+                                    <CollapsibleTrigger asChild>
+                                        <SidebarMenuButton
+                                            tooltip={{ children: 'Tesorería' }}
+                                            isActive={algunaTesoreriaActiva}
+                                        >
+                                            <Wallet />
+                                            <span>Tesorería</span>
+                                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                                        </SidebarMenuButton>
+                                    </CollapsibleTrigger>
+                                </SidebarMenuItem>
+                                <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                        {tesoreriaSubItems.map((sub) => (
+                                            <SidebarMenuSubItem
+                                                key={sub.title}
+                                            >
+                                                <SidebarMenuSubButton
+                                                    asChild
+                                                    isActive={isCurrentUrl(
+                                                        sub.href,
+                                                    )}
+                                                >
+                                                    <Link
+                                                        href={sub.href}
+                                                        prefetch
+                                                        onClick={() => {
+                                                            if (isMobile) {
+                                                                setOpenMobile(
+                                                                    false,
+                                                                );
+                                                            }
+                                                        }}
+                                                    >
+                                                        <sub.icon />
+                                                        <span>
+                                                            {sub.title}
+                                                        </span>
+                                                    </Link>
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        ))}
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </Collapsible>
+                        </SidebarMenu>
+                    </SidebarGroup>
+                )}
             </SidebarContent>
 
             <SidebarFooter>
