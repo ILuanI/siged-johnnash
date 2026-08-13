@@ -144,13 +144,17 @@ function formatCurrency(amount: string | number) {
 }
 
 function formatDate(dateStr: string) {
-    const [y, m, d] = dateStr.split('T')[0].split('-');
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
 
     return new Intl.DateTimeFormat('es-PE', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
-    }).format(new Date(Number(y), Number(m) - 1, Number(d)));
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    }).format(date);
 }
 
 export default function Movimientos({ pagos, egresos, filters }: MovimientosProps) {

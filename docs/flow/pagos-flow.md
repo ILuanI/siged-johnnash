@@ -46,7 +46,7 @@
 - Botón "Pagar" por cuota en la tabla de estado de cuenta.
 
 **Backend**
-- `EstadoCuentaController::pagar(Cuota $cuota)`: registra un `Pago` contra la cuota, actualiza `saldo_pendiente` del comprobante.
+- `EstadoCuentaController::pagar(Cuota $cuota)`: registra un `Pago` contra la cuota con `fecha_pago = now()->toDateTimeString()` (fecha y hora exactas), actualiza `saldo_pendiente` del comprobante.
 - Valida: no pagar una cuota ya `PAGADA`.
 
 ### 4. Prórroga de cuota
@@ -117,12 +117,12 @@
 **Backend**
 - `EstadoCuentaController::caja()`: GET `/tesoreria/caja` — totales de ingresos/egresos, saldo, egresos paginados (15) con `user` y `auditorias.usuario`, pagos recientes. El total de egresos **excluye los anulados**.
 - `EgresoController`:
-  - `store()`: POST `/tesoreria/egresos` — valida `concepto`, `categoria` (`required` + catálogo `OPERATIVO`/`ADMINISTRATIVO`/`MANTENIMIENTO`/`SERVICIOS`/`ACADEMICO`/`OTROS` vía `CategoriaEgreso`), `descripcion`, `cantidad`, `precio`, `igv`, `fecha`; crea `Egreso` con `user_id = auth()->id()` y `estado = REGISTRADO` (default).
-  - `update()`: PUT `/tesoreria/egresos/{egreso}` — misma validación (incluye el catálogo estricto de `categoria`), actualiza el egreso.
+  - `store()`: POST `/tesoreria/egresos` — valida `concepto`, `categoria` (`required` + catálogo `OPERATIVO`/`ADMINISTRATIVO`/`MANTENIMIENTO`/`SERVICIOS`/`ACADEMICO`/`OTROS` vía `CategoriaEgreso`), `descripcion`, `cantidad`, `precio`, `igv`, `fecha`; crea `Egreso` con `user_id = auth()->id()`, `estado = REGISTRADO` (default) y `fecha` = fecha seleccionada por el usuario combinada con la hora actual del registro (`Carbon::parse($validated['fecha'])->setTimeFromTimeString(now()->toTimeString())`); el día elegido en el formulario se respeta y solo se sobreescribe la hora con la del momento del guardado.
+  - `update()`: PUT `/tesoreria/egresos/{egreso}` — misma validación (incluye el catálogo estricto de `categoria`), actualiza el egreso con `fecha` = fecha seleccionada por el usuario combinada con la hora actual del registro (mismo criterio que `store`).
   - `anular()`: POST `/tesoreria/egresos/{egreso}/anular` — autoriza vía `EgresoPolicy::delete` (permiso `pagos.eliminar`), exige `motivo` (obligatorio, max 500), rechaza egresos ya `ANULADO`; en transacción cambia `estado` a `ANULADO` y registra en `auditoria_egreso` (`accion = ANULACION`). Sustituye al antiguo hard delete.
 
 **Modelos involucrados:**
-- `app/Models/Egreso.php` → tabla `egreso`, PK `id_egreso`, `$guarded = []`, `$appends = ['concepto']` (mapea `tipo_egreso`), `estado` (`REGISTRADO`/`ANULADO`), relaciones `user()` y `auditorias()`.
+- `app/Models/Egreso.php` → tabla `egreso`, PK `id_egreso`, `$guarded = []`, `$appends = ['concepto']` (mapea `tipo_egreso`), cast `fecha` → `datetime`, `estado` (`REGISTRADO`/`ANULADO`), relaciones `user()` y `auditorias()`.
 - `app/Models/AuditoriaEgreso.php` → tabla `auditoria_egreso` (solo `created_at`), relaciones `egreso()` y `usuario()`.
 
 ### 10. Mantenedor de categorías financieras

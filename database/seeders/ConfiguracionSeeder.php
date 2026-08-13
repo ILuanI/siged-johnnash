@@ -18,5 +18,10 @@ class ConfiguracionSeeder extends Seeder
             ['clave' => 'whatsapp_msg_proximo_a_vencer'],
             ['valor' => 'Hola, {nombre}. Te recordamos que tu estado de cuenta está PRÓXIMO A VENCER. Por favor, acércate a tesorería para evitar contratiempos. ¡Gracias!'],
         );
+
+        Configuracion::updateOrCreate(
+            ['clave' => 'igv_porcentaje_defecto'],
+            ['valor' => '18.00'],
+        );
     }
 }

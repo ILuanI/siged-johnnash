@@ -15,6 +15,7 @@ import InputError from '@/components/input-error';
 import { AnularEgresoDialog } from '@/components/pagos/AnularEgresoDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Card,
     CardContent,
@@ -78,6 +79,21 @@ function formatCurrency(amount: string | number) {
     }).format(Number(amount));
 }
 
+function formatDate(dateStr: string) {
+    if (!dateStr) return '—';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+
+    return new Intl.DateTimeFormat('es-PE', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    }).format(date);
+}
+
 type Egreso = {
     id_egreso: number;
     concepto: string;
@@ -137,6 +153,7 @@ type PageProps = {
     };
     pagosRecientes: PagoReciente[];
     categoriasEgreso?: CategoriaEgresoItem[];
+    igv_porcentaje_defecto?: string;
     filters: {
         fecha_inicio: string;
         fecha_fin: string;
@@ -151,6 +168,7 @@ export default function CajaGeneralIndex({
     egresos,
     pagosRecientes,
     categoriasEgreso,
+    igv_porcentaje_defecto,
 }: PageProps) {
     const [isEgresoModalOpen, setIsEgresoModalOpen] = useState(false);
 
@@ -163,15 +181,45 @@ export default function CajaGeneralIndex({
     const categoriaEgresoPorDefecto =
         categoriasEgreso?.find((c) => c.es_por_defecto)?.nombre ?? 'OPERATIVO';
 
+    const defaultIgvPercent = igv_porcentaje_defecto ? Number(igv_porcentaje_defecto) : 18.00;
+
     const { data, setData, post, processing, errors, reset } = useForm({
         concepto: '',
         categoria: categoriaEgresoPorDefecto,
         descripcion: '',
         cantidad: '1',
         precio: '',
-        igv: '0',
+        aplica_igv: true,
+        igv_porcentaje: defaultIgvPercent.toString(),
+        igv_tipo: 'ANTES' as 'ANTES' | 'DESPUES',
         fecha: new Date().toISOString().split('T')[0],
     });
+
+    // Real-time calculation summary
+    const cantidadNum = Number(data.cantidad) || 0;
+    const precioNum = Number(data.precio) || 0;
+    const igvPorcentNum = Number(data.igv_porcentaje) || 0;
+
+    let subtotalCalc = 0;
+    let igvCalc = 0;
+    let totalCalc = 0;
+
+    if (!data.aplica_igv || igvPorcentNum <= 0) {
+        subtotalCalc = cantidadNum * precioNum;
+        igvCalc = 0;
+        totalCalc = subtotalCalc;
+    } else {
+        const p = igvPorcentNum / 100;
+        if (data.igv_tipo === 'ANTES') {
+            subtotalCalc = cantidadNum * precioNum;
+            igvCalc = Math.round(subtotalCalc * p * 100) / 100;
+            totalCalc = subtotalCalc + igvCalc;
+        } else {
+            totalCalc = cantidadNum * precioNum;
+            subtotalCalc = Math.round((totalCalc / (1 + p)) * 100) / 100;
+            igvCalc = Math.round((totalCalc - subtotalCalc) * 100) / 100;
+        }
+    }
 
     const handleCreateEgreso = (e: React.FormEvent) => {
         e.preventDefault();
@@ -406,7 +454,7 @@ export default function CajaGeneralIndex({
                                                     className="hover:bg-slate-50/50"
                                                 >
                                                     <td className="p-3 whitespace-nowrap text-slate-600">
-                                                        {egreso.fecha}
+                                                        {formatDate(egreso.fecha)}
                                                     </td>
                                                     <td className="p-3">
                                                         <span className="flex items-center gap-2">
@@ -512,9 +560,9 @@ export default function CajaGeneralIndex({
                                                         >
                                                             {concepto}
                                                         </Badge>
-                                                        <span className="text-[11px] text-slate-400">
-                                                            {pago.fecha_pago}
-                                                        </span>
+                                                         <span className="text-[11px] text-slate-400">
+                                                             {formatDate(pago.fecha_pago)}
+                                                         </span>
                                                     </div>
                                                 </div>
 
@@ -638,6 +686,70 @@ export default function CajaGeneralIndex({
                                     required
                                 />
                                 <InputError message={errors.precio} />
+                            </div>
+                        </div>
+
+                        {/* IGV Configuration & Summary */}
+                        <div className="rounded-lg border bg-slate-50 p-4 space-y-3">
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="aplica_igv"
+                                    checked={data.aplica_igv}
+                                    onCheckedChange={(checked) => setData('aplica_igv', checked === true)}
+                                />
+                                <Label htmlFor="aplica_igv" className="text-sm font-medium text-slate-900 cursor-pointer">
+                                    Aplica IGV
+                                </Label>
+                            </div>
+
+                            {data.aplica_igv && (
+                                <div className="grid grid-cols-2 gap-3 pt-1">
+                                    <div>
+                                        <Label htmlFor="igv_porcentaje">Porcentaje IGV (%)</Label>
+                                        <Input
+                                            id="igv_porcentaje"
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            max="100"
+                                            value={data.igv_porcentaje}
+                                            onChange={(e) => setData('igv_porcentaje', e.target.value)}
+                                        />
+                                        <InputError message={errors.igv_porcentaje} />
+                                    </div>
+
+                                    <div>
+                                        <Label htmlFor="igv_tipo">Tipo IGV</Label>
+                                        <Select
+                                            value={data.igv_tipo}
+                                            onValueChange={(val) => setData('igv_tipo', val as 'ANTES' | 'DESPUES')}
+                                        >
+                                            <SelectTrigger id="igv_tipo" className="w-full">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="ANTES">No incluido (Antes de IGV)</SelectItem>
+                                                <SelectItem value="DESPUES">Incluido (Después de IGV)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <InputError message={errors.igv_tipo} />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="mt-3 rounded border bg-white p-3 text-xs space-y-1 text-slate-600">
+                                <div className="flex justify-between">
+                                    <span>Subtotal:</span>
+                                    <span className="font-semibold text-slate-900">{formatCurrency(subtotalCalc)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>IGV ({data.aplica_igv ? data.igv_porcentaje : '0'}%):</span>
+                                    <span className="font-semibold text-slate-900">{formatCurrency(igvCalc)}</span>
+                                </div>
+                                <div className="flex justify-between border-t pt-1 text-sm font-bold text-[#0b145f]">
+                                    <span>Total Final:</span>
+                                    <span>{formatCurrency(totalCalc)}</span>
+                                </div>
                             </div>
                         </div>
 

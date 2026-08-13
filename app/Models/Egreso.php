@@ -29,11 +29,14 @@ class Egreso extends Model
     protected function casts(): array
     {
         return [
-            'fecha' => 'date',
+            'fecha' => 'datetime',
             'cantidad' => 'float',
             'precio' => 'float',
             'igv' => 'float',
             'total' => 'float',
+            'aplica_igv' => 'boolean',
+            'igv_porcentaje' => 'float',
+            'igv_tipo' => 'string',
             'estado' => 'string',
         ];
     }

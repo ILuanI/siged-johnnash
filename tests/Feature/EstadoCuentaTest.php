@@ -59,6 +59,23 @@ test('pagar registra el pago y actualiza el saldo del comprobante', function () 
         ->and($cuota->pagos()->count())->toBe(1);
 });
 
+test('pagar registra el pago con fecha y hora exacta (datetime)', function () {
+    $cajero = usuarioConRol('Cajero');
+    [, , $cuota] = crearCuotaPendiente();
+
+    $this->actingAs($cajero)
+        ->post(route('tesoreria.cuotas.pagar', $cuota), [
+            'monto' => 500,
+            'metodo_pago' => 'EFECTIVO',
+        ])
+        ->assertRedirect();
+
+    $pago = $cuota->pagos()->latest('id_pago')->first();
+
+    expect($pago->fecha_pago->toDateString())->toBe(now()->toDateString())
+        ->and($pago->fecha_pago->format('H:i:s'))->not->toBe('00:00:00');
+});
+
 test('pagar no registra pagos sin permiso de pagos', function () {
     $docente = usuarioConRol('Docente');
     [, , $cuota] = crearCuotaPendiente();

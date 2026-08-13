@@ -206,7 +206,7 @@ class EstadoCuentaController extends Controller
                 Pago::create([
                     'id_cuota' => $cuota->id_cuota,
                     'monto' => $montoPagar,
-                    'fecha_pago' => now()->toDateString(),
+                    'fecha_pago' => now()->toDateTimeString(),
                     'metodo_pago' => $validated['metodo_pago'],
                     'user_id' => auth()->id(),
                 ]);
@@ -380,7 +380,7 @@ class EstadoCuentaController extends Controller
             Pago::create([
                 'id_cuota' => $cuota->id_cuota,
                 'monto' => $validated['monto'],
-                'fecha_pago' => now()->toDateString(),
+                'fecha_pago' => now()->toDateTimeString(),
                 'metodo_pago' => $validated['metodo_pago'],
                 'user_id' => auth()->id(),
             ]);
@@ -482,6 +482,8 @@ class EstadoCuentaController extends Controller
             ->orderBy('nombre')
             ->get(['nombre', 'descripcion', 'es_por_defecto']);
 
+        $igvPorcentajeDefecto = Configuracion::where('clave', 'igv_porcentaje_defecto')->value('valor') ?? '18.00';
+
         return Inertia::render('tesoreria/caja', [
             'ingresosPorConcepto' => $ingresosPorConcepto,
             'totalIngresos' => $totalIngresosRecaudados,
@@ -490,6 +492,7 @@ class EstadoCuentaController extends Controller
             'egresos' => $egresos,
             'pagosRecientes' => $pagosRecientes,
             'categoriasEgreso' => $categoriasEgreso,
+            'igv_porcentaje_defecto' => $igvPorcentajeDefecto,
             'filters' => [
                 'fecha_inicio' => $fechaInicio,
                 'fecha_fin' => $fechaFin,

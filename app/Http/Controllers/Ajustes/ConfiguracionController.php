@@ -12,10 +12,13 @@ use App\Http\Resources\Ajustes\ColegioResource;
 use App\Http\Resources\Ajustes\PeriodoResource;
 use App\Http\Resources\Ajustes\TurnoResource;
 use App\Models\Aula;
+use App\Models\CategoriaFinanciera;
 use App\Models\ColegioProcedencia;
+use App\Models\Configuracion;
 use App\Models\PeriodoAcademico;
 use App\Models\Turno;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -36,8 +39,23 @@ class ConfiguracionController extends Controller
             'colegios' => ColegioResource::collection(
                 ColegioProcedencia::query()->withCount('alumnos')->orderBy('nombre')->get()
             )->resolve(),
-            'categorias' => \App\Models\CategoriaFinanciera::query()->orderBy('tipo')->orderBy('nombre')->get(),
+            'categorias' => CategoriaFinanciera::query()->orderBy('tipo')->orderBy('nombre')->get(),
+            'igv_porcentaje_defecto' => Configuracion::where('clave', 'igv_porcentaje_defecto')->value('valor') ?? '18.00',
         ]);
+    }
+
+    public function updateVariablesFinancieras(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'igv_porcentaje_defecto' => ['required', 'numeric', 'min:0', 'max:100'],
+        ]);
+
+        Configuracion::updateOrCreate(
+            ['clave' => 'igv_porcentaje_defecto'],
+            ['valor' => (string) $validated['igv_porcentaje_defecto']]
+        );
+
+        return back()->with('success', 'Variables financieras actualizadas correctamente.');
     }
 
     // ---------------------------------------------------------------- Aulas

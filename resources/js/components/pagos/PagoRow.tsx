@@ -27,16 +27,19 @@ function formatCurrency(amount: string | number) {
 }
 
 function parseDate(dateStr: string) {
-    const [y, m, d] = dateStr.split('T')[0].split('-');
-
-    return new Date(Number(y), Number(m) - 1, Number(d));
+    return new Date(dateStr);
 }
 
 function formatDate(date: Date) {
+    if (isNaN(date.getTime())) return '—';
+
     return new Intl.DateTimeFormat('es-PE', {
         day: 'numeric',
-        month: 'long',
+        month: 'short',
         year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
     }).format(date);
 }
 

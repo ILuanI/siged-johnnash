@@ -33,3 +33,4 @@ opencode.json
 .sql
 .opencode
 spec-drive-dev/
+.opencodeignore

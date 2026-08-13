@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditoriaEgreso;
 use App\Models\CategoriaFinanciera;
 use App\Models\Egreso;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -32,6 +33,55 @@ class EgresoController extends Controller
             ->all();
     }
 
+    /**
+     * Combina la fecha seleccionada por el usuario con la hora actual del
+     * registro. De esta forma se respeta el día elegido en el formulario y se
+     * conserva la hora en que se guardó (tipo dateTime).
+     */
+    private function fechaSeleccionadaConHoraActual(array $validated): Carbon
+    {
+        return Carbon::parse($validated['fecha'])
+            ->setTimeFromTimeString(now()->toTimeString());
+    }
+
+    private function calcularIgv(array $validated, Request $request): array
+    {
+        $aplicaIgv = $request->boolean('aplica_igv', true);
+        $igvPorcentaje = (float) ($validated['igv_porcentaje'] ?? 18.00);
+        $igvTipo = $validated['igv_tipo'] ?? 'ANTES';
+        $cantidad = (float) $validated['cantidad'];
+        $precioEntrada = (float) $validated['precio'];
+
+        $precioGuardar = $precioEntrada;
+        $igvGuardar = 0.0;
+
+        if ($aplicaIgv && $igvPorcentaje > 0) {
+            $p = $igvPorcentaje / 100;
+            if ($igvTipo === 'ANTES') {
+                $subtotal = $cantidad * $precioEntrada;
+                $igvGuardar = round($subtotal * $p, 2);
+                $precioGuardar = $precioEntrada;
+            } else {
+                $totalBruto = $cantidad * $precioEntrada;
+                $subtotal = round($totalBruto / (1 + $p), 2);
+                $igvGuardar = round($totalBruto - $subtotal, 2);
+                $precioGuardar = $cantidad > 0 ? round($subtotal / $cantidad, 4) : 0;
+            }
+        } else {
+            $igvGuardar = 0.0;
+            $precioGuardar = $precioEntrada;
+        }
+
+        return [
+            'aplica_igv' => $aplicaIgv,
+            'igv_porcentaje' => $igvPorcentaje,
+            'igv_tipo' => $igvTipo,
+            'cantidad' => $cantidad,
+            'precio' => $precioGuardar,
+            'igv' => $igvGuardar,
+        ];
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -40,6 +90,9 @@ class EgresoController extends Controller
             'descripcion' => ['nullable', 'string', 'max:160'],
             'cantidad' => ['required', 'numeric', 'min:0.01'],
             'precio' => ['required', 'numeric', 'min:0'],
+            'aplica_igv' => ['nullable', 'boolean'],
+            'igv_porcentaje' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'igv_tipo' => ['nullable', 'string', 'in:ANTES,DESPUES'],
             'igv' => ['nullable', 'numeric', 'min:0'],
             'fecha' => ['required', 'date'],
         ], [
@@ -51,18 +104,19 @@ class EgresoController extends Controller
             'fecha.required' => 'La fecha del egreso es obligatoria.',
         ]);
 
-        $cantidad = (float) $validated['cantidad'];
-        $precio = (float) $validated['precio'];
-        $igv = (float) ($validated['igv'] ?? 0);
+        $datosCalculados = $this->calcularIgv($validated, $request);
 
         Egreso::create([
             'tipo_egreso' => $validated['concepto'],
             'categoria' => $validated['categoria'],
             'descripcion' => $validated['descripcion'] ?? null,
-            'cantidad' => $cantidad,
-            'precio' => $precio,
-            'igv' => $igv,
-            'fecha' => $validated['fecha'],
+            'cantidad' => $datosCalculados['cantidad'],
+            'precio' => $datosCalculados['precio'],
+            'igv' => $datosCalculados['igv'],
+            'aplica_igv' => $datosCalculados['aplica_igv'],
+            'igv_porcentaje' => $datosCalculados['igv_porcentaje'],
+            'igv_tipo' => $datosCalculados['igv_tipo'],
+            'fecha' => $this->fechaSeleccionadaConHoraActual($validated),
             'user_id' => auth()->id(),
         ]);
 
@@ -77,22 +131,26 @@ class EgresoController extends Controller
             'descripcion' => ['nullable', 'string', 'max:160'],
             'cantidad' => ['required', 'numeric', 'min:0.01'],
             'precio' => ['required', 'numeric', 'min:0'],
+            'aplica_igv' => ['nullable', 'boolean'],
+            'igv_porcentaje' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'igv_tipo' => ['nullable', 'string', 'in:ANTES,DESPUES'],
             'igv' => ['nullable', 'numeric', 'min:0'],
             'fecha' => ['required', 'date'],
         ]);
 
-        $cantidad = (float) $validated['cantidad'];
-        $precio = (float) $validated['precio'];
-        $igv = (float) ($validated['igv'] ?? 0);
+        $datosCalculados = $this->calcularIgv($validated, $request);
 
         $egreso->update([
             'tipo_egreso' => $validated['concepto'],
             'categoria' => $validated['categoria'],
             'descripcion' => $validated['descripcion'] ?? null,
-            'cantidad' => $cantidad,
-            'precio' => $precio,
-            'igv' => $igv,
-            'fecha' => $validated['fecha'],
+            'cantidad' => $datosCalculados['cantidad'],
+            'precio' => $datosCalculados['precio'],
+            'igv' => $datosCalculados['igv'],
+            'aplica_igv' => $datosCalculados['aplica_igv'],
+            'igv_porcentaje' => $datosCalculados['igv_porcentaje'],
+            'igv_tipo' => $datosCalculados['igv_tipo'],
+            'fecha' => $this->fechaSeleccionadaConHoraActual($validated),
         ]);
 
         return back()->with('success', 'Egreso actualizado correctamente.');

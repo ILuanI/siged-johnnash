@@ -38,7 +38,7 @@ test('usuario autenticado puede acceder a la caja general y registrar un egreso'
         'descripcion' => 'Luz y agua local central',
         'cantidad' => 1,
         'precio' => 250.50,
-        'igv' => 0,
+        'aplica_igv' => false,
         'fecha' => now()->toDateString(),
     ]);
 
@@ -89,7 +89,7 @@ test('rechaza registrar un egreso sin categoria', function () {
         'descripcion' => 'Luz y agua local central',
         'cantidad' => 1,
         'precio' => 250.50,
-        'igv' => 0,
+        'aplica_igv' => false,
         'fecha' => now()->toDateString(),
     ]);
 
@@ -148,7 +148,7 @@ test('rechaza registrar o actualizar un egreso con categoria fuera del catalogo 
         'descripcion' => 'Luz y agua local central',
         'cantidad' => 1,
         'precio' => 250.50,
-        'igv' => 0,
+        'aplica_igv' => false,
         'fecha' => now()->toDateString(),
     ]);
     $responseStore->assertSessionHasErrors('categoria');

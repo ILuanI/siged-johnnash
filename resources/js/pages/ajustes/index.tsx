@@ -6,6 +6,7 @@ import {
     DoorOpen,
     Info,
     Pencil,
+    Percent,
     Plus,
     Save,
     School,
@@ -118,9 +119,10 @@ type PageProps = {
     periodos: Periodo[];
     colegios: Colegio[];
     categorias: CategoriaItem[];
+    igv_porcentaje_defecto: string;
 };
 
-type TabKey = 'aulas' | 'turnos' | 'periodos' | 'colegios' | 'categorias';
+type TabKey = 'aulas' | 'turnos' | 'periodos' | 'colegios' | 'categorias' | 'financieras';
 
 const TABS: { key: TabKey; label: string; icon: typeof DoorOpen }[] = [
     { key: 'aulas', label: 'Aulas', icon: DoorOpen },
@@ -128,6 +130,7 @@ const TABS: { key: TabKey; label: string; icon: typeof DoorOpen }[] = [
     { key: 'periodos', label: 'Periodos', icon: Building2 },
     { key: 'colegios', label: 'Colegios', icon: School },
     { key: 'categorias', label: 'Categorías', icon: Tags },
+    { key: 'financieras', label: 'Variables Financieras', icon: Percent },
 ];
 
 export default function AjustesIndex({
@@ -136,13 +139,14 @@ export default function AjustesIndex({
     periodos,
     colegios,
     categorias,
+    igv_porcentaje_defecto,
 }: PageProps) {
     const searchParams = new URLSearchParams(
         typeof window !== 'undefined' ? window.location.search : '',
     );
     const initialTab = (searchParams.get('tab') as TabKey) || 'aulas';
     const [tab, setTab] = useState<TabKey>(
-        ['aulas', 'turnos', 'periodos', 'colegios', 'categorias'].includes(
+        ['aulas', 'turnos', 'periodos', 'colegios', 'categorias', 'financieras'].includes(
             initialTab,
         )
             ? initialTab
@@ -204,6 +208,9 @@ export default function AjustesIndex({
                 {tab === 'colegios' && <ColegiosPanel colegios={colegios} />}
                 {tab === 'categorias' && (
                     <CategoriasPanel categorias={categorias} />
+                )}
+                {tab === 'financieras' && (
+                    <FinancierasPanel igvPorcentajeDefecto={igv_porcentaje_defecto} />
                 )}
             </main>
         </>
@@ -1357,5 +1364,58 @@ function CategoriasPanel({ categorias }: { categorias: CategoriaItem[] }) {
                 </DialogContent>
             </Dialog>
         </div>
+    );
+}
+
+function FinancierasPanel({ igvPorcentajeDefecto }: { igvPorcentajeDefecto: string }) {
+    const form = useForm({
+        igv_porcentaje_defecto: igvPorcentajeDefecto || '18.00',
+    });
+
+    const guardar = (e: React.FormEvent) => {
+        e.preventDefault();
+        form.put('/ajustes/variables-financieras', {
+            preserveScroll: true,
+            onSuccess: () => toast.success('Variables financieras actualizadas correctamente.'),
+            onError: () => toast.error('No se pudieron actualizar las variables financieras.'),
+        });
+    };
+
+    return (
+        <PanelShell
+            icon={Percent}
+            title="Variables Financieras Globales"
+            description="Configuración de valores predeterminados para cálculos fiscales y contables."
+        >
+            <form onSubmit={guardar} className="space-y-6 p-6">
+                <div className="max-w-md">
+                    <Label htmlFor="igv_porcentaje_defecto">Porcentaje de IGV por Defecto (%) *</Label>
+                    <div className="mt-1.5 flex gap-3">
+                        <Input
+                            id="igv_porcentaje_defecto"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            value={form.data.igv_porcentaje_defecto}
+                            onChange={(e) => form.setData('igv_porcentaje_defecto', e.target.value)}
+                            required
+                        />
+                        <Button
+                            type="submit"
+                            disabled={form.processing}
+                            className="bg-[#ff7043] hover:bg-[#f4511e]"
+                        >
+                            <Save className="size-4" />
+                            Guardar
+                        </Button>
+                    </div>
+                    <InputError message={form.errors.igv_porcentaje_defecto} />
+                    <p className="mt-2 text-xs text-slate-500">
+                        Este porcentaje se utilizará por defecto al registrar nuevos egresos o comprobantes con afectación al IGV.
+                    </p>
+                </div>
+            </form>
+        </PanelShell>
     );
 }

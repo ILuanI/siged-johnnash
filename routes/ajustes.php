@@ -28,4 +28,7 @@ Route::middleware(['auth', 'verified', 'permiso'])
         Route::post('colegios', [ConfiguracionController::class, 'storeColegio'])->name('colegios.store');
         Route::patch('colegios/{colegio}', [ConfiguracionController::class, 'updateColegio'])->name('colegios.update');
         Route::delete('colegios/{colegio}', [ConfiguracionController::class, 'destroyColegio'])->name('colegios.destroy');
+
+        // Variables financieras
+        Route::put('variables-financieras', [ConfiguracionController::class, 'updateVariablesFinancieras'])->name('variables-financieras.update');
     });
