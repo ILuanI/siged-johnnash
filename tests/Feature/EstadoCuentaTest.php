@@ -539,10 +539,796 @@ test('movimientos filtra pagos y egresos por búsqueda de texto', function () {
         ->and($propsEgresos['pagos']['data'])->toHaveCount(0);
 });
 
+test('movimientos busca pagos por descripción del comprobante y por usuario registrador', function () {
+    $cajero = usuarioConRol('Cajero');
+
+    // Pago general (sin matrícula/alumno) con descripción en el comprobante.
+    $comprobanteGeneral = ComprobantePago::factory()->create([
+        'id_matricula' => null,
+        'descripcion' => 'Pago de concepto extraordinario',
+    ]);
+    $cuotaGeneral = Cuota::factory()->create([
+        'id_comprobante' => $comprobanteGeneral->id_comprobante,
+        'monto' => 200,
+        'fecha_vencimiento' => now()->addDays(10)->toDateString(),
+        'estado' => EstadoCuota::Pendiente,
+    ]);
+    $usuarioRegistrador = User::factory()->create(['name' => 'Carlos Registrador']);
+    Pago::factory()->create([
+        'id_cuota' => $cuotaGeneral->id_cuota,
+        'user_id' => $usuarioRegistrador->id,
+        'fecha_pago' => '2026-08-10',
+        'monto' => 200,
+    ]);
+
+    // Pago de otro usuario (no debe coincidir con la búsqueda por nombre).
+    $otroUsuario = User::factory()->create(['name' => 'Otro Usuario']);
+    [, , $otraCuota] = crearCuotaPendiente();
+    Pago::factory()->create([
+        'id_cuota' => $otraCuota->id_cuota,
+        'user_id' => $otroUsuario->id,
+        'fecha_pago' => '2026-08-10',
+        'monto' => 300,
+    ]);
+
+    // Búsqueda por descripción del comprobante: el pago general coincide.
+    $responseDescripcion = $this->actingAs($cajero)
+        ->get(route('tesoreria.movimientos.index', ['search' => 'extraordinario']))
+        ->assertOk();
+
+    $propsDescripcion = $responseDescripcion->viewData('page')['props'];
+
+    expect($propsDescripcion['pagos']['data'])->toHaveCount(1)
+        ->and((float) $propsDescripcion['pagos']['data'][0]['monto'])->toBe(200.0)
+        ->and($propsDescripcion['egresos']['data'])->toHaveCount(0);
+
+    // Búsqueda por nombre del usuario que registró el pago.
+    $responseUsuario = $this->actingAs($cajero)
+        ->get(route('tesoreria.movimientos.index', ['search' => 'Registrador']))
+        ->assertOk();
+
+    $propsUsuario = $responseUsuario->viewData('page')['props'];
+
+    expect($propsUsuario['pagos']['data'])->toHaveCount(1)
+        ->and((float) $propsUsuario['pagos']['data'][0]['monto'])->toBe(200.0);
+});
+
 test('movimientos rechaza un search demasiado largo', function () {
     $cajero = usuarioConRol('Cajero');
 
     $this->actingAs($cajero)
         ->get(route('tesoreria.movimientos.index', ['search' => str_repeat('a', 256)]))
         ->assertSessionHasErrors('search');
+});
+
+test('caja filtra ingresos por método de pago sin afectar egresos', function () {
+    $cajero = usuarioConRol('Cajero');
+    [, , $cuota] = crearCuotaPendiente();
+    [, , $otraCuota] = crearCuotaPendiente();
+
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-10 10:00:00',
+        'monto' => 150,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+    Pago::factory()->create([
+        'id_cuota' => $otraCuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-11 10:00:00',
+        'monto' => 200,
+        'metodo_pago' => 'YAPE',
+    ]);
+
+    Egreso::create([
+        'tipo_egreso' => 'Servicio de luz',
+        'categoria' => 'SERVICIOS',
+        'descripcion' => 'Recibo de luz',
+        'cantidad' => 1,
+        'precio' => 50.00,
+        'igv' => 0,
+        'fecha' => '2026-08-12 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+    Egreso::create([
+        'tipo_egreso' => 'Servicio de agua',
+        'categoria' => 'SERVICIOS',
+        'descripcion' => 'Recibo de agua',
+        'cantidad' => 1,
+        'precio' => 70.00,
+        'igv' => 0,
+        'fecha' => '2026-08-13 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'YAPE',
+        'estado' => 'REGISTRADO',
+    ]);
+
+    $rango = ['fecha_inicio' => '2026-08-01', 'fecha_fin' => '2026-08-31'];
+
+    $response = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', array_merge($rango, ['metodo_pago' => 'EFECTIVO'])))
+        ->assertOk();
+
+    $props = $response->viewData('page')['props'];
+
+    // El método de pago solo filtra la tabla de ingresos.
+    expect($props['pagos']['data'])->toHaveCount(1)
+        ->and((float) $props['pagos']['data'][0]['monto'])->toBe(150.0)
+        ->and($props['egresos']['data'])->toHaveCount(2)
+        ->and((float) $props['totalIngresos'])->toBe(150.0)
+        ->and((float) $props['totalEgresos'])->toBe(120.0)
+        ->and((float) $props['ingresosPorConcepto']['MATRICULA'])->toBe(150.0);
+});
+
+test('caja filtra ingresos y egresos por categoría', function () {
+    $cajero = usuarioConRol('Cajero');
+    [, $comprobante, $cuota] = crearCuotaPendiente();
+    $comprobante->update(['categoria' => 'ACADEMICO']);
+    [, $otroComprobante, $otraCuota] = crearCuotaPendiente();
+    $otroComprobante->update(['categoria' => 'SERVICIOS']);
+
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-10 10:00:00',
+        'monto' => 150,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+    Pago::factory()->create([
+        'id_cuota' => $otraCuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-11 10:00:00',
+        'monto' => 200,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+
+    Egreso::create([
+        'tipo_egreso' => 'Materiales',
+        'categoria' => 'ACADEMICO',
+        'descripcion' => 'Compra de útiles',
+        'cantidad' => 1,
+        'precio' => 40.00,
+        'igv' => 0,
+        'fecha' => '2026-08-12 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+    Egreso::create([
+        'tipo_egreso' => 'Mantenimiento',
+        'categoria' => 'OPERATIVO',
+        'descripcion' => 'Reparación',
+        'cantidad' => 1,
+        'precio' => 60.00,
+        'igv' => 0,
+        'fecha' => '2026-08-13 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+
+    $rango = ['fecha_inicio' => '2026-08-01', 'fecha_fin' => '2026-08-31'];
+
+    $response = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', array_merge($rango, [
+            'categoria_ingreso' => 'ACADEMICO',
+            'categoria_egreso' => 'ACADEMICO',
+        ])))
+        ->assertOk();
+
+    $props = $response->viewData('page')['props'];
+
+    expect($props['pagos']['data'])->toHaveCount(1)
+        ->and((float) $props['pagos']['data'][0]['monto'])->toBe(150.0)
+        ->and($props['egresos']['data'])->toHaveCount(1)
+        ->and($props['egresos']['data'][0]['categoria'])->toBe('ACADEMICO')
+        ->and((float) $props['totalIngresos'])->toBe(150.0)
+        ->and((float) $props['totalEgresos'])->toBe(40.0);
+});
+
+test('caja filtra ingresos por concepto', function () {
+    $cajero = usuarioConRol('Cajero');
+    [, $comprobante, $cuota] = crearCuotaPendiente();
+    $comprobante->update(['concepto' => 'MATRICULA']);
+    [, $otroComprobante, $otraCuota] = crearCuotaPendiente();
+    $otroComprobante->update(['concepto' => 'SIMULACRO']);
+
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-10 10:00:00',
+        'monto' => 150,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+    Pago::factory()->create([
+        'id_cuota' => $otraCuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-11 10:00:00',
+        'monto' => 200,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+
+    $rango = ['fecha_inicio' => '2026-08-01', 'fecha_fin' => '2026-08-31'];
+
+    $response = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', array_merge($rango, ['concepto' => 'MATRICULA'])))
+        ->assertOk();
+
+    $props = $response->viewData('page')['props'];
+
+    expect($props['pagos']['data'])->toHaveCount(1)
+        ->and((float) $props['pagos']['data'][0]['monto'])->toBe(150.0)
+        ->and((float) $props['ingresosPorConcepto']['MATRICULA'])->toBe(150.0)
+        ->and((float) $props['ingresosPorConcepto']['SIMULACRO'])->toBe(0.0)
+        ->and((float) $props['totalIngresos'])->toBe(150.0);
+});
+
+test('caja filtra por búsqueda de alumno, descripción y usuario', function () {
+    $cajero = usuarioConRol('Cajero');
+    [$matricula, $comprobante, $cuota] = crearCuotaPendiente();
+    $matricula->alumno->update([
+        'nombres' => 'Lucía',
+        'apellidos' => 'Ramírez',
+        'dni' => '87654321',
+    ]);
+
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-10 10:00:00',
+        'monto' => 150,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+
+    [, , $otraCuota] = crearCuotaPendiente();
+    Pago::factory()->create([
+        'id_cuota' => $otraCuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-11 10:00:00',
+        'monto' => 300,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+
+    $usuarioBuscado = User::factory()->create(['name' => 'Ana Torres']);
+    Egreso::create([
+        'tipo_egreso' => 'Servicio de luz',
+        'categoria' => 'SERVICIOS',
+        'descripcion' => 'Recibo de luz',
+        'cantidad' => 1,
+        'precio' => 40.00,
+        'igv' => 0,
+        'fecha' => '2026-08-12 09:00:00',
+        'user_id' => $usuarioBuscado->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+    Egreso::create([
+        'tipo_egreso' => 'Otros',
+        'categoria' => 'OTROS',
+        'descripcion' => 'Gasto vario',
+        'cantidad' => 1,
+        'precio' => 25.00,
+        'igv' => 0,
+        'fecha' => '2026-08-13 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+
+    $rango = ['fecha_inicio' => '2026-08-01', 'fecha_fin' => '2026-08-31'];
+
+    // Búsqueda por apellido del alumno: solo el pago del alumno coincide.
+    $responsePagos = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', array_merge($rango, ['search_ingreso' => 'Ramírez'])))
+        ->assertOk();
+
+    $propsPagos = $responsePagos->viewData('page')['props'];
+
+    expect($propsPagos['pagos']['data'])->toHaveCount(1)
+        ->and((float) $propsPagos['pagos']['data'][0]['monto'])->toBe(150.0)
+        ->and($propsPagos['egresos']['data'])->toHaveCount(0)
+        ->and((float) $propsPagos['totalIngresos'])->toBe(150.0);
+
+    // Búsqueda por usuario del egreso: solo el egreso coincide.
+    $responseEgresos = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', array_merge($rango, ['search_egreso' => 'Ana'])))
+        ->assertOk();
+
+    $propsEgresos = $responseEgresos->viewData('page')['props'];
+
+    expect($propsEgresos['egresos']['data'])->toHaveCount(1)
+        ->and($propsEgresos['egresos']['data'][0]['tipo_egreso'])->toBe('Servicio de luz')
+        ->and($propsEgresos['pagos']['data'])->toHaveCount(0)
+        ->and((float) $propsEgresos['totalEgresos'])->toBe(40.0);
+});
+
+test('caja rechaza un metodo_pago inválido', function () {
+    $cajero = usuarioConRol('Cajero');
+
+    $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', ['metodo_pago' => 'BITCOIN']))
+        ->assertSessionHasErrors('metodo_pago');
+});
+
+test('caja rechaza un concepto inválido', function () {
+    $cajero = usuarioConRol('Cajero');
+
+    $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', ['concepto' => 'INEXISTENTE']))
+        ->assertSessionHasErrors('concepto');
+});
+
+test('caja expone categoriasIngreso y categoriasEgreso por separado', function () {
+    $cajero = usuarioConRol('Cajero');
+
+    $response = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index'))
+        ->assertOk();
+
+    $props = $response->viewData('page')['props'];
+
+    expect($props)->toHaveKey('categoriasIngreso')
+        ->and($props)->toHaveKey('categoriasEgreso')
+        ->and($props['categoriasIngreso'])->toBeArray()
+        ->and($props['categoriasEgreso'])->toBeArray();
+});
+
+test('caja separa categoria_ingreso y categoria_egreso sin cruzarse', function () {
+    $cajero = usuarioConRol('Cajero');
+    [, $comprobante, $cuota] = crearCuotaPendiente();
+    $comprobante->update(['categoria' => 'ACADEMICO']);
+    [, $otroComprobante, $otraCuota] = crearCuotaPendiente();
+    $otroComprobante->update(['categoria' => 'SERVICIOS']);
+
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-10 10:00:00',
+        'monto' => 150,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+    Pago::factory()->create([
+        'id_cuota' => $otraCuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-11 10:00:00',
+        'monto' => 200,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+
+    Egreso::create([
+        'tipo_egreso' => 'Materiales',
+        'categoria' => 'ACADEMICO',
+        'descripcion' => 'Compra de útiles',
+        'cantidad' => 1,
+        'precio' => 40.00,
+        'igv' => 0,
+        'fecha' => '2026-08-12 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+    Egreso::create([
+        'tipo_egreso' => 'Mantenimiento',
+        'categoria' => 'OPERATIVO',
+        'descripcion' => 'Reparación',
+        'cantidad' => 1,
+        'precio' => 60.00,
+        'igv' => 0,
+        'fecha' => '2026-08-13 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+
+    $rango = ['fecha_inicio' => '2026-08-01', 'fecha_fin' => '2026-08-31'];
+
+    // categoria_ingreso filtra solo ingresos; los egresos no se ven afectados.
+    $respIng = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', array_merge($rango, ['categoria_ingreso' => 'ACADEMICO'])))
+        ->assertOk();
+    $p = $respIng->viewData('page')['props'];
+
+    expect($p['pagos']['data'])->toHaveCount(1)
+        ->and((float) $p['pagos']['data'][0]['monto'])->toBe(150.0)
+        ->and($p['egresos']['data'])->toHaveCount(2);
+
+    // categoria_egreso filtra solo egresos; los ingresos no se ven afectados.
+    $respEgr = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', array_merge($rango, ['categoria_egreso' => 'OPERATIVO'])))
+        ->assertOk();
+    $p2 = $respEgr->viewData('page')['props'];
+
+    expect($p2['egresos']['data'])->toHaveCount(1)
+        ->and((float) $p2['egresos']['data'][0]['total'])->toBe(60.0)
+        ->and($p2['pagos']['data'])->toHaveCount(2);
+});
+
+test('caja separa usuario_ingreso y usuario_egreso sin cruzarse', function () {
+    $cajero = usuarioConRol('Cajero');
+    $otroUsuario = User::factory()->create(['id_rol' => $cajero->id_rol]);
+
+    [, , $cuota] = crearCuotaPendiente();
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-10 10:00:00',
+        'monto' => 150,
+    ]);
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $otroUsuario->id,
+        'fecha_pago' => '2026-08-11 10:00:00',
+        'monto' => 200,
+    ]);
+
+    Egreso::create([
+        'tipo_egreso' => 'Materiales',
+        'categoria' => 'OPERATIVO',
+        'descripcion' => 'Compra',
+        'cantidad' => 1,
+        'precio' => 40.00,
+        'igv' => 0,
+        'fecha' => '2026-08-12 09:00:00',
+        'user_id' => $cajero->id,
+        'estado' => 'REGISTRADO',
+    ]);
+    Egreso::create([
+        'tipo_egreso' => 'Mantenimiento',
+        'categoria' => 'OPERATIVO',
+        'descripcion' => 'Reparación',
+        'cantidad' => 1,
+        'precio' => 60.00,
+        'igv' => 0,
+        'fecha' => '2026-08-13 09:00:00',
+        'user_id' => $otroUsuario->id,
+        'estado' => 'REGISTRADO',
+    ]);
+
+    $rango = ['fecha_inicio' => '2026-08-01', 'fecha_fin' => '2026-08-31'];
+
+    $respIng = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', array_merge($rango, ['usuario_ingreso' => $otroUsuario->id])))
+        ->assertOk();
+    $p = $respIng->viewData('page')['props'];
+
+    expect($p['pagos']['data'])->toHaveCount(1)
+        ->and((float) $p['pagos']['data'][0]['monto'])->toBe(200.0)
+        ->and($p['egresos']['data'])->toHaveCount(2);
+
+    $respEgr = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', array_merge($rango, ['usuario_egreso' => $otroUsuario->id])))
+        ->assertOk();
+    $p2 = $respEgr->viewData('page')['props'];
+
+    expect($p2['egresos']['data'])->toHaveCount(1)
+        ->and((float) $p2['egresos']['data'][0]['total'])->toBe(60.0)
+        ->and($p2['pagos']['data'])->toHaveCount(2);
+});
+
+test('caja separa search_ingreso y search_egreso sin cruzarse', function () {
+    $cajero = usuarioConRol('Cajero');
+    [$matricula, $comprobante, $cuota] = crearCuotaPendiente();
+    $matricula->alumno->update([
+        'nombres' => 'Lucía',
+        'apellidos' => 'Ramírez',
+        'dni' => '87654321',
+    ]);
+
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-10 10:00:00',
+        'monto' => 150,
+    ]);
+    [, , $otraCuota] = crearCuotaPendiente();
+    Pago::factory()->create([
+        'id_cuota' => $otraCuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-11 10:00:00',
+        'monto' => 300,
+    ]);
+
+    $usuarioBuscado = User::factory()->create(['name' => 'Ana Torres']);
+    Egreso::create([
+        'tipo_egreso' => 'Servicio de luz',
+        'categoria' => 'SERVICIOS',
+        'descripcion' => 'Recibo de luz',
+        'cantidad' => 1,
+        'precio' => 40.00,
+        'igv' => 0,
+        'fecha' => '2026-08-12 09:00:00',
+        'user_id' => $usuarioBuscado->id,
+        'estado' => 'REGISTRADO',
+    ]);
+    Egreso::create([
+        'tipo_egreso' => 'Otros',
+        'categoria' => 'OTROS',
+        'descripcion' => 'Gasto vario',
+        'cantidad' => 1,
+        'precio' => 25.00,
+        'igv' => 0,
+        'fecha' => '2026-08-13 09:00:00',
+        'user_id' => $cajero->id,
+        'estado' => 'REGISTRADO',
+    ]);
+
+    $rango = ['fecha_inicio' => '2026-08-01', 'fecha_fin' => '2026-08-31'];
+
+    $responsePagos = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', array_merge($rango, ['search_ingreso' => 'Ramírez'])))
+        ->assertOk();
+    $propsPagos = $responsePagos->viewData('page')['props'];
+
+    expect($propsPagos['pagos']['data'])->toHaveCount(1)
+        ->and((float) $propsPagos['pagos']['data'][0]['monto'])->toBe(150.0)
+        ->and($propsPagos['egresos']['data'])->toHaveCount(0);
+
+    $responseEgresos = $this->actingAs($cajero)
+        ->get(route('tesoreria.caja.index', array_merge($rango, ['search_egreso' => 'Ana'])))
+        ->assertOk();
+    $propsEgresos = $responseEgresos->viewData('page')['props'];
+
+    expect($propsEgresos['egresos']['data'])->toHaveCount(1)
+        ->and($propsEgresos['egresos']['data'][0]['tipo_egreso'])->toBe('Servicio de luz')
+        ->and($propsEgresos['pagos']['data'])->toHaveCount(0);
+});
+
+test('movimientos filtra pagos y egresos por categoría', function () {
+    $cajero = usuarioConRol('Cajero');
+    [, $comprobante, $cuota] = crearCuotaPendiente();
+    $comprobante->update(['categoria' => 'ACADEMICO']);
+    [, $otroComprobante, $otraCuota] = crearCuotaPendiente();
+    $otroComprobante->update(['categoria' => 'SERVICIOS']);
+
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-10 10:00:00',
+        'monto' => 150,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+    Pago::factory()->create([
+        'id_cuota' => $otraCuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-11 10:00:00',
+        'monto' => 300,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+
+    Egreso::create([
+        'tipo_egreso' => 'Materiales',
+        'categoria' => 'ACADEMICO',
+        'descripcion' => 'Compra de útiles',
+        'cantidad' => 1,
+        'precio' => 40.00,
+        'igv' => 0,
+        'fecha' => '2026-08-12 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+    Egreso::create([
+        'tipo_egreso' => 'Mantenimiento',
+        'categoria' => 'OPERATIVO',
+        'descripcion' => 'Reparación',
+        'cantidad' => 1,
+        'precio' => 60.00,
+        'igv' => 0,
+        'fecha' => '2026-08-13 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+
+    $response = $this->actingAs($cajero)
+        ->get(route('tesoreria.movimientos.index', ['categoria' => 'ACADEMICO']))
+        ->assertOk();
+
+    $props = $response->viewData('page')['props'];
+
+    expect($props['pagos']['data'])->toHaveCount(1)
+        ->and((float) $props['pagos']['data'][0]['monto'])->toBe(150.0)
+        ->and($props['egresos']['data'])->toHaveCount(1)
+        ->and($props['egresos']['data'][0]['categoria'])->toBe('ACADEMICO');
+});
+
+test('movimientos filtra pagos y egresos por concepto', function () {
+    $cajero = usuarioConRol('Cajero');
+    [, $comprobante, $cuota] = crearCuotaPendiente();
+    $comprobante->update(['concepto' => 'MATRICULA']);
+    [, $otroComprobante, $otraCuota] = crearCuotaPendiente();
+    $otroComprobante->update(['concepto' => 'SIMULACRO']);
+
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-10 10:00:00',
+        'monto' => 150,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+    Pago::factory()->create([
+        'id_cuota' => $otraCuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-11 10:00:00',
+        'monto' => 300,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+
+    Egreso::create([
+        'tipo_egreso' => 'MATRICULA',
+        'categoria' => 'OPERATIVO',
+        'descripcion' => 'Ajuste de matrícula',
+        'cantidad' => 1,
+        'precio' => 40.00,
+        'igv' => 0,
+        'fecha' => '2026-08-12 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+    Egreso::create([
+        'tipo_egreso' => 'Otros',
+        'categoria' => 'OPERATIVO',
+        'descripcion' => 'Gasto vario',
+        'cantidad' => 1,
+        'precio' => 60.00,
+        'igv' => 0,
+        'fecha' => '2026-08-13 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+
+    $response = $this->actingAs($cajero)
+        ->get(route('tesoreria.movimientos.index', ['concepto' => 'MATRICULA']))
+        ->assertOk();
+
+    $props = $response->viewData('page')['props'];
+
+    expect($props['pagos']['data'])->toHaveCount(1)
+        ->and((float) $props['pagos']['data'][0]['monto'])->toBe(150.0)
+        ->and($props['egresos']['data'])->toHaveCount(1)
+        ->and($props['egresos']['data'][0]['tipo_egreso'])->toBe('MATRICULA');
+});
+
+test('movimientos rechaza una categoría o concepto demasiado largos', function () {
+    $cajero = usuarioConRol('Cajero');
+
+    $this->actingAs($cajero)
+        ->get(route('tesoreria.movimientos.index', ['concepto' => str_repeat('x', 61)]))
+        ->assertSessionHasErrors('concepto');
+
+    $this->actingAs($cajero)
+        ->get(route('tesoreria.movimientos.index', ['categoria' => str_repeat('x', 61)]))
+        ->assertSessionHasErrors('categoria');
+});
+
+test('movimientos filtra pagos y egresos por método de pago', function () {
+    $cajero = usuarioConRol('Cajero');
+    [, $comprobante, $cuota] = crearCuotaPendiente();
+
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-10 10:00:00',
+        'monto' => 150,
+        'metodo_pago' => 'EFECTIVO',
+    ]);
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-11 10:00:00',
+        'monto' => 300,
+        'metodo_pago' => 'YAPE',
+    ]);
+
+    Egreso::create([
+        'tipo_egreso' => 'Materiales',
+        'categoria' => 'OPERATIVO',
+        'descripcion' => 'Compra',
+        'cantidad' => 1,
+        'precio' => 40.00,
+        'igv' => 0,
+        'fecha' => '2026-08-12 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+    Egreso::create([
+        'tipo_egreso' => 'Mantenimiento',
+        'categoria' => 'OPERATIVO',
+        'descripcion' => 'Reparación',
+        'cantidad' => 1,
+        'precio' => 60.00,
+        'igv' => 0,
+        'fecha' => '2026-08-13 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'YAPE',
+        'estado' => 'REGISTRADO',
+    ]);
+
+    $response = $this->actingAs($cajero)
+        ->get(route('tesoreria.movimientos.index', ['metodo_pago' => 'EFECTIVO']))
+        ->assertOk();
+
+    $props = $response->viewData('page')['props'];
+
+    expect($props['pagos']['data'])->toHaveCount(1)
+        ->and($props['pagos']['data'][0]['metodo_pago'])->toBe('EFECTIVO')
+        ->and($props['egresos']['data'])->toHaveCount(1)
+        ->and($props['egresos']['data'][0]['metodo_pago'])->toBe('EFECTIVO');
+});
+
+test('movimientos filtra por estado tratando PAGADO/REGISTRADO como activos', function () {
+    $cajero = usuarioConRol('Cajero');
+    [, $comprobante, $cuota] = crearCuotaPendiente();
+
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-10 10:00:00',
+        'monto' => 150,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'PAGADO',
+    ]);
+    Pago::factory()->create([
+        'id_cuota' => $cuota->id_cuota,
+        'user_id' => $cajero->id,
+        'fecha_pago' => '2026-08-11 10:00:00',
+        'monto' => 300,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'ANULADO',
+    ]);
+
+    Egreso::create([
+        'tipo_egreso' => 'Materiales',
+        'categoria' => 'OPERATIVO',
+        'descripcion' => 'Compra',
+        'cantidad' => 1,
+        'precio' => 40.00,
+        'igv' => 0,
+        'fecha' => '2026-08-12 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'REGISTRADO',
+    ]);
+    Egreso::create([
+        'tipo_egreso' => 'Mantenimiento',
+        'categoria' => 'OPERATIVO',
+        'descripcion' => 'Reparación',
+        'cantidad' => 1,
+        'precio' => 60.00,
+        'igv' => 0,
+        'fecha' => '2026-08-13 09:00:00',
+        'user_id' => $cajero->id,
+        'metodo_pago' => 'EFECTIVO',
+        'estado' => 'ANULADO',
+    ]);
+
+    // Filtrar por estado activo (PAGADO): pagos PAGADO + egresos REGISTRADO.
+    $response = $this->actingAs($cajero)
+        ->get(route('tesoreria.movimientos.index', ['estado' => 'PAGADO']))
+        ->assertOk();
+
+    $props = $response->viewData('page')['props'];
+
+    expect($props['pagos']['data'])->toHaveCount(1)
+        ->and($props['pagos']['data'][0]['estado'])->toBe('PAGADO')
+        ->and($props['egresos']['data'])->toHaveCount(1)
+        ->and($props['egresos']['data'][0]['estado'])->toBe('REGISTRADO');
+
+    // Filtrar por ANULADO: ambos tipos.
+    $responseAnulado = $this->actingAs($cajero)
+        ->get(route('tesoreria.movimientos.index', ['estado' => 'ANULADO']))
+        ->assertOk();
+
+    $propsAnulado = $responseAnulado->viewData('page')['props'];
+
+    expect($propsAnulado['pagos']['data'])->toHaveCount(1)
+        ->and($propsAnulado['pagos']['data'][0]['estado'])->toBe('ANULADO')
+        ->and($propsAnulado['egresos']['data'])->toHaveCount(1)
+        ->and($propsAnulado['egresos']['data'][0]['estado'])->toBe('ANULADO');
 });

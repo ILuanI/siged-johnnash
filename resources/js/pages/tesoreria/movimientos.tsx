@@ -1,4 +1,4 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
     CalendarDays,
@@ -8,7 +8,7 @@ import {
     Search,
     X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect } from 'react';
 import {
     index as tesoreriaIndex,
     movimientos as movimientosIndex,
@@ -147,7 +147,10 @@ function formatCurrency(amount: string | number) {
 
 function formatDate(dateStr: string) {
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
+
+    if (isNaN(date.getTime())) {
+return dateStr;
+}
 
     return new Intl.DateTimeFormat('es-PE', {
         day: 'numeric',
@@ -160,17 +163,61 @@ function formatDate(dateStr: string) {
 }
 
 export default function Movimientos({ pagos, egresos, filters }: MovimientosProps) {
-    const [fechaInicio, setFechaInicio] = useState(filters.fecha_inicio ?? '');
-    const [fechaFin, setFechaFin] = useState(filters.fecha_fin ?? '');
-    const [metodoPago, setMetodoPago] = useState(filters.metodo_pago ?? '');
-    const [estado, setEstado] = useState(filters.estado ?? '');
-    const [tipo, setTipo] = useState(filters.tipo ?? 'todos');
-    const [search, setSearch] = useState(filters.search ?? '');
+    // Única fuente de verdad para filtros, paginación y ordenamiento.
+    // `useForm` mantiene el estado local sincronizado con los `filters` del
+    // servidor mediante el `useEffect` de abajo, evitando estados
+    // desincronizados entre la UI y la petición de Inertia.
+    const form = useForm({
+        fecha_inicio: filters.fecha_inicio ?? '',
+        fecha_fin: filters.fecha_fin ?? '',
+        metodo_pago: filters.metodo_pago ?? '',
+        estado: filters.estado ?? '',
+        tipo: filters.tipo ?? 'todos',
+        search: filters.search ?? '',
+        sort: filters.sort ?? null,
+        direction: filters.direction ?? null,
+        page: 1,
+    });
+
+    const { data, setData } = form;
+
+    // Omite los valores vacíos para no enviarlos como query params.
+    // Se aplica de forma explícita al construir el payload de `router.get`,
+    // ya que `router.get` no utiliza el `transform` del formulario.
+    const limpiarDatos = (
+        datos: Record<string, string | number | null>,
+    ): Record<string, string | number | null> => {
+        const limpios: Record<string, string | number | null> = {};
+        Object.entries(datos).forEach(([clave, valor]) => {
+            if (valor !== '' && valor !== null && valor !== undefined) {
+                limpios[clave] = valor;
+            }
+        });
+
+        return limpios;
+    };
+
+    // Sincroniza el formulario con los filtros del servidor cada vez que
+    // cambian (tras una petición de Inertia). Se usa una actualización
+    // funcional para conservar `page` y otros campos no gestionados aquí.
+    useEffect(() => {
+        setData((actual) => ({
+            ...actual,
+            fecha_inicio: filters.fecha_inicio ?? '',
+            fecha_fin: filters.fecha_fin ?? '',
+            metodo_pago: filters.metodo_pago ?? '',
+            estado: filters.estado ?? '',
+            tipo: filters.tipo ?? 'todos',
+            search: filters.search ?? '',
+            sort: filters.sort ?? null,
+            direction: filters.direction ?? null,
+        }));
+    }, [filters, setData]);
 
     const hoy = () => {
         const h = new Date().toISOString().split('T')[0];
-        setFechaInicio(h);
-        setFechaFin(h);
+        setData('fecha_inicio', h);
+        setData('fecha_fin', h);
     };
 
     const esteMes = () => {
@@ -181,8 +228,8 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
         const fin = new Date(now.getFullYear(), now.getMonth() + 1, 0)
             .toISOString()
             .split('T')[0];
-        setFechaInicio(inicio);
-        setFechaFin(fin);
+        setData('fecha_inicio', inicio);
+        setData('fecha_fin', fin);
     };
 
     const mesAnterior = () => {
@@ -193,80 +240,78 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
         const fin = new Date(now.getFullYear(), now.getMonth(), 0)
             .toISOString()
             .split('T')[0];
-        setFechaInicio(inicio);
-        setFechaFin(fin);
+        setData('fecha_inicio', inicio);
+        setData('fecha_fin', fin);
     };
 
     const aplicarFiltros = (e: React.FormEvent) => {
         e.preventDefault();
-        router.get(
-            movimientosIndex.url(),
-            {
-                fecha_inicio: fechaInicio || undefined,
-                fecha_fin: fechaFin || undefined,
-                metodo_pago: metodoPago || undefined,
-                estado: estado || undefined,
-                tipo: tipo || undefined,
-                search: search || undefined,
-                sort: filters.sort || undefined,
-                direction: filters.direction || undefined,
-            },
-            { preserveState: true, replace: true },
-        );
+        // Al aplicar filtros se reinicia la paginación en la primera página.
+        // Construimos el objeto de datos explícito y lo pasamos a `setData`
+        // para mantener la UI en sincronía, y lo enviamos de forma síncrona
+        // como payload de `router.get` (no depende del ref interno de
+        // `useForm`), garantizando que los filtros se apliquen en el primer
+        // clic.
+        const nuevoData: typeof data = { ...data, page: 1 };
+        setData(nuevoData);
+        router.get(movimientosIndex.url(), limpiarDatos(nuevoData), {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true,
+        });
     };
 
     const limpiarFiltros = () => {
-        setFechaInicio('');
-        setFechaFin('');
-        setMetodoPago('');
-        setEstado('');
-        setTipo('todos');
-        setSearch('');
-        router.get(
-            movimientosIndex.url(),
-            {},
-            { preserveState: true, replace: true },
-        );
+        const nuevoData: typeof data = {
+            fecha_inicio: '',
+            fecha_fin: '',
+            metodo_pago: '',
+            estado: '',
+            tipo: 'todos',
+            search: '',
+            sort: null,
+            direction: null,
+            page: 1,
+        };
+        setData(nuevoData);
+        router.get(movimientosIndex.url(), limpiarDatos(nuevoData), {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true,
+        });
     };
 
     const irAPagina = (page: number) => {
-        router.get(
-            movimientosIndex.url(),
-            {
-                fecha_inicio: filters.fecha_inicio || undefined,
-                fecha_fin: filters.fecha_fin || undefined,
-                metodo_pago: filters.metodo_pago || undefined,
-                estado: filters.estado || undefined,
-                tipo: filters.tipo || undefined,
-                search: filters.search || undefined,
-                sort: filters.sort || undefined,
-                direction: filters.direction || undefined,
-                page,
-            },
-            { preserveState: true, replace: true },
-        );
+        const nuevoData: typeof data = { ...data, page };
+        setData(nuevoData);
+        router.get(movimientosIndex.url(), limpiarDatos(nuevoData), {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true,
+        });
     };
 
     const cambiarOrden = (columna: 'fecha' | 'monto') => {
         const nuevaDireccion =
-            filters.sort === columna && filters.direction === 'desc'
+            data.sort === columna && data.direction === 'desc'
                 ? 'asc'
                 : 'desc';
 
-        router.get(
-            movimientosIndex.url(),
-            {
-                fecha_inicio: filters.fecha_inicio || undefined,
-                fecha_fin: filters.fecha_fin || undefined,
-                metodo_pago: filters.metodo_pago || undefined,
-                estado: filters.estado || undefined,
-                tipo: filters.tipo || undefined,
-                search: filters.search || undefined,
-                sort: columna,
-                direction: nuevaDireccion,
-            },
-            { preserveState: true, replace: true },
-        );
+        // Construimos el estado completo (sort/direction/page) y lo pasamos
+        // explícitamente a `setData` para evitar enviar datos del render
+        // anterior en la primera interacción.
+        const nuevoData: typeof data = {
+            ...data,
+            sort: columna,
+            direction: nuevaDireccion,
+            page: 1,
+        };
+        setData(nuevoData);
+        router.get(movimientosIndex.url(), limpiarDatos(nuevoData), {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true,
+        });
     };
 
     const nombreAlumno = (pago: PagoMovimiento) => {
@@ -395,12 +440,12 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
     });
 
     const hayFiltrosActivos =
-        Boolean(filters.fecha_inicio) ||
-        Boolean(filters.fecha_fin) ||
-        Boolean(filters.metodo_pago) ||
-        Boolean(filters.estado) ||
-        Boolean(filters.tipo && filters.tipo !== 'todos') ||
-        Boolean(filters.search);
+        Boolean(data.fecha_inicio) ||
+        Boolean(data.fecha_fin) ||
+        Boolean(data.metodo_pago) ||
+        Boolean(data.estado) ||
+        Boolean(data.tipo && data.tipo !== 'todos') ||
+        Boolean(data.search);
 
     // Paginación combinada de ambas colecciones (misma página en cada una).
     const pagination = {
@@ -454,9 +499,9 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
                                             id="search"
                                             type="text"
                                             placeholder="Alumno, DNI, concepto, descripción o usuario..."
-                                            value={search}
+                                            value={data.search}
                                             onChange={(e) =>
-                                                setSearch(e.target.value)
+                                                setData('search', e.target.value)
                                             }
                                             className="pl-8"
                                         />
@@ -502,34 +547,35 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
                                     <Label htmlFor="fecha_inicio">
                                         Fecha inicio
                                     </Label>
-                                    <Input
-                                        id="fecha_inicio"
-                                        type="date"
-                                        value={fechaInicio}
-                                        onChange={(e) =>
-                                            setFechaInicio(e.target.value)
-                                        }
-                                    />
+                                        <Input
+                                            id="fecha_inicio"
+                                            type="date"
+                                            value={data.fecha_inicio}
+                                            onChange={(e) =>
+                                                setData('fecha_inicio', e.target.value)
+                                            }
+                                        />
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label htmlFor="fecha_fin">Fecha fin</Label>
-                                    <Input
-                                        id="fecha_fin"
-                                        type="date"
-                                        value={fechaFin}
-                                        onChange={(e) =>
-                                            setFechaFin(e.target.value)
-                                        }
-                                    />
+                                        <Input
+                                            id="fecha_fin"
+                                            type="date"
+                                            value={data.fecha_fin}
+                                            onChange={(e) =>
+                                                setData('fecha_fin', e.target.value)
+                                            }
+                                        />
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label htmlFor="tipo">Tipo</Label>
                                 <Select
-                                    value={tipo}
+                                    value={data.tipo}
                                     onValueChange={(val) =>
-                                        setTipo(
+                                        setData(
+                                            'tipo',
                                             val as
                                                 | 'todos'
                                                 | 'ingresos'
@@ -558,9 +604,9 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
                                     Método de pago
                                 </Label>
                                 <Select
-                                    value={metodoPago || 'all'}
+                                    value={data.metodo_pago || 'all'}
                                     onValueChange={(val) =>
-                                        setMetodoPago(val === 'all' ? '' : val)
+                                        setData('metodo_pago', val === 'all' ? '' : val)
                                     }
                                 >
                                     <SelectTrigger id="metodo_pago">
@@ -585,9 +631,9 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
                             <div className="space-y-2">
                                 <Label htmlFor="estado">Estado</Label>
                                 <Select
-                                    value={estado || 'all'}
+                                    value={data.estado || 'all'}
                                     onValueChange={(val) =>
-                                        setEstado(val === 'all' ? '' : val)
+                                        setData('estado', val === 'all' ? '' : val)
                                     }
                                 >
                                     <SelectTrigger id="estado">

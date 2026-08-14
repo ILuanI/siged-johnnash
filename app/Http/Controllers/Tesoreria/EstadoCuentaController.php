@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Tesoreria;
 
+use App\Enums\CategoriaEgreso;
+use App\Enums\CategoriaIngreso;
+use App\Enums\ConceptoPago;
 use App\Enums\EstadoCuota;
 use App\Enums\TipoCategoriaFinanciera;
 use App\Http\Controllers\Controller;
@@ -14,6 +17,7 @@ use App\Models\Configuracion;
 use App\Models\Cuota;
 use App\Models\Egreso;
 use App\Models\Pago;
+use App\Models\User;
 use App\Services\Tesoreria\CuotaScheduleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -103,6 +107,8 @@ class EstadoCuentaController extends Controller
             'sort' => ['nullable', 'string', 'in:fecha,monto'],
             'direction' => ['nullable', 'string', 'in:asc,desc'],
             'search' => ['nullable', 'string', 'max:255'],
+            'categoria' => ['nullable', 'string', 'max:60'],
+            'concepto' => ['nullable', 'string', 'max:60'],
         ];
 
         if ($request->filled('fecha_inicio')) {
@@ -115,6 +121,8 @@ class EstadoCuentaController extends Controller
         $direction = $validated['direction'] ?? 'desc';
         $tipo = $validated['tipo'] ?? 'todos';
         $search = $validated['search'] ?? null;
+        $categoria = $validated['categoria'] ?? null;
+        $concepto = $validated['concepto'] ?? null;
 
         // Ingresos: pagos registrados contra cuotas (con sus auditorías).
         $pagos = $tipo === 'egresos'
@@ -124,7 +132,12 @@ class EstadoCuentaController extends Controller
                 ->when($validated['fecha_inicio'] ?? null, fn ($query, $fechaInicio) => $query->whereDate('fecha_pago', '>=', $fechaInicio))
                 ->when($validated['fecha_fin'] ?? null, fn ($query, $fechaFin) => $query->whereDate('fecha_pago', '<=', $fechaFin))
                 ->when($validated['metodo_pago'] ?? null, fn ($query, $metodoPago) => $query->where('metodo_pago', $metodoPago))
-                ->when($validated['estado'] ?? null, fn ($query, $estado) => $query->where('estado', $estado))
+                ->when($categoria, fn ($query, $cat) => $query->whereHas('cuota.comprobantePago', fn ($query) => $query->where('categoria', $cat)))
+                ->when($concepto, fn ($query, $conc) => $query->whereHas('cuota.comprobantePago', fn ($query) => $query->where('concepto', $conc)))
+                ->when($validated['estado'] ?? null, function ($query, $estado) {
+                    // Pagos usan PAGADO; egresos usan REGISTRADO. Ambos comparten ANULADO.
+                    $query->where('estado', $estado === 'ANULADO' ? 'ANULADO' : 'PAGADO');
+                })
                 ->when($search, function ($query) use ($search) {
                     $query->where(function ($query) use ($search) {
                         $query
@@ -135,8 +148,11 @@ class EstadoCuentaController extends Controller
                                     ->orWhere('dni', 'like', "%{$search}%");
                             })
                             ->orWhereHas('cuota.comprobantePago', function ($query) use ($search) {
-                                $query->where('concepto', 'like', "%{$search}%");
-                            });
+                                $query
+                                    ->where('concepto', 'like', "%{$search}%")
+                                    ->orWhere('descripcion', 'like', "%{$search}%");
+                            })
+                            ->orWhereHas('user', fn ($query) => $query->where('name', 'like', "%{$search}%"));
                     });
                 })
                 ->orderBy($sort === 'monto' ? 'monto' : 'fecha_pago', $direction)
@@ -150,7 +166,13 @@ class EstadoCuentaController extends Controller
                 ->with(['user:id,name', 'auditorias.usuario'])
                 ->when($validated['fecha_inicio'] ?? null, fn ($query, $fechaInicio) => $query->whereDate('fecha', '>=', $fechaInicio))
                 ->when($validated['fecha_fin'] ?? null, fn ($query, $fechaFin) => $query->whereDate('fecha', '<=', $fechaFin))
-                ->when($validated['estado'] ?? null, fn ($query, $estado) => $query->where('estado', $estado))
+                ->when($validated['metodo_pago'] ?? null, fn ($query, $metodoPago) => $query->where('metodo_pago', $metodoPago))
+                ->when($categoria, fn ($query, $cat) => $query->where('categoria', $cat))
+                ->when($concepto, fn ($query, $conc) => $query->where('tipo_egreso', $conc))
+                ->when($validated['estado'] ?? null, function ($query, $estado) {
+                    // Egresos usan REGISTRADO; pagos usan PAGADO. Ambos comparten ANULADO.
+                    $query->where('estado', $estado === 'ANULADO' ? 'ANULADO' : 'REGISTRADO');
+                })
                 ->when($search, function ($query) use ($search) {
                     $query->where(function ($query) use ($search) {
                         $query
@@ -165,10 +187,35 @@ class EstadoCuentaController extends Controller
                 ->paginate(15)
                 ->withQueryString();
 
+        // Catálogo de categorías contables (unión de ingresos y egresos) para
+        // el selector de filtros; si el mantenedor está vacío, usa los enums.
+        $categorias = CategoriaFinanciera::query()
+            ->orderBy('nombre')
+            ->pluck('nombre')
+            ->unique()
+            ->values()
+            ->toArray();
+
+        if (empty($categorias)) {
+            $categorias = array_values(array_unique([
+                ...array_column(CategoriaIngreso::cases(), 'value'),
+                ...array_column(CategoriaEgreso::cases(), 'value'),
+            ]));
+        }
+
+        // Catálogo de conceptos para el filtro: combina los conceptos de pago
+        // (comprobante_pago.concepto) con los tipos de egreso (egreso.tipo_egreso),
+        // ya que el filtro de concepto aplica a ambas colecciones.
+        $conceptosPago = array_column(ConceptoPago::cases(), 'value');
+        $conceptosEgreso = Egreso::query()->distinct()->pluck('tipo_egreso')->filter()->toArray();
+        $conceptos = array_values(array_unique(array_merge($conceptosPago, $conceptosEgreso)));
+
         return Inertia::render('tesoreria/movimientos', [
             'pagos' => $pagos,
             'egresos' => $egresos,
-            'filters' => $request->only(['fecha_inicio', 'fecha_fin', 'metodo_pago', 'estado', 'tipo', 'sort', 'direction', 'search']),
+            'categorias' => $categorias,
+            'conceptos' => $conceptos,
+            'filters' => $request->only(['fecha_inicio', 'fecha_fin', 'metodo_pago', 'estado', 'tipo', 'sort', 'direction', 'search', 'categoria', 'concepto']),
         ]);
     }
 
@@ -459,6 +506,16 @@ class EstadoCuentaController extends Controller
         $rules = [
             'fecha_inicio' => ['nullable', 'date'],
             'fecha_fin' => ['nullable', 'date'],
+            // Filtros específicos de la tabla de Ingresos del Período.
+            'search_ingreso' => ['nullable', 'string', 'max:255'],
+            'metodo_pago' => ['nullable', 'string', 'in:EFECTIVO,YAPE,PLIN,TRANSFERENCIA,TARJETA'],
+            'categoria_ingreso' => ['nullable', 'string', 'max:60'],
+            'concepto' => ['nullable', 'string', 'in:MATRICULA,SIMULACRO,CARNET,EXTRAORDINARIO'],
+            'usuario_ingreso' => ['nullable', 'integer', 'exists:users,id'],
+            // Filtros específicos de la tabla de Egresos.
+            'search_egreso' => ['nullable', 'string', 'max:255'],
+            'categoria_egreso' => ['nullable', 'string', 'max:60'],
+            'usuario_egreso' => ['nullable', 'integer', 'exists:users,id'],
         ];
 
         if ($request->filled('fecha_inicio')) {
@@ -470,14 +527,42 @@ class EstadoCuentaController extends Controller
         // Por defecto se filtra por el mes actual cuando no se envían fechas.
         $fechaInicio = $validated['fecha_inicio'] ?? now()->startOfMonth()->toDateString();
         $fechaFin = $validated['fecha_fin'] ?? now()->endOfMonth()->toDateString();
+        $searchIngreso = $validated['search_ingreso'] ?? null;
+        $metodoPago = $validated['metodo_pago'] ?? null;
+        $categoriaIngreso = $validated['categoria_ingreso'] ?? null;
+        $concepto = $validated['concepto'] ?? null;
+        $usuarioIngreso = $validated['usuario_ingreso'] ?? null;
+        $searchEgreso = $validated['search_egreso'] ?? null;
+        $categoriaEgresoFiltro = $validated['categoria_egreso'] ?? null;
+        $usuarioEgreso = $validated['usuario_egreso'] ?? null;
 
         // Consolidado de Ingresos agrupado por concepto del comprobante de pago
         $ingresosPorConceptoRaw = DB::table('pago')
             ->join('cuota', 'pago.id_cuota', '=', 'cuota.id_cuota')
             ->join('comprobante_pago', 'cuota.id_comprobante', '=', 'comprobante_pago.id_comprobante')
+            ->leftJoin('matricula', 'comprobante_pago.id_matricula', '=', 'matricula.id_matricula')
+            ->leftJoin('alumno', 'matricula.id_alumno', '=', 'alumno.id_alumno')
+            ->leftJoin('users', 'pago.user_id', '=', 'users.id')
             ->select('comprobante_pago.concepto', DB::raw('SUM(pago.monto) as total_recaudado'), DB::raw('COUNT(pago.id_pago) as cantidad_pagos'))
             ->when($fechaInicio, fn ($query, $fi) => $query->whereDate('pago.fecha_pago', '>=', $fi))
             ->when($fechaFin, fn ($query, $ff) => $query->whereDate('pago.fecha_pago', '<=', $ff))
+            ->when($metodoPago, fn ($query, $mp) => $query->where('pago.metodo_pago', $mp))
+            ->when($categoriaIngreso, fn ($query, $cat) => $query->where('comprobante_pago.categoria', $cat))
+            ->when($concepto, fn ($query, $conc) => $query->where('comprobante_pago.concepto', $conc))
+            ->when($usuarioIngreso, fn ($query, $u) => $query->where('pago.user_id', $u))
+            ->when($searchIngreso, function ($query) use ($searchIngreso) {
+                $query->where(function ($query) use ($searchIngreso) {
+                    $query
+                        ->where('alumno.nombres', 'like', "%{$searchIngreso}%")
+                        ->orWhere('alumno.apellidos', 'like', "%{$searchIngreso}%")
+                        ->orWhere('alumno.dni', 'like', "%{$searchIngreso}%")
+                        ->orWhere('comprobante_pago.concepto', 'like', "%{$searchIngreso}%")
+                        ->orWhere('comprobante_pago.descripcion', 'like', "%{$searchIngreso}%")
+                        ->orWhere('users.name', 'like', "%{$searchIngreso}%");
+                });
+            })
+            // Exclusión mutua: al buscar en egresos, los ingresos no deben cruzarse.
+            ->when($searchEgreso, fn ($query) => $query->whereRaw('1 = 0'))
             ->groupBy('comprobante_pago.concepto')
             ->get();
 
@@ -502,6 +587,18 @@ class EstadoCuentaController extends Controller
             ->where('estado', '!=', 'ANULADO')
             ->when($fechaInicio, fn ($query, $fi) => $query->whereDate('fecha', '>=', $fi))
             ->when($fechaFin, fn ($query, $ff) => $query->whereDate('fecha', '<=', $ff))
+            ->when($categoriaEgresoFiltro, fn ($query, $cat) => $query->where('categoria', $cat))
+            ->when($usuarioEgreso, fn ($query, $u) => $query->where('user_id', $u))
+            ->when($searchEgreso, function ($query) use ($searchEgreso) {
+                $query->where(function ($query) use ($searchEgreso) {
+                    $query
+                        ->where('tipo_egreso', 'like', "%{$searchEgreso}%")
+                        ->orWhere('descripcion', 'like', "%{$searchEgreso}%")
+                        ->orWhereHas('user', fn ($query) => $query->where('name', 'like', "%{$searchEgreso}%"));
+                });
+            })
+            // Exclusión mutua: al buscar en ingresos, los egresos no deben cruzarse.
+            ->when($searchIngreso, fn ($query) => $query->whereRaw('1 = 0'))
             ->sum('total');
         $saldoDisponible = $totalIngresosRecaudados - $totalEgresos;
 
@@ -510,6 +607,18 @@ class EstadoCuentaController extends Controller
             ->with(['user:id,name', 'auditorias.usuario'])
             ->when($fechaInicio, fn ($query, $fi) => $query->whereDate('fecha', '>=', $fi))
             ->when($fechaFin, fn ($query, $ff) => $query->whereDate('fecha', '<=', $ff))
+            ->when($categoriaEgresoFiltro, fn ($query, $cat) => $query->where('categoria', $cat))
+            ->when($usuarioEgreso, fn ($query, $u) => $query->where('user_id', $u))
+            ->when($searchEgreso, function ($query) use ($searchEgreso) {
+                $query->where(function ($query) use ($searchEgreso) {
+                    $query
+                        ->where('tipo_egreso', 'like', "%{$searchEgreso}%")
+                        ->orWhere('descripcion', 'like', "%{$searchEgreso}%")
+                        ->orWhereHas('user', fn ($query) => $query->where('name', 'like', "%{$searchEgreso}%"));
+                });
+            })
+            // Exclusión mutua: al buscar en ingresos, los egresos no deben cruzarse.
+            ->when($searchIngreso, fn ($query) => $query->whereRaw('1 = 0'))
             ->latest('fecha')
             ->paginate(15)
             ->withQueryString();
@@ -519,18 +628,68 @@ class EstadoCuentaController extends Controller
             ->with(['user:id,name', 'cuota.comprobantePago.matricula.alumno'])
             ->when($fechaInicio, fn ($query, $fi) => $query->whereDate('fecha_pago', '>=', $fi))
             ->when($fechaFin, fn ($query, $ff) => $query->whereDate('fecha_pago', '<=', $ff))
+            ->when($metodoPago, fn ($query, $mp) => $query->where('metodo_pago', $mp))
+            ->when($categoriaIngreso, fn ($query, $cat) => $query->whereHas('cuota.comprobantePago', fn ($query) => $query->where('categoria', $cat)))
+            ->when($concepto, fn ($query, $conc) => $query->whereHas('cuota.comprobantePago', fn ($query) => $query->where('concepto', $conc)))
+            ->when($usuarioIngreso, fn ($query, $u) => $query->where('user_id', $u))
+            ->when($searchIngreso, function ($query) use ($searchIngreso) {
+                $query->where(function ($query) use ($searchIngreso) {
+                    $query
+                        ->whereHas('cuota.comprobantePago.matricula.alumno', function ($query) use ($searchIngreso) {
+                            $query
+                                ->where('nombres', 'like', "%{$searchIngreso}%")
+                                ->orWhere('apellidos', 'like', "%{$searchIngreso}%")
+                                ->orWhere('dni', 'like', "%{$searchIngreso}%");
+                        })
+                        ->orWhereHas('cuota.comprobantePago', function ($query) use ($searchIngreso) {
+                            $query
+                                ->where('concepto', 'like', "%{$searchIngreso}%")
+                                ->orWhere('descripcion', 'like', "%{$searchIngreso}%");
+                        })
+                        ->orWhereHas('user', fn ($query) => $query->where('name', 'like', "%{$searchIngreso}%"));
+                });
+            })
+            // Exclusión mutua: al buscar en egresos, los ingresos no deben cruzarse.
+            ->when($searchEgreso, fn ($query) => $query->whereRaw('1 = 0'))
             ->latest('fecha_pago')
             ->paginate(15)
             ->withQueryString();
 
-        // Categorías de egreso dinámicas (mantenedor) para el formulario
+        // Categorías de egreso dinámicas (mantenedor) para el formulario y el
+        // filtro específico de la tabla de egresos.
         $categoriasEgreso = CategoriaFinanciera::query()
             ->where('tipo', TipoCategoriaFinanciera::Egreso)
             ->orderBy('es_por_defecto', 'desc')
             ->orderBy('nombre')
-            ->get(['nombre', 'descripcion', 'es_por_defecto']);
+            ->get(['nombre', 'descripcion', 'es_por_defecto'])
+            ->unique('nombre')
+            ->values();
+
+        // Categorías de ingreso dinámicas (mantenedor) para el filtro
+        // específico de la tabla de ingresos; si el mantenedor está vacío,
+        // usa el enum CategoriaIngreso como respaldo.
+        $categoriasIngreso = CategoriaFinanciera::query()
+            ->where('tipo', TipoCategoriaFinanciera::Ingreso)
+            ->orderBy('es_por_defecto', 'desc')
+            ->orderBy('nombre')
+            ->pluck('nombre')
+            ->unique()
+            ->values()
+            ->toArray();
+
+        if (empty($categoriasIngreso)) {
+            $categoriasIngreso = array_column(CategoriaIngreso::cases(), 'value');
+        }
 
         $igvPorcentajeDefecto = Configuracion::where('clave', 'igv_porcentaje_defecto')->value('valor') ?? '18.00';
+
+        // Usuarios para los filtros por usuario de cada tabla.
+        $usuarios = User::query()
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn ($u) => ['id' => $u->id, 'name' => $u->name]);
+
+        $conceptos = array_column(ConceptoPago::cases(), 'value');
 
         return Inertia::render('tesoreria/caja', [
             'ingresosPorConcepto' => $ingresosPorConcepto,
@@ -540,10 +699,21 @@ class EstadoCuentaController extends Controller
             'egresos' => $egresos,
             'pagos' => $pagos,
             'categoriasEgreso' => $categoriasEgreso,
+            'categoriasIngreso' => $categoriasIngreso,
+            'usuarios' => $usuarios,
+            'conceptos' => $conceptos,
             'igv_porcentaje_defecto' => $igvPorcentajeDefecto,
             'filters' => [
                 'fecha_inicio' => $fechaInicio,
                 'fecha_fin' => $fechaFin,
+                'search_ingreso' => $searchIngreso,
+                'metodo_pago' => $metodoPago,
+                'categoria_ingreso' => $categoriaIngreso,
+                'concepto' => $concepto,
+                'usuario_ingreso' => $usuarioIngreso,
+                'search_egreso' => $searchEgreso,
+                'categoria_egreso' => $categoriaEgresoFiltro,
+                'usuario_egreso' => $usuarioEgreso,
             ],
         ]);
     }

@@ -1,21 +1,24 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowDownLeft,
     ArrowUpRight,
     Building2,
+    CalendarDays,
     CreditCard,
     FileSpreadsheet,
     Plus,
     Receipt,
+    Search,
     Wallet,
+    X,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { caja as cajaIndex } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import InputError from '@/components/input-error';
 import { AnularEgresoDialog } from '@/components/pagos/AnularEgresoDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Card,
     CardContent,
@@ -23,6 +26,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -39,6 +43,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+
+const METODOS_PAGO = [
+    { value: 'EFECTIVO', label: 'Efectivo' },
+    { value: 'YAPE', label: 'Yape' },
+    { value: 'PLIN', label: 'Plin' },
+    { value: 'TRANSFERENCIA', label: 'Transferencia' },
+    { value: 'TARJETA', label: 'Tarjeta' },
+];
 
 const CATEGORIAS_EGRESO_FALLBACK = [
     'OPERATIVO',
@@ -46,6 +59,14 @@ const CATEGORIAS_EGRESO_FALLBACK = [
     'MANTENIMIENTO',
     'SERVICIOS',
     'ACADEMICO',
+    'OTROS',
+] as const;
+
+const CATEGORIAS_INGRESO_FALLBACK = [
+    'ACADEMICO',
+    'SERVICIOS',
+    'EVENTOS',
+    'ADMINISTRATIVO',
     'OTROS',
 ] as const;
 
@@ -80,9 +101,15 @@ function formatCurrency(amount: string | number) {
 }
 
 function formatDate(dateStr: string) {
-    if (!dateStr) return '—';
+    if (!dateStr) {
+return '—';
+}
+
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
+
+    if (isNaN(date.getTime())) {
+return dateStr;
+}
 
     return new Intl.DateTimeFormat('es-PE', {
         day: 'numeric',
@@ -118,15 +145,17 @@ type Egreso = {
     }[];
 };
 
-type PagoReciente = {
+type PagoMovimiento = {
     id_pago: number;
-    monto: string | number;
     fecha_pago: string;
+    monto: string | number;
     metodo_pago: string;
-    user?: { name: string };
+    estado?: string | null;
+    user?: { id: number; name: string } | null;
     cuota?: {
         comprobante_pago?: {
             concepto: string;
+            categoria: string | null;
             matricula?: {
                 alumno?: {
                     nombres: string;
@@ -134,7 +163,18 @@ type PagoReciente = {
                 };
             };
         };
-    };
+    } | null;
+};
+
+type PaginatedCollection<T> = {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    from: number | null;
+    to: number | null;
+    total: number;
+    prev_page_url: string | null;
+    next_page_url: string | null;
 };
 
 type PageProps = {
@@ -151,12 +191,23 @@ type PageProps = {
         data: Egreso[];
         links: any[];
     };
-    pagosRecientes: PagoReciente[];
+    pagos: PaginatedCollection<PagoMovimiento>;
     categoriasEgreso?: CategoriaEgresoItem[];
+    categoriasIngreso?: string[];
+    usuarios?: { id: number; name: string }[];
+    conceptos?: string[];
     igv_porcentaje_defecto?: string;
     filters: {
         fecha_inicio: string;
         fecha_fin: string;
+        search_ingreso?: string | null;
+        metodo_pago?: string | null;
+        categoria_ingreso?: string | null;
+        concepto?: string | null;
+        usuario_ingreso?: number | string | null;
+        search_egreso?: string | null;
+        categoria_egreso?: string | null;
+        usuario_egreso?: number | string | null;
     };
 };
 
@@ -166,11 +217,67 @@ export default function CajaGeneralIndex({
     totalEgresos,
     saldoDisponible,
     egresos,
-    pagosRecientes,
+    pagos,
     categoriasEgreso,
+    categoriasIngreso,
+    conceptos,
+    usuarios,
     igv_porcentaje_defecto,
+    filters,
 }: PageProps) {
     const [isEgresoModalOpen, setIsEgresoModalOpen] = useState(false);
+
+    // Única fuente de verdad para los filtros (fechas, ingresos y egresos) y
+    // la paginación. `useForm` se sincroniza con `filters` del servidor vía
+    // `useEffect` para evitar estados desincronizados entre la UI y la
+    // petición de Inertia.
+    const formFiltros = useForm({
+        fecha_inicio: filters.fecha_inicio ?? '',
+        fecha_fin: filters.fecha_fin ?? '',
+        search_ingreso: filters.search_ingreso ?? '',
+        metodo_pago: filters.metodo_pago ?? '',
+        categoria_ingreso: filters.categoria_ingreso ?? '',
+        concepto: filters.concepto ?? '',
+        usuario_ingreso: filters.usuario_ingreso ? String(filters.usuario_ingreso) : '',
+        search_egreso: filters.search_egreso ?? '',
+        categoria_egreso: filters.categoria_egreso ?? '',
+        usuario_egreso: filters.usuario_egreso ? String(filters.usuario_egreso) : '',
+        page: 1,
+    });
+
+    const { data: filtros, setData: setFiltro } = formFiltros;
+
+    // Omite los valores vacíos para no enviarlos como query params.
+    // Se aplica de forma explícita al construir el payload de `router.get`,
+    // ya que `router.get` no utiliza el `transform` del formulario.
+    const limpiarDatos = (
+        datos: Record<string, string | number>,
+    ): Record<string, string | number> => {
+        const limpios: Record<string, string | number> = {};
+        Object.entries(datos).forEach(([clave, valor]) => {
+            if (valor !== '' && valor !== null && valor !== undefined) {
+                limpios[clave] = valor;
+            }
+        });
+
+        return limpios;
+    };
+
+    useEffect(() => {
+        setFiltro((actual) => ({
+            ...actual,
+            fecha_inicio: filters.fecha_inicio ?? '',
+            fecha_fin: filters.fecha_fin ?? '',
+            search_ingreso: filters.search_ingreso ?? '',
+            metodo_pago: filters.metodo_pago ?? '',
+            categoria_ingreso: filters.categoria_ingreso ?? '',
+            concepto: filters.concepto ?? '',
+            usuario_ingreso: filters.usuario_ingreso ? String(filters.usuario_ingreso) : '',
+            search_egreso: filters.search_egreso ?? '',
+            categoria_egreso: filters.categoria_egreso ?? '',
+            usuario_egreso: filters.usuario_egreso ? String(filters.usuario_egreso) : '',
+        }));
+    }, [filters, setFiltro]);
 
     // Categorías dinámicas del mantenedor con fallback al catálogo fijo.
     const categoriasEgresoDisponibles =
@@ -178,10 +285,110 @@ export default function CajaGeneralIndex({
             ? categoriasEgreso.map((c) => c.nombre)
             : [...CATEGORIAS_EGRESO_FALLBACK];
 
+    const categoriasIngresoDisponibles =
+        categoriasIngreso && categoriasIngreso.length > 0
+            ? categoriasIngreso
+            : [...CATEGORIAS_INGRESO_FALLBACK];
+
     const categoriaEgresoPorDefecto =
         categoriasEgreso?.find((c) => c.es_por_defecto)?.nombre ?? 'OPERATIVO';
 
     const defaultIgvPercent = igv_porcentaje_defecto ? Number(igv_porcentaje_defecto) : 18.00;
+
+    // Navegación de la tabla paginada de ingresos preservando todos los
+    // filtros aplicados por el backend. Construimos el objeto de datos
+    // explícito, lo asignamos a `setFiltro` para mantener la UI en sincronía y
+    // lo enviamos de forma síncrona como payload de `router.get` (no depende
+    // del ref interno de `useForm`), garantizando que los filtros se apliquen
+    // en el primer clic.
+    const irAPaginaIngresos = (page: number) => {
+        const nuevoData: typeof filtros = { ...filtros, page };
+        setFiltro(nuevoData);
+        router.get(cajaIndex.url(), limpiarDatos(nuevoData), {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true,
+        });
+    };
+
+    // Accesos rápidos (presets) para seleccionar rangos de fecha comunes.
+    const hoy = () => {
+        const h = new Date().toISOString().split('T')[0];
+        setFiltro('fecha_inicio', h);
+        setFiltro('fecha_fin', h);
+    };
+
+    const esteMes = () => {
+        const now = new Date();
+        const inicio = new Date(now.getFullYear(), now.getMonth(), 1)
+            .toISOString()
+            .split('T')[0];
+        const fin = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+            .toISOString()
+            .split('T')[0];
+        setFiltro('fecha_inicio', inicio);
+        setFiltro('fecha_fin', fin);
+    };
+
+    const mesAnterior = () => {
+        const now = new Date();
+        const inicio = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+            .toISOString()
+            .split('T')[0];
+        const fin = new Date(now.getFullYear(), now.getMonth(), 0)
+            .toISOString()
+            .split('T')[0];
+        setFiltro('fecha_inicio', inicio);
+        setFiltro('fecha_fin', fin);
+    };
+
+    const aplicarFiltros = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Al aplicar filtros se reinicia la paginación en la primera página.
+        // Pasamos el objeto de datos explícito a `setFiltro` para no enviar el
+        // estado del render anterior en la primera pulsación.
+        const nuevoData: typeof filtros = { ...filtros, page: 1 };
+        setFiltro(nuevoData);
+        router.get(cajaIndex.url(), limpiarDatos(nuevoData), {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true,
+        });
+    };
+
+    const limpiarFiltros = () => {
+        const nuevoData: typeof filtros = {
+            fecha_inicio: '',
+            fecha_fin: '',
+            search_ingreso: '',
+            metodo_pago: '',
+            categoria_ingreso: '',
+            concepto: '',
+            usuario_ingreso: '',
+            search_egreso: '',
+            categoria_egreso: '',
+            usuario_egreso: '',
+            page: 1,
+        };
+        setFiltro(nuevoData);
+        router.get(cajaIndex.url(), limpiarDatos(nuevoData), {
+            preserveState: true,
+            replace: true,
+            preserveScroll: true,
+        });
+    };
+
+    const hayFiltrosActivos =
+        Boolean(filtros.fecha_inicio) ||
+        Boolean(filtros.fecha_fin) ||
+        Boolean(filtros.search_ingreso) ||
+        Boolean(filtros.metodo_pago) ||
+        Boolean(filtros.categoria_ingreso) ||
+        Boolean(filtros.concepto) ||
+        Boolean(filtros.usuario_ingreso) ||
+        Boolean(filtros.search_egreso) ||
+        Boolean(filtros.categoria_egreso) ||
+        Boolean(filtros.usuario_egreso);
 
     const { data, setData, post, processing, errors, reset } = useForm({
         concepto: '',
@@ -210,6 +417,7 @@ export default function CajaGeneralIndex({
         totalCalc = subtotalCalc;
     } else {
         const p = igvPorcentNum / 100;
+
         if (data.igv_tipo === 'ANTES') {
             subtotalCalc = cantidadNum * precioNum;
             igvCalc = Math.round(subtotalCalc * p * 100) / 100;
@@ -274,6 +482,108 @@ export default function CajaGeneralIndex({
                         </Button>
                     </div>
                 </div>
+
+                {/* Tarjeta de Filtros Globales: Rango de Fechas */}
+                <Card className="border-slate-200 shadow-sm">
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-base font-semibold text-[#0b145f]">
+                            Rango de Fechas
+                        </CardTitle>
+                        <CardDescription>
+                            Filtro global que aplica a las tarjetas de resumen,
+                            al consolidado y a ambas tablas (ingresos y egresos).
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <form onSubmit={aplicarFiltros} className="space-y-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="fecha_inicio">
+                                        Fecha inicio
+                                    </Label>
+                                        <Input
+                                            id="fecha_inicio"
+                                            type="date"
+                                            value={filtros.fecha_inicio}
+                                            onChange={(e) =>
+                                                setFiltro('fecha_inicio', e.target.value)
+                                            }
+                                        />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="fecha_fin">
+                                        Fecha fin
+                                    </Label>
+                                        <Input
+                                            id="fecha_fin"
+                                            type="date"
+                                            value={filtros.fecha_fin}
+                                            onChange={(e) =>
+                                                setFiltro('fecha_fin', e.target.value)
+                                            }
+                                        />
+                                </div>
+
+                                <div className="space-y-2 sm:col-span-2 lg:col-span-2">
+                                    <Label>Accesos rápidos</Label>
+                                    <div className="flex h-9 flex-wrap items-center gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={hoy}
+                                            className="gap-1"
+                                        >
+                                            <CalendarDays className="size-3.5" />
+                                            Hoy
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={esteMes}
+                                            className="gap-1"
+                                        >
+                                            <CalendarDays className="size-3.5" />
+                                            Este mes
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={mesAnterior}
+                                            className="gap-1"
+                                        >
+                                            <CalendarDays className="size-3.5" />
+                                            Mes anterior
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+                                <Button
+                                    type="submit"
+                                    className="gap-2 bg-[#0b145f] hover:bg-[#0d1557]"
+                                >
+                                    <CalendarDays className="size-4" />
+                                    Aplicar
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={limpiarFiltros}
+                                    disabled={!hayFiltrosActivos}
+                                    className="gap-2"
+                                >
+                                    <X className="size-4" />
+                                    Limpiar
+                                </Button>
+                            </div>
+                        </form>
+                    </CardContent>
+                </Card>
 
                 {/* Tarjetas de Arqueo General */}
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -403,10 +713,10 @@ export default function CajaGeneralIndex({
                     </div>
                 </div>
 
-                {/* Tablas: Egresos y Pagos Recientes */}
-                <div className="grid gap-6 lg:grid-cols-3">
+                {/* Tablas: Egresos e Ingresos del Período */}
+                <div className="space-y-6">
                     {/* Lista de Egresos */}
-                    <Card className="lg:col-span-2">
+                    <Card>
                         <CardHeader>
                             <CardTitle className="text-lg font-semibold text-[#0b145f]">
                                 Registro de Egresos y Salidas de Dinero
@@ -416,7 +726,126 @@ export default function CajaGeneralIndex({
                                 institución
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-6">
+                            {/* Filtros específicos de la tabla de Egresos */}
+                            <form
+                                onSubmit={aplicarFiltros}
+                                className="rounded-lg border border-slate-200 bg-slate-50/60 p-4"
+                            >
+                                <p className="mb-3 text-sm font-semibold text-[#0b145f]">
+                                    Filtros de Egresos
+                                </p>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                    <div className="space-y-2 lg:col-span-2">
+                                        <Label htmlFor="search_egreso">
+                                            Buscar
+                                        </Label>
+                                        <div className="relative">
+                                            <Search className="absolute left-2.5 top-2.5 size-4 text-slate-400" />
+                                                <Input
+                                                    id="search_egreso"
+                                                    type="text"
+                                                    placeholder="Concepto, descripción o usuario..."
+                                                    value={filtros.search_egreso}
+                                                    onChange={(e) =>
+                                                        setFiltro(
+                                                            'search_egreso',
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    className="pl-8"
+                                                />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="categoria_egreso">
+                                            Categoría de egreso
+                                        </Label>
+                                            <Select
+                                                value={filtros.categoria_egreso || 'all'}
+                                                onValueChange={(val) =>
+                                                    setFiltro(
+                                                        'categoria_egreso',
+                                                        val === 'all' ? '' : val,
+                                                    )
+                                                }
+                                            >
+                                            <SelectTrigger id="categoria_egreso">
+                                                <SelectValue placeholder="Todas" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">
+                                                    Todas
+                                                </SelectItem>
+                                                {categoriasEgresoDisponibles.map(
+                                                    (c, index) => (
+                                                        <SelectItem
+                                                            key={`egreso-${index}-${c}`}
+                                                            value={c}
+                                                        >
+                                                            {c}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="usuario_egreso">
+                                            Usuario
+                                        </Label>
+                                            <Select
+                                                value={filtros.usuario_egreso || 'all'}
+                                                onValueChange={(val) =>
+                                                    setFiltro(
+                                                        'usuario_egreso',
+                                                        val === 'all' ? '' : val,
+                                                    )
+                                                }
+                                            >
+                                            <SelectTrigger id="usuario_egreso">
+                                                <SelectValue placeholder="Todos" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">
+                                                    Todos
+                                                </SelectItem>
+                                                {(usuarios ?? []).map((u) => (
+                                                    <SelectItem
+                                                        key={u.id}
+                                                        value={String(u.id)}
+                                                    >
+                                                        {u.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex items-center justify-end gap-3">
+                                    <Button
+                                        type="submit"
+                                        className="gap-2 bg-[#0b145f] hover:bg-[#0d1557]"
+                                    >
+                                        <CalendarDays className="size-4" />
+                                        Aplicar
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={limpiarFiltros}
+                                        disabled={!hayFiltrosActivos}
+                                        className="gap-2"
+                                    >
+                                        <X className="size-4" />
+                                        Limpiar
+                                    </Button>
+                                </div>
+                            </form>
+
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-sm">
                                     <thead className="bg-slate-50 text-xs text-slate-700 uppercase">
@@ -517,64 +946,398 @@ export default function CajaGeneralIndex({
                         </CardContent>
                     </Card>
 
-                    {/* Pagos Recientes (Ingresos) */}
+                    {/* Ingresos del Período (Pagos) */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-lg font-semibold text-[#0b145f]">
-                                Últimos Ingresos
+                                Ingresos del Período
                             </CardTitle>
                             <CardDescription>
-                                Recaudaciones recientes registradas
+                                Recaudaciones registradas en el rango de
+                                fechas seleccionado
                             </CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                {pagosRecientes.length === 0 ? (
-                                    <p className="py-4 text-center text-sm text-slate-500">
-                                        No hay pagos recientes.
-                                    </p>
-                                ) : (
-                                    pagosRecientes.map((pago) => {
-                                        const alumno =
-                                            pago.cuota?.comprobante_pago
-                                                ?.matricula?.alumno;
-                                        const concepto =
-                                            pago.cuota?.comprobante_pago
-                                                ?.concepto || 'PAGO';
+                        <CardContent className="space-y-6">
+                            {/* Filtros específicos de la tabla de Ingresos */}
+                            <form
+                                onSubmit={aplicarFiltros}
+                                className="rounded-lg border border-slate-200 bg-slate-50/60 p-4"
+                            >
+                                <p className="mb-3 text-sm font-semibold text-[#0b145f]">
+                                    Filtros de Ingresos
+                                </p>
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                    <div className="space-y-2 lg:col-span-2">
+                                        <Label htmlFor="search_ingreso">
+                                            Buscar
+                                        </Label>
+                                        <div className="relative">
+                                            <Search className="absolute left-2.5 top-2.5 size-4 text-slate-400" />
+                                                <Input
+                                                    id="search_ingreso"
+                                                    type="text"
+                                                    placeholder="Alumno, DNI, concepto, descripción o usuario..."
+                                                    value={filtros.search_ingreso}
+                                                    onChange={(e) =>
+                                                        setFiltro(
+                                                            'search_ingreso',
+                                                            e.target.value,
+                                                        )
+                                                    }
+                                                    className="pl-8"
+                                                />
+                                        </div>
+                                    </div>
 
-                                        return (
-                                            <div
-                                                key={pago.id_pago}
-                                                className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-3"
+                                    <div className="space-y-2">
+                                        <Label htmlFor="concepto">
+                                            Concepto
+                                        </Label>
+                                            <Select
+                                                value={filtros.concepto || 'all'}
+                                                onValueChange={(val) =>
+                                                    setFiltro(
+                                                        'concepto',
+                                                        val === 'all' ? '' : val,
+                                                    )
+                                                }
                                             >
-                                                <div className="min-w-0 pr-2">
-                                                    <p className="truncate text-xs font-semibold text-slate-900">
-                                                        {alumno
-                                                            ? `${alumno.nombres} ${alumno.apellidos}`
-                                                            : 'Ingreso General'}
-                                                    </p>
-                                                    <div className="mt-0.5 flex items-center gap-1.5">
-                                                        <Badge
-                                                            variant="outline"
-                                                            className="px-1 py-0 text-[10px]"
-                                                        >
-                                                            {concepto}
-                                                        </Badge>
-                                                         <span className="text-[11px] text-slate-400">
-                                                             {formatDate(pago.fecha_pago)}
-                                                         </span>
-                                                    </div>
-                                                </div>
+                                            <SelectTrigger id="concepto">
+                                                <SelectValue placeholder="Todos" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">
+                                                    Todos
+                                                </SelectItem>
+                                                {(conceptos ?? []).map((c, index) => (
+                                                    <SelectItem
+                                                        key={`concepto-${index}-${c}`}
+                                                        value={c}
+                                                    >
+                                                        {c}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
 
-                                                <span className="text-sm font-bold whitespace-nowrap text-emerald-600">
-                                                    +{' '}
-                                                    {formatCurrency(pago.monto)}
-                                                </span>
-                                            </div>
-                                        );
-                                    })
-                                )}
+                                    <div className="space-y-2">
+                                        <Label htmlFor="categoria_ingreso">
+                                            Categoría de ingreso
+                                        </Label>
+                                            <Select
+                                                value={filtros.categoria_ingreso || 'all'}
+                                                onValueChange={(val) =>
+                                                    setFiltro(
+                                                        'categoria_ingreso',
+                                                        val === 'all' ? '' : val,
+                                                    )
+                                                }
+                                            >
+                                            <SelectTrigger id="categoria_ingreso">
+                                                <SelectValue placeholder="Todas" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">
+                                                    Todas
+                                                </SelectItem>
+                                                {categoriasIngresoDisponibles.map(
+                                                    (c, index) => (
+                                                        <SelectItem
+                                                            key={`ingreso-${index}-${c}`}
+                                                            value={c}
+                                                        >
+                                                            {c}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="metodo_pago">
+                                            Método de pago
+                                        </Label>
+                                            <Select
+                                                value={filtros.metodo_pago || 'all'}
+                                                onValueChange={(val) =>
+                                                    setFiltro(
+                                                        'metodo_pago',
+                                                        val === 'all' ? '' : val,
+                                                    )
+                                                }
+                                            >
+                                            <SelectTrigger id="metodo_pago">
+                                                <SelectValue placeholder="Todos" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">
+                                                    Todos
+                                                </SelectItem>
+                                                {METODOS_PAGO.map((m) => (
+                                                    <SelectItem
+                                                        key={m.value}
+                                                        value={m.value}
+                                                    >
+                                                        {m.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="usuario_ingreso">
+                                            Usuario
+                                        </Label>
+                                            <Select
+                                                value={filtros.usuario_ingreso || 'all'}
+                                                onValueChange={(val) =>
+                                                    setFiltro(
+                                                        'usuario_ingreso',
+                                                        val === 'all' ? '' : val,
+                                                    )
+                                                }
+                                            >
+                                            <SelectTrigger id="usuario_ingreso">
+                                                <SelectValue placeholder="Todos" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">
+                                                    Todos
+                                                </SelectItem>
+                                                {(usuarios ?? []).map((u) => (
+                                                    <SelectItem
+                                                        key={u.id}
+                                                        value={String(u.id)}
+                                                    >
+                                                        {u.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex items-center justify-end gap-3">
+                                    <Button
+                                        type="submit"
+                                        className="gap-2 bg-[#0b145f] hover:bg-[#0d1557]"
+                                    >
+                                        <CalendarDays className="size-4" />
+                                        Aplicar
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={limpiarFiltros}
+                                        disabled={!hayFiltrosActivos}
+                                        className="gap-2"
+                                    >
+                                        <X className="size-4" />
+                                        Limpiar
+                                    </Button>
+                                </div>
+                            </form>
+
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-50 text-xs text-slate-700 uppercase">
+                                        <tr>
+                                            <th className="p-3">Fecha</th>
+                                            <th className="p-3">Concepto</th>
+                                            <th className="p-3">
+                                                Categoría
+                                            </th>
+                                            <th className="p-3">
+                                                Detalle / Alumno
+                                            </th>
+                                            <th className="p-3">
+                                                Método de Pago
+                                            </th>
+                                            <th className="p-3 text-right">
+                                                Monto
+                                            </th>
+                                            <th className="p-3">Usuario</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {pagos.data.length === 0 ? (
+                                            <tr>
+                                                <td
+                                                    colSpan={7}
+                                                    className="p-6 text-center text-slate-500"
+                                                >
+                                                    No hay ingresos
+                                                    registrados en el
+                                                    período.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            pagos.data.map((pago) => {
+                                                const comprobante =
+                                                    pago.cuota
+                                                        ?.comprobante_pago;
+                                                const alumno =
+                                                    comprobante?.matricula
+                                                        ?.alumno;
+                                                const detalle = alumno
+                                                    ? `${alumno.nombres} ${alumno.apellidos}`
+                                                    : 'Ingreso General';
+                                                const concepto =
+                                                    comprobante?.concepto ??
+                                                    '—';
+                                                const categoria =
+                                                    comprobante?.categoria ??
+                                                    '—';
+
+                                                return (
+                                                    <tr
+                                                        key={pago.id_pago}
+                                                        className="hover:bg-slate-50/50"
+                                                    >
+                                                        <td className="p-3 whitespace-nowrap text-slate-600">
+                                                            {formatDate(
+                                                                pago.fecha_pago,
+                                                            )}
+                                                        </td>
+                                                        <td className="p-3">
+                                                            <Badge
+                                                                variant="outline"
+                                                                className="bg-emerald-50 text-emerald-700"
+                                                            >
+                                                                {concepto}
+                                                            </Badge>
+                                                        </td>
+                                                        <td className="p-3 text-slate-700">
+                                                            {categoria}
+                                                        </td>
+                                                        <td className="p-3 text-slate-900">
+                                                            {detalle}
+                                                        </td>
+                                                        <td className="p-3 whitespace-nowrap text-slate-600">
+                                                            {
+                                                                pago.metodo_pago
+                                                            }
+                                                        </td>
+                                                        <td className="p-3 text-right font-bold whitespace-nowrap text-emerald-600">
+                                                            +{' '}
+                                                            {formatCurrency(
+                                                                pago.monto,
+                                                            )}
+                                                        </td>
+                                                        <td className="p-3 whitespace-nowrap text-slate-600">
+                                                            {pago.user?.name ??
+                                                                '—'}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
+
+                            {/* Paginación de ingresos (preserva filtros de fecha) */}
+                            {pagos.last_page > 1 && (
+                                <div className="mt-6 flex flex-col items-center gap-3">
+                                    <p className="text-xs text-slate-400">
+                                        Mostrando {pagos.from ?? 0}–
+                                        {pagos.to ?? 0} de {pagos.total}{' '}
+                                        ingresos
+                                    </p>
+                                    <div className="flex items-center gap-1">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={
+                                                pagos.current_page === 1
+                                            }
+                                            onClick={() =>
+                                                irAPaginaIngresos(
+                                                    pagos.current_page - 1,
+                                                )
+                                            }
+                                            className="cursor-pointer"
+                                        >
+                                            Anterior
+                                        </Button>
+                                        {Array.from(
+                                            { length: pagos.last_page },
+                                            (_, i) => i + 1,
+                                        ).map((page) => {
+                                            const isActive =
+                                                page === pagos.current_page;
+                                            const show =
+                                                page === 1 ||
+                                                page === pagos.last_page ||
+                                                Math.abs(
+                                                    page - pagos.current_page,
+                                                ) <= 2;
+
+                                            if (!show) {
+                                                if (
+                                                    page === 2 ||
+                                                    page ===
+                                                        pagos.last_page - 1
+                                                ) {
+                                                    return (
+                                                        <span
+                                                            key={page}
+                                                            className="px-1 text-slate-300"
+                                                        >
+                                                            ...
+                                                        </span>
+                                                    );
+                                                }
+
+                                                return null;
+                                            }
+
+                                            return (
+                                                <Button
+                                                    key={page}
+                                                    variant={
+                                                        isActive
+                                                            ? 'default'
+                                                            : 'outline'
+                                                    }
+                                                    size="sm"
+                                                    onClick={() =>
+                                                        irAPaginaIngresos(
+                                                            page,
+                                                        )
+                                                    }
+                                                    className={cn(
+                                                        'min-w-[36px] cursor-pointer',
+                                                        isActive &&
+                                                            'bg-[#0b145f] hover:bg-[#0d1557]',
+                                                    )}
+                                                >
+                                                    {page}
+                                                </Button>
+                                            );
+                                        })}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={
+                                                pagos.current_page ===
+                                                pagos.last_page
+                                            }
+                                            onClick={() =>
+                                                irAPaginaIngresos(
+                                                    pagos.current_page + 1,
+                                                )
+                                            }
+                                            className="cursor-pointer"
+                                        >
+                                            Siguiente
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -623,9 +1386,9 @@ export default function CajaGeneralIndex({
                                 </SelectTrigger>
                                 <SelectContent>
                                     {categoriasEgresoDisponibles.map(
-                                        (categoria) => (
+                                        (categoria, index) => (
                                             <SelectItem
-                                                key={categoria}
+                                                key={`modal-${index}-${categoria}`}
                                                 value={categoria}
                                             >
                                                 {categoria}

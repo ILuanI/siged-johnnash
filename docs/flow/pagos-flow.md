@@ -107,7 +107,7 @@
 - `EstadoCuentaController::movimientos()`:
   - GET `/tesoreria/movimientos` (autoriza vía `PagoPolicy::viewAny`, permiso `pagos.ver`).
   - Consulta dos colecciones paginadas (15 c/u): `pagos` (con `cuota.comprobantePago.matricula.alumno`, `user`, `auditorias.usuario`) y `egresos` (con `user`, `auditorias.usuario`).
-  - Filtros: `fecha_inicio`, `fecha_fin`, `metodo_pago` (solo pagos), `estado` (`PAGADO`/`REGISTRADO`/`ANULADO`), `tipo` (`todos`/`ingresos`/`egresos`), `search` (máx. 255 caracteres).
+  - Filtros: `fecha_inicio`, `fecha_fin`, `metodo_pago` (pagos y egresos), `estado` (`PAGADO`/`REGISTRADO`/`ANULADO`, mapeado a la tabla correspondiente), `tipo` (`todos`/`ingresos`/`egresos`), `search` (máx. 255 caracteres), `categoria` (máx. 60), `concepto` (`string` máx. 60; combina conceptos de pago y `tipo_egreso`).
   - `search` filtra **pagos** por alumno (`nombres`, `apellidos`, `dni`) o por `concepto` del comprobante, y **egresos** por `tipo_egreso` (concepto), `descripcion` o nombre del `user` que registró.
   - Ordenamiento por `fecha_pago`/`fecha` o `monto`/`total` (asc/desc), paginado con `withQueryString`.
 
