@@ -3,7 +3,6 @@
 use App\Models\Alumno;
 use App\Models\Cuota;
 use App\Models\Matricula;
-use App\Models\PrediccionDesercion;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -21,17 +20,4 @@ test('modulo tesoreria: puede generar cuotas', function () {
 
     expect($cuota->monto)->toEqual(500.00)
         ->and($cuota->estado->value)->toBeIn(['PENDIENTE', 'PAGADA', 'VENCIDA']);
-});
-
-test('modulo ia desercion: puede almacenar predicciones de riesgo', function () {
-    $prediccion = PrediccionDesercion::factory()->create([
-        'riesgo_pct' => 85.50,
-        'nivel_riesgo' => 'ALTO',
-    ]);
-
-    $prediccion->refresh();
-
-    expect($prediccion->riesgo_pct)->toEqual(85.50)
-        ->and($prediccion->nivel_riesgo)->toEqual('ALTO')
-        ->and((bool) $prediccion->prioritario)->toBeTrue();
 });

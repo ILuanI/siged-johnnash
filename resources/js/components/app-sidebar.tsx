@@ -2,7 +2,6 @@ import { Link } from '@inertiajs/react';
 import {
     BarChart3,
     BookOpen,
-    Brain,
     ChevronRight,
     CreditCard,
     GraduationCap,
@@ -23,7 +22,11 @@ import {
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
     Sidebar,
     SidebarContent,
@@ -43,7 +46,6 @@ import { usePermisos } from '@/hooks/use-permisos';
 import { dashboard } from '@/routes';
 import { index as ajustesIndex } from '@/routes/ajustes';
 import { index as lectorAsistenciaIndex } from '@/routes/asistencias/lector';
-import { index as desercionIndex } from '@/routes/ia/desercion';
 import { nueva as nuevaMatricula } from '@/routes/matriculas';
 import { index as catalogoAcademicoIndex } from '@/routes/matriculas/catalogo';
 import { index as estudiantesIndex } from '@/routes/matriculas/estudiantes';
@@ -85,12 +87,6 @@ const mainNavItems: (NavItem & { modulo: string })[] = [
         href: '/reportes',
         icon: BarChart3,
         modulo: 'reportes',
-    },
-    {
-        title: 'IA Deserción',
-        href: desercionIndex(),
-        icon: Brain,
-        modulo: 'ia',
     },
     {
         title: 'Ajustes',
@@ -200,9 +196,7 @@ export function AppSidebar() {
                                 <CollapsibleContent>
                                     <SidebarMenuSub>
                                         {tesoreriaSubItems.map((sub) => (
-                                            <SidebarMenuSubItem
-                                                key={sub.title}
-                                            >
+                                            <SidebarMenuSubItem key={sub.title}>
                                                 <SidebarMenuSubButton
                                                     asChild
                                                     isActive={isCurrentUrl(
@@ -221,9 +215,7 @@ export function AppSidebar() {
                                                         }}
                                                     >
                                                         <sub.icon />
-                                                        <span>
-                                                            {sub.title}
-                                                        </span>
+                                                        <span>{sub.title}</span>
                                                     </Link>
                                                 </SidebarMenuSubButton>
                                             </SidebarMenuSubItem>

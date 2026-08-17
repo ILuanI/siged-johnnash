@@ -4,7 +4,10 @@
 
 1. Registrar estudiantes nuevos (validación DNI, código autogenerado).
 2. Gestionar catálogo académico (áreas → carreras → cursos con CRUD completo).
-3. Formalizar matrícula (periodo, ciclo, turno, aula → estado `MATRICULADO`).
+3. Formalizar matrícula (periodo, ciclo, turno → estado `MATRICULADO`). El aula
+   ya no se captura en la matrícula: la columna `matricula.id_aula` es nullable y
+   queda sin asignar en matrículas nuevas (el aula por curso se maneja solo en
+   `asignacion_docente`).
 4. Exponer **consolidado** del alumno para el perfil (asistencia, notas, pagos).
 
 ### Backend — ubicación de archivos

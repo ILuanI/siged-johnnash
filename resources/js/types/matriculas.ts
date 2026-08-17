@@ -58,15 +58,6 @@ export type ConsolidadoAlumno = {
         turno: { id_turno: number; nombre: string };
         aula: { id_aula: number; nombre: string; capacidad: number | null };
     } | null;
-    riesgo_desercion: {
-        riesgo_pct: number;
-        nivel_riesgo: 'BAJO' | 'MEDIO' | 'ALTO';
-        prioritario: boolean;
-        tasa_asistencia: number | null;
-        promedio_examenes: number | null;
-        cuotas_vencidas: number | null;
-        fecha_calculo: string | null;
-    } | null;
     asistencia: {
         resumen: unknown;
         detalle: unknown[];

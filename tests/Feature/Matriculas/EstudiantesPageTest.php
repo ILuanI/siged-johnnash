@@ -2,7 +2,6 @@
 
 use App\Models\Alumno;
 use App\Models\Area;
-use App\Models\Aula;
 use App\Models\Carrera;
 use App\Models\Ciclo;
 use App\Models\ColegioProcedencia;
@@ -72,7 +71,6 @@ test('nueva matricula exposes plain arrays to inertia json requests', function (
     $periodo = PeriodoAcademico::factory()->create();
     Ciclo::factory()->create(['id_periodo' => $periodo->id_periodo]);
     Turno::factory()->create();
-    Aula::factory()->create();
 
     $response = $this->actingAs($user)
         ->withHeaders(inertiaJsonHeaders())
@@ -94,9 +92,7 @@ test('nueva matricula exposes plain arrays to inertia json requests', function (
         ->and($props['ciclos'])->toBeArray()
         ->and(array_is_list($props['ciclos']))->toBeTrue()
         ->and($props['turnos'])->toBeArray()
-        ->and(array_is_list($props['turnos']))->toBeTrue()
-        ->and($props['aulas'])->toBeArray()
-        ->and(array_is_list($props['aulas']))->toBeTrue();
+        ->and(array_is_list($props['turnos']))->toBeTrue();
 });
 
 test('create estudiante exposes catalog props as plain arrays to inertia json requests', function () {

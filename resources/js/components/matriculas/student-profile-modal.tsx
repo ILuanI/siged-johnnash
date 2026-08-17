@@ -1,7 +1,5 @@
 import { router } from '@inertiajs/react';
 import {
-    AlertTriangle,
-    Brain,
     Cake,
     Clock,
     CreditCard,
@@ -145,7 +143,6 @@ export function StudentProfileModal({
     const finanzas = consolidado.finanzas as unknown as FinanzasConsolidado;
     const edad = calcularEdad(perfil.fecha_nac);
     const apoderado = perfil.apoderado;
-    const riesgo = consolidado.riesgo_desercion;
     const carreraActualId = perfil.carrera?.id_carrera.toString() ?? '';
 
     const openEdit = () => {
@@ -211,18 +208,22 @@ export function StudentProfileModal({
             return;
         }
 
-        router.post(`/matriculas/estudiantes/${perfil.id_alumno}/retirar`, {}, {
-            preserveScroll: true,
-            onSuccess: () => {
-                toast.success('Estudiante retirado correctamente.');
-                onClose();
+        router.post(
+            `/matriculas/estudiantes/${perfil.id_alumno}/retirar`,
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    toast.success('Estudiante retirado correctamente.');
+                    onClose();
+                },
+                onError: (errors) => {
+                    Object.values(errors).forEach((message) =>
+                        toast.error(String(message)),
+                    );
+                },
             },
-            onError: (errors) => {
-                Object.values(errors).forEach((message) =>
-                    toast.error(String(message)),
-                );
-            },
-        });
+        );
     };
 
     const eliminarAlumno = async () => {
@@ -474,61 +475,6 @@ export function StudentProfileModal({
                                         Guardar
                                     </Button>
                                 </div>
-                            </section>
-
-                            <section className="rounded-xl border bg-white p-4">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div className="flex items-center gap-2">
-                                        <Brain className="size-5 text-slate-500" />
-                                        <h3 className="text-sm font-semibold text-slate-800">
-                                            Riesgo IA de deserción
-                                        </h3>
-                                    </div>
-                                    {riesgo ? (
-                                        <Badge
-                                            className={cn(
-                                                'rounded-full',
-                                                riesgoBadgeClass(
-                                                    riesgo.nivel_riesgo,
-                                                ),
-                                            )}
-                                        >
-                                            {riesgo.riesgo_pct.toFixed(1)}%
-                                        </Badge>
-                                    ) : (
-                                        <Badge variant="outline">
-                                            Sin datos
-                                        </Badge>
-                                    )}
-                                </div>
-                                {riesgo ? (
-                                    <div className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-                                        <AcademicCell
-                                            label="Nivel"
-                                            value={riesgo.nivel_riesgo}
-                                        />
-                                        <AcademicCell
-                                            label="Asistencia"
-                                            value={
-                                                riesgo.tasa_asistencia !== null
-                                                    ? `${riesgo.tasa_asistencia.toFixed(1)}%`
-                                                    : 'Sin historial'
-                                            }
-                                        />
-                                        <AcademicCell
-                                            label="Cuotas vencidas"
-                                            value={(
-                                                riesgo.cuotas_vencidas ?? 0
-                                            ).toString()}
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
-                                        <AlertTriangle className="size-4" />
-                                        El perfil se calculará cuando exista
-                                        matrícula vigente.
-                                    </div>
-                                )}
                             </section>
 
                             <section className="rounded-xl border bg-white p-4">
@@ -933,7 +879,7 @@ export function StudentProfileModal({
                         <Button
                             type="button"
                             variant="outline"
-                            className="flex-1 border-rose-300 text-rose-700 hover:bg-rose-100 hover:text-rose-900 font-semibold"
+                            className="flex-1 border-rose-300 font-semibold text-rose-700 hover:bg-rose-100 hover:text-rose-900"
                             onClick={eliminarAlumno}
                         >
                             <Trash2 className="size-4" />
@@ -1195,8 +1141,7 @@ export function StudentProfileModal({
                                 className="bg-violet-600 hover:bg-violet-700"
                                 onClick={handleExonerarCuota}
                                 disabled={
-                                    processingExonerar ||
-                                    !motivoExonerar.trim()
+                                    processingExonerar || !motivoExonerar.trim()
                                 }
                             >
                                 {processingExonerar
@@ -1209,14 +1154,6 @@ export function StudentProfileModal({
             </Dialog>
         </Dialog>
     );
-}
-
-function riesgoBadgeClass(nivel: 'BAJO' | 'MEDIO' | 'ALTO') {
-    return {
-        BAJO: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100',
-        MEDIO: 'bg-amber-100 text-amber-700 hover:bg-amber-100',
-        ALTO: 'bg-red-100 text-red-700 hover:bg-red-100',
-    }[nivel];
 }
 
 function InfoRow({

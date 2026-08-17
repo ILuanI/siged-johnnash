@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Matriculas\StoreMatriculaRequest;
 use App\Http\Resources\Matriculas\AlumnoResource;
 use App\Models\Alumno;
-use App\Models\Aula;
 use App\Models\Ciclo;
 use App\Models\Pago;
 use App\Models\PeriodoAcademico;
@@ -57,14 +56,6 @@ class MatriculaWebController extends Controller
                 ->map(fn (Turno $turno): array => [
                     'id_turno' => $turno->id_turno,
                     'nombre' => $turno->nombre,
-                ])
-                ->values()
-                ->all(),
-            'aulas' => Aula::query()->orderBy('nombre')->get()
-                ->map(fn (Aula $aula): array => [
-                    'id_aula' => $aula->id_aula,
-                    'nombre' => $aula->nombre,
-                    'capacidad' => $aula->capacidad,
                 ])
                 ->values()
                 ->all(),

@@ -22,7 +22,7 @@ class StoreMatriculaRequest extends FormRequest
             'id_ciclo' => ['required', 'integer', Rule::exists('ciclo', 'id_ciclo')],
             'id_periodo' => ['required', 'integer', Rule::exists('periodo_academico', 'id_periodo')],
             'id_turno' => ['required', 'integer', Rule::exists('turno', 'id_turno')],
-            'id_aula' => ['required', 'integer', Rule::exists('aula', 'id_aula')],
+            'id_aula' => ['nullable', 'integer', Rule::exists('aula', 'id_aula')],
             'fecha_matricula' => ['nullable', 'date'],
             'modalidad' => ['nullable', Rule::in(['PRESENCIAL', 'VIRTUAL'])],
             'tipo_pago' => ['nullable', Rule::in(['CONTADO', 'CREDITO'])],

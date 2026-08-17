@@ -202,7 +202,7 @@ matricula ──→ alumno
 | `id_ciclo` | FK → `ciclo` | |
 | `id_periodo` | FK → `periodo_academico` | |
 | `id_turno` | FK → `turno` | |
-| `id_aula` | FK → `aula` | |
+| `id_aula` | FK → `aula` | nullable; ya no se asigna en matrículas nuevas |
 | `fecha_matricula` | date | |
 | `modalidad` | enum | `PRESENCIAL` / `VIRTUAL` |
 | `tipo_pago` | enum | `CONTADO` / `CREDITO` |
@@ -350,25 +350,6 @@ Registro de auditoría de acciones sobre un pago (creación y anulación).
 
 ---
 
-## 9. Predicción de Deserción
-
-### PrediccionDesercion (`prediccion_desercion`)
-Generada por el módulo de IA.
-
-| Campo | Tipo | Descripción |
-|---|---|---|
-| `id_prediccion` | PK | |
-| `id_matricula` | FK → `matricula` | |
-| `fecha_calculo` | datetime | |
-| `riesgo_pct` | decimal(5,2) | % de riesgo |
-| `nivel_riesgo` | enum | `BAJO` / `MEDIO` / `ALTO` |
-| `prioritario` | tinyint(1) | Flag de alerta |
-| `tasa_asistencia` | decimal(5,2) | Feature de entrada |
-| `promedio_examenes` | decimal(7,3) | Feature de entrada |
-| `cuotas_vencidas` | tinyint | Feature de entrada |
-
----
-
 ## 10. Egresos
 
 ```
@@ -455,7 +436,8 @@ En exámenes, el área del alumno se determina vía: `alumno → carrera → are
 ```
 periodo_academico → ciclo (seleccionas el ciclo)
 area → carrera → alumno (elige carrera al registrarse)
-matricula = alumno + ciclo + turno + aula
+matricula = alumno + ciclo + turno
+(el aula ya no se asigna en la matrícula; queda nullable en `matricula.id_aula`)
 cada costo (matrícula, simulacro, carnet) → comprobante_pago → cuotas → pagos
 ```
 
@@ -489,7 +471,6 @@ ciclo → asignacion_docente → curso
 | Egresos | Tesorería Caja (`/tesoreria/caja`) | `EgresoController` |
 | Categorías financieras | Tesorería (`/tesoreria/categorias`) | `CategoriaFinancieraController` |
 | Reportes | Reportes (`/reportes`) | `ReportesController` |
-| IA Deserción | IA (`/ia/desercion`) | `DesercionController` |
 | Ajustes (turnos, periodos, colegios) | Ajustes (`/ajustes`) | `ConfiguracionController` |
 
 ---

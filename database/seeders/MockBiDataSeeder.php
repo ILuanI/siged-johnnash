@@ -21,7 +21,6 @@ use App\Models\ExamenMetrica;
 use App\Models\Matricula;
 use App\Models\Pago;
 use App\Models\PeriodoAcademico;
-use App\Models\PrediccionDesercion;
 use App\Models\ResultadoExamen;
 use App\Models\Turno;
 use Carbon\Carbon;
@@ -452,21 +451,6 @@ class MockBiDataSeeder extends Seeder
                     'id_asignacion' => $asignacion->id_asignacion,
                     'fecha' => $fechaBase->copy()->addDays($s['asistencias'] + $s['tardanzas'] + $i)->toDateString(),
                     'estado' => 'FALTO',
-                ]);
-            }
-
-            // 9. Predict desertion if needed
-            if (isset($s['desercion']) && $s['desercion'] !== null) {
-                $riesgoPct = $s['desercion']['probabilidad'] * 100;
-                $nivel = $riesgoPct > 75 ? 'ALTO' : ($riesgoPct > 40 ? 'MEDIO' : 'BAJO');
-                PrediccionDesercion::create([
-                    'id_matricula' => $matricula->id_matricula,
-                    'fecha_calculo' => Carbon::now()->toDateString(),
-                    'riesgo_pct' => $riesgoPct,
-                    'nivel_riesgo' => $nivel,
-                    'tasa_asistencia' => ($s['asistencias'] / max(1, $s['asistencias'] + $s['faltas'])) * 100,
-                    'promedio_examenes' => array_sum($s['simulacros']) / max(1, count($s['simulacros'])),
-                    'cuotas_vencidas' => $s['tipo_pago'] === 'CREDITO' && ! $s['pagado_completo'] ? 1 : 0,
                 ]);
             }
         }

@@ -167,6 +167,15 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
     // `useForm` mantiene el estado local sincronizado con los `filters` del
     // servidor mediante el `useEffect` de abajo, evitando estados
     // desincronizados entre la UI y la petición de Inertia.
+    console.log('=== FILTERS ===');
+    console.log('filters:', filters);
+    console.log('filters.sort:', filters.sort);
+    console.log('filters.sort typeof:', typeof filters.sort);
+    console.log(
+        'filters.sort === Array.prototype.sort:',
+        filters.sort === Array.prototype.sort
+    );
+
     const form = useForm({
         fecha_inicio: filters.fecha_inicio ?? '',
         fecha_fin: filters.fecha_fin ?? '',
@@ -254,6 +263,7 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
         // clic.
         const nuevoData: typeof data = { ...data, page: 1 };
         setData(nuevoData);
+        console.log('sort value:', nuevoData.sort, typeof nuevoData.sort); // 👈
         router.get(movimientosIndex.url(), limpiarDatos(nuevoData), {
             preserveState: true,
             replace: true,
@@ -773,8 +783,8 @@ export default function Movimientos({ pagos, egresos, filters }: MovimientosProp
                                                                 ? 'text-red-600'
                                                                 : mov.tipo ===
                                                                     'EGRESO'
-                                                                  ? 'text-rose-600'
-                                                                  : 'text-slate-900',
+                                                                ? 'text-rose-600'
+                                                                : 'text-slate-900',
                                                         )}
                                                     >
                                                         {formatCurrency(

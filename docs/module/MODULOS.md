@@ -25,7 +25,6 @@ Este documento define cómo se organizan los **módulos funcionales** del sistem
 | **RI006** | Notas / rendimiento | `examen`, `resultado_examen` | 🔶 Parcial (Cargar/consultar notas implementado) | `/notas`, `/notas/cargar`, `/notas/consulta` | — |
 | **RI007** | Usuarios y roles | `usuario`, `rol` | 🔶 Parcial (Laravel `users` + Fortify; tabla `usuario`/`rol` del dominio integrada parcialmente) | `/usuarios`, `/roles`, Auth + Settings | — |
 | **RI008** | Dashboard / BI | Vistas `vw_bi_*` | 🔶 Parcial (Dashboard + Reportes + BI) | `/dashboard`, `/reportes`, `/bi` | — |
-| **RI009** | IA deserción | `prediccion_desercion`, `vw_features_ia` | 🔶 Parcial (Página IA implementada) | `/ia/desercion` | — |
 | **RI010+** | Egresos, auditoría, etc. | `egreso`, … | ⏳ Pendiente | — | — |
 | — | Portal Padres (público) | — | ✅ Implementado | `/portal-padres`, `/consulta-notas` | — |
 | — | Ajustes / Configuración | — | ✅ Implementado | `/ajustes` | — |
@@ -62,8 +61,6 @@ app/Http/Controllers/
 ├── Bi/
 │   ├── DashboardBiController.php            # Dashboard BI
 │   └── ReportesController.php               # Reportes varios
-├── Ia/
-│   └── DesercionController.php              # IA deserción
 ├── Public/
 │   ├── PortalPadresController.php           # Portal público padres
 │   └── ConsultaNotasController.php          # Consulta notas pública

@@ -30,11 +30,6 @@ type CicloOption = {
 };
 
 type TurnoOption = { id_turno: number; nombre: string };
-type AulaOption = {
-    id_aula: number;
-    nombre: string;
-    capacidad: number | null;
-};
 
 type ArrayProp<T> = T[] | { data?: T[] } | Record<string, T> | null | undefined;
 
@@ -43,7 +38,6 @@ type PageProps = {
     periodos: ArrayProp<PeriodoOption>;
     ciclos: ArrayProp<CicloOption>;
     turnos: ArrayProp<TurnoOption>;
-    aulas: ArrayProp<AulaOption>;
 };
 
 export default function NuevaMatricula({
@@ -51,20 +45,17 @@ export default function NuevaMatricula({
     periodos,
     ciclos,
     turnos,
-    aulas,
 }: PageProps) {
     const alumnosList = asArray(alumnos);
     const periodosList = asArray(periodos);
     const ciclosList = asArray(ciclos);
     const turnosList = asArray(turnos);
-    const aulasList = asArray(aulas);
 
     const { data, setData, post, processing, errors, transform } = useForm({
         id_alumno: '',
         id_periodo: '',
         id_ciclo: '',
         id_turno: '',
-        id_aula: '',
         modalidad: 'PRESENCIAL',
         tipo_pago: 'CONTADO',
         costo_matricula: '',
@@ -117,9 +108,12 @@ export default function NuevaMatricula({
     const costoCar = parseFloat(data.costo_carnet) || 0;
     const costoTotal = costoMat + costoSin + costoCar;
 
-    const cuotasMat = data.tipo_pago === 'CREDITO' ? Number(data.cuotas_matricula || 1) : 1;
-    const cuotasSin = data.tipo_pago === 'CREDITO' ? Number(data.cuotas_simulacro || 1) : 1;
-    const pagoPorCuotaTotal = (costoMat / cuotasMat) + (costoSin / cuotasSin) + costoCar;
+    const cuotasMat =
+        data.tipo_pago === 'CREDITO' ? Number(data.cuotas_matricula || 1) : 1;
+    const cuotasSin =
+        data.tipo_pago === 'CREDITO' ? Number(data.cuotas_simulacro || 1) : 1;
+    const pagoPorCuotaTotal =
+        costoMat / cuotasMat + costoSin / cuotasSin + costoCar;
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -154,7 +148,7 @@ export default function NuevaMatricula({
                     Nueva matrícula
                 </h1>
                 <p className="text-sm text-slate-500">
-                    Periodo, ciclo, aula y desglose de costos.
+                    Periodo, ciclo y desglose de costos.
                 </p>
             </header>
 
@@ -184,8 +178,7 @@ export default function NuevaMatricula({
                                         if (
                                             mes < 0 ||
                                             (mes === 0 &&
-                                                hoy.getDate() <
-                                                    nac.getDate())
+                                                hoy.getDate() < nac.getDate())
                                         ) {
                                             edad--;
                                         }
@@ -337,36 +330,6 @@ export default function NuevaMatricula({
                                 <InputError message={errors.id_turno} />
                             </div>
                             <div>
-                                <Label htmlFor="id_aula">Aula *</Label>
-                                <Select
-                                    value={data.id_aula}
-                                    onValueChange={(val) =>
-                                        setData('id_aula', val)
-                                    }
-                                >
-                                    <SelectTrigger
-                                        className="w-full"
-                                        id="id_aula"
-                                    >
-                                        <SelectValue placeholder="Seleccionar" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {aulasList.map((aula) => (
-                                            <SelectItem
-                                                key={aula.id_aula}
-                                                value={aula.id_aula.toString()}
-                                            >
-                                                {aula.nombre}
-                                                {aula.capacidad
-                                                    ? ` (cap. ${aula.capacidad})`
-                                                    : ''}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <InputError message={errors.id_aula} />
-                            </div>
-                            <div>
                                 <Label htmlFor="modalidad">Modalidad</Label>
                                 <Select
                                     value={data.modalidad}
@@ -405,23 +368,23 @@ export default function NuevaMatricula({
                                     >
                                         <SelectValue />
                                     </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="CONTADO">
-                                        Contado
-                                    </SelectItem>
-                                    <SelectItem value="CREDITO">
-                                        Crédito
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <InputError message={errors.tipo_pago} />
-                            {data.tipo_pago === 'CONTADO' && (
-                                <p className="mt-1 text-xs text-slate-400">
-                                    Seleccione <strong>Crédito</strong> para
-                                    configurar el número de cuotas y
-                                    vencimientos.
-                                </p>
-                            )}
+                                    <SelectContent>
+                                        <SelectItem value="CONTADO">
+                                            Contado
+                                        </SelectItem>
+                                        <SelectItem value="CREDITO">
+                                            Crédito
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <InputError message={errors.tipo_pago} />
+                                {data.tipo_pago === 'CONTADO' && (
+                                    <p className="mt-1 text-xs text-slate-400">
+                                        Seleccione <strong>Crédito</strong> para
+                                        configurar el número de cuotas y
+                                        vencimientos.
+                                    </p>
+                                )}
                             </div>
                             <div>
                                 <Label htmlFor="costo_matricula">
@@ -734,7 +697,8 @@ export default function NuevaMatricula({
                                                     <SelectItem value="apoderado">
                                                         {
                                                             selectedAlumno
-                                                                .apoderado.nombres
+                                                                .apoderado
+                                                                .nombres
                                                         }{' '}
                                                         (apoderado)
                                                     </SelectItem>
@@ -831,11 +795,12 @@ export default function NuevaMatricula({
                                                     {data.tipo_pago ===
                                                     'CREDITO'
                                                         ? (
-                                              costoMat /
-                                              Number(
-                                                  data.cuotas_matricula || 1,
-                                              )
-                                          ).toFixed(2)
+                                                              costoMat /
+                                                              Number(
+                                                                  data.cuotas_matricula ||
+                                                                      1,
+                                                              )
+                                                          ).toFixed(2)
                                                         : costoMat.toFixed(2)}
                                                 </div>
                                             </td>
@@ -862,11 +827,12 @@ export default function NuevaMatricula({
                                                     {data.tipo_pago ===
                                                     'CREDITO'
                                                         ? (
-                                              costoSin /
-                                              Number(
-                                                  data.cuotas_simulacro || 1,
-                                              )
-                                          ).toFixed(2)
+                                                              costoSin /
+                                                              Number(
+                                                                  data.cuotas_simulacro ||
+                                                                      1,
+                                                              )
+                                                          ).toFixed(2)
                                                         : costoSin.toFixed(2)}
                                                 </div>
                                             </td>
@@ -911,11 +877,11 @@ export default function NuevaMatricula({
                         </div>
 
                         {/* Payment controls — hidden when printing */}
-                        <div className="mt-6 border-t border-gray-200 pt-4 not-printable">
+                        <div className="not-printable mt-6 border-t border-gray-200 pt-4">
                             <div className="mb-3 flex items-center gap-3">
                                 <Label
                                     htmlFor="metodo_pago"
-                                    className="whitespace-nowrap text-sm font-semibold"
+                                    className="text-sm font-semibold whitespace-nowrap"
                                 >
                                     Método de pago:
                                 </Label>

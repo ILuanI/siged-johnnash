@@ -10,7 +10,6 @@ routes/
 ├── ajustes.php      # School config: aulas, turnos, periodos, colegios
 ├── asistencias.php  # Attendance + barcode/QR lector
 ├── cursos.php       # Course management + ciclo/aula assignment
-├── ia.php           # ML dropout prediction
 ├── matriculas.php   # Enrollment, students, academic catalog (areas, careers, courses)
 ├── notas.php        # Grades, CSV import, parent portal
 ├── reportes.php     # BI reports (Excel, PDF)
@@ -51,7 +50,7 @@ routes/
 ```
 dashboard, docentes, estudiantes, cursos, asistencias,
 usuarios, roles, academico, pagos, pagos_extraordinarios,
-reportes, ia, ajustes
+reportes, ajustes
 ```
 
 `matriculas.estudiantes.*` and `matriculas.*` → both map to `estudiantes`.
@@ -72,7 +71,7 @@ Route::middleware(['auth', 'verified', 'permiso'])
 
 **Naming:** `module.resource.action` (dot notation), snake_case.
 
-**Controllers:** organized by module under `app/Http/Controllers/` subdirectories: `Ajustes/`, `Bi/`, `Academico/`, `Tesoreria/`, `Ia/`, `Public/`, `Api/Matriculas/`.
+**Controllers:** organized by module under `app/Http/Controllers/` subdirectories: `Ajustes/`, `Bi/`, `Academico/`, `Tesoreria/`, `Public/`, `Api/Matriculas/`.
 
 **Public routes (no auth):** `/portal-padres`, `/consulta-notas`, `api/*`.
 
@@ -137,9 +136,6 @@ Auto-registered by `FortifyServiceProvider`. Rate limits: login 5/min, 2FA 5/min
 ### Reportes (con `permiso`)
 - Filters: text, turno, area, course, date range, tardanzas, ausencias, min/max grade
 - Exports: Excel (`Maatwebsite\Excel`), PDF (`DomPDF`, landscape A4)
-
-### IA
-- `GET /ia/desercion` → dropout risk analysis panel
 
 ### Settings
 - Profile edit/update/delete, security (RequirePassword), password change (throttle:6,1), appearance inertia page

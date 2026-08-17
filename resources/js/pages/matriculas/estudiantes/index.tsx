@@ -562,9 +562,6 @@ export default function EstudiantesIndex({
                                     <SelectContent>
                                         <SelectItem value="M">M</SelectItem>
                                         <SelectItem value="F">F</SelectItem>
-                                        <SelectItem value="OTRO">
-                                            Otro
-                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.sexo} />

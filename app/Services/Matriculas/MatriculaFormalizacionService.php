@@ -78,7 +78,6 @@ class MatriculaFormalizacionService
                 'id_ciclo' => $datos['id_ciclo'],
                 'id_periodo' => $datos['id_periodo'],
                 'id_turno' => $datos['id_turno'],
-                'id_aula' => $datos['id_aula'],
                 'fecha_matricula' => $datos['fecha_matricula'] ?? now()->toDateString(),
                 'modalidad' => $datos['modalidad'] ?? ModalidadMatricula::Presencial,
                 'tipo_pago' => $datos['tipo_pago'] ?? TipoPagoMatricula::Contado,
@@ -111,7 +110,7 @@ class MatriculaFormalizacionService
                 }
             }
 
-            return $matricula->load(['ciclo', 'periodo', 'turno', 'aula', 'alumno', 'comprobantesPago.cuotas']);
+            return $matricula->load(['ciclo', 'periodo', 'turno', 'alumno', 'comprobantesPago.cuotas']);
         });
     }
 }

@@ -71,7 +71,6 @@
 |---|---|---|---|---|---|---|
 | 1 | Crear alumno y su matrícula | `Alumno::factory()->create()`, `Matricula::factory()->create()` | Alumno + Matrícula con `id_alumno` relacionado | `alumno.id_alumno` numérico, `matricula.id_alumno = alumno.id_alumno` | OK | |
 | 2 | Generar cuota | `Cuota::factory()->create()` | `monto=500.00` | `monto=500.00`, `estado` en `[PENDIENTE, PAGADA, VENCIDA]` | OK | |
-| 3 | Almacenar predicción de riesgo | `PrediccionDesercion::factory()->create()` | `riesgo_pct=85.50`, `nivel_riesgo=ALTO` | `riesgo_pct=85.50`, `nivel_riesgo=ALTO`, `prioritario=true` | OK | |
 
 ### CA006 — Tesorería / Conceptos de Pago
 
@@ -115,14 +114,6 @@
 | 2 | Registrar asistencia para alumno por convenio | `AsistenciaBarcodeService::registrar()` | `dni=76543210` (no existe como interno) | `registrada=true`, `tipo_alumno=CONVENIO`, registro en BD | OK | |
 | 3 | Evitar duplicado de asistencia mismo DNI mismo día | `AsistenciaBarcodeService::registrar()` (2 veces) | Mismo DNI | 1ra: `registrada=true`, 2da: `registrada=false` | OK | |
 
-### CA010 — IA / Riesgo de Deserción
-
-**Archivo:** `tests/Feature/DesercionRiskServiceTest.php`
-
-| Nº | Descripción | Método | Datos Entrada | Salida Esperada | ¿OK? | Observaciones |
-|---|---|---|---|---|---|---|
-| 1 | Calcular riesgo alto de deserción | `DesercionRiskService::calcularParaMatricula()` | Matrícula (Vigente, Crédito) con 10 faltas, nota simulacro 5/40, 2 cuotas vencidas | `riesgo_pct > 75`, `nivel_riesgo=ALTO`, `tasa_asistencia=0.0`, `cuotas_vencidas=2` | OK | |
-
 ### CA011 — General / Seeders de Prueba
 
 **Archivo:** `tests/Feature/CredencialesTestSeederTest.php`
@@ -151,15 +142,14 @@
 | `Caso3_ValidacionAlumnoTest` | 4 | 3 | ✅ OK |
 | `Caso4_AsignacionDocenteTest` | 5 | 5 | ✅ OK |
 | `Caso5_CiclosAcademicosTest` | 6 | 3 | ✅ OK |
-| `ModulosBasicosTest` | 3 | 3 | ✅ OK |
+| `ModulosBasicosTest` | 2 | 2 | ✅ OK |
 | `PagoConceptosTest` | 8 | 8 | ✅ OK |
 | `TesoreriaServiceTest` | 2 | 2 | ✅ OK |
 | `AreaMetricsServiceTest` | 1 | 1 | ✅ OK |
 | `LectorAsistenciaTest` | 3 | 3 | ✅ OK |
-| `DesercionRiskServiceTest` | 1 | 1 | ✅ OK |
 | `CredencialesTestSeederTest` | 1 | 1 | ✅ OK |
 | `CatalogoAcademicoTest` | 10 | 1 | ✅ OK |
-| **Total** | **47** | **34** | **34/34 OK** |
+| **Total** | **46** | **33** | **33/33 OK** |
 
 | Métrica | Valor |
 |---|---|

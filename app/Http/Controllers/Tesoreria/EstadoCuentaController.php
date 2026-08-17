@@ -215,7 +215,18 @@ class EstadoCuentaController extends Controller
             'egresos' => $egresos,
             'categorias' => $categorias,
             'conceptos' => $conceptos,
-            'filters' => $request->only(['fecha_inicio', 'fecha_fin', 'metodo_pago', 'estado', 'tipo', 'sort', 'direction', 'search', 'categoria', 'concepto']),
+            'filters' => [
+                'fecha_inicio' => $request->input('fecha_inicio'),
+                'fecha_fin' => $request->input('fecha_fin'),
+                'metodo_pago' => $request->input('metodo_pago'),
+                'estado' => $request->input('estado'),
+                'tipo' => $request->input('tipo', 'todos'),
+                'sort' => $request->input('sort'),
+                'direction' => $request->input('direction'),
+                'search' => $request->input('search'),
+                'categoria' => $request->input('categoria'),
+                'concepto' => $request->input('concepto'),
+            ],
         ]);
     }
 

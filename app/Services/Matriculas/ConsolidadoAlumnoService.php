@@ -4,13 +4,10 @@ namespace App\Services\Matriculas;
 
 use App\Models\Alumno;
 use App\Models\ExamenMetrica;
-use App\Services\Ia\DesercionRiskService;
 
 class ConsolidadoAlumnoService
 {
-    public function __construct(
-        private readonly DesercionRiskService $desercionRiskService,
-    ) {}
+    public function __construct() {}
 
     public function obtener(int $idAlumno): array
     {
@@ -27,7 +24,6 @@ class ConsolidadoAlumnoService
             ->findOrFail($idAlumno);
 
         $matricula = $alumno->matriculaVigente;
-        $prediccion = $matricula ? $this->desercionRiskService->calcularParaMatricula($matricula) : null;
 
         return [
             'perfil' => [
@@ -87,15 +83,6 @@ class ConsolidadoAlumnoService
                     'nombre' => $matricula->aula?->nombre,
                     'capacidad' => $matricula->aula?->capacidad,
                 ],
-            ] : null,
-            'riesgo_desercion' => $prediccion ? [
-                'riesgo_pct' => $prediccion->riesgo_pct,
-                'nivel_riesgo' => $prediccion->nivel_riesgo,
-                'prioritario' => $prediccion->riesgo_pct > 75,
-                'tasa_asistencia' => $prediccion->tasa_asistencia,
-                'promedio_examenes' => $prediccion->promedio_examenes,
-                'cuotas_vencidas' => $prediccion->cuotas_vencidas,
-                'fecha_calculo' => $prediccion->fecha_calculo?->toDateTimeString(),
             ] : null,
             'asistencia' => [
                 'resumen' => (function () use ($matricula) {

@@ -27,7 +27,6 @@ class RolSeeder extends Seeder
                     'asistencias' => ['puede_ver' => true, 'puede_editar' => true],
                     'academico' => ['puede_ver' => true, 'puede_editar' => true],
                     'reportes' => ['puede_ver' => true],
-                    'ia' => ['puede_ver' => true],
                 ]),
             ],
             [
