@@ -13,4 +13,6 @@ Route::middleware(['auth', 'verified', 'permiso'])->group(function () {
     Route::get('/notas/cargar', [ExamenController::class, 'cargarForm'])->name('notas.cargar');
     Route::post('/notas/preview-csv', [ExamenController::class, 'previewCsv'])->name('notas.preview-csv');
     Route::post('/notas/guardar', [ExamenController::class, 'guardar'])->name('notas.guardar');
+    Route::get('/notas/{examen}', [ExamenController::class, 'show'])->name('notas.show');
+    Route::get('/notas/{examen}/resultado/{resultado}', [ExamenController::class, 'showResultado'])->name('notas.resultado');
 });

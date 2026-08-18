@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Examen extends Model
 {
@@ -44,5 +45,22 @@ class Examen extends Model
     public function metricas(): HasMany
     {
         return $this->hasMany(ExamenMetrica::class, 'id_examen', 'id_examen');
+    }
+
+    public function preguntas(): HasMany
+    {
+        return $this->hasMany(ExamenPregunta::class, 'id_examen', 'id_examen');
+    }
+
+    public function respuestas(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            ExamenRespuesta::class,
+            ExamenPregunta::class,
+            'id_examen',
+            'id_pregunta',
+            'id_examen',
+            'id_pregunta'
+        );
     }
 }

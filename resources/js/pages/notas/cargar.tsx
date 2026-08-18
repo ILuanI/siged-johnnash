@@ -6,6 +6,7 @@ import {
     AlertTriangle,
     Save,
     RefreshCw,
+    FileSpreadsheet,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
@@ -34,25 +35,60 @@ interface Ciclo {
     nombre: string;
 }
 
-interface PreviewRow {
-    identifier: string;
-    nombres: string;
-    area: string;
-    carrera: string;
+interface Area {
+    id_area: number;
+    nombre: string;
+}
+
+interface PreviewExamen {
+    quiz_name: string;
+    quiz_class: string;
+    quiz_created: string;
+    data_exported: string;
+    key_version: string;
+    possible_points: number;
+    num_preguntas: number;
+}
+
+interface PreviewPregunta {
+    numero: number;
+    clave_correcta: string;
+    puntos: number;
+}
+
+interface PreviewFila {
+    student_id: string;
+    nombre: string;
+    dni: string | null;
     id_matricula: number | null;
-    puntaje_aptitud: number;
-    puntaje_conocimiento: number;
-    puntaje_total: number;
+    earned: number;
+    possible: number;
+    percent: number;
     status: 'OK' | 'WARNING';
     mensaje: string;
 }
 
-interface Props {
-    ciclos: Ciclo[];
+interface PreviewResumen {
+    total: number;
+    ok: number;
+    warning: number;
+    no_encontrados: { student_id: string; nombre: string }[];
 }
 
-export default function NotasCargar({ ciclos }: Props) {
+interface Props {
+    ciclos: Ciclo[];
+    areas: Area[];
+}
+
+function extraerFecha(valor: string): string {
+    if (!valor) return '';
+    const match = valor.match(/^\d{4}-\d{2}-\d{2}/);
+    return match ? match[0] : '';
+}
+
+export default function NotasCargar({ ciclos, areas }: Props) {
     const [idCiclo, setIdCiclo] = useState<string>('');
+    const [idArea, setIdArea] = useState<string>('');
     const [tipo, setTipo] = useState<string>('SIMULACRO');
     const [numero, setNumero] = useState<string>('');
     const [fecha, setFecha] = useState<string>(
@@ -62,8 +98,12 @@ export default function NotasCargar({ ciclos }: Props) {
     const [archivo, setArchivo] = useState<File | null>(null);
 
     const [loadingPreview, setLoadingPreview] = useState(false);
-    const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
     const [saving, setSaving] = useState(false);
+
+    const [examenMeta, setExamenMeta] = useState<PreviewExamen | null>(null);
+    const [preguntas, setPreguntas] = useState<PreviewPregunta[]>([]);
+    const [filas, setFilas] = useState<PreviewFila[]>([]);
+    const [resumen, setResumen] = useState<PreviewResumen | null>(null);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -76,25 +116,24 @@ export default function NotasCargar({ ciclos }: Props) {
 
         if (!idCiclo) {
             toast.error('Por favor seleccione un ciclo académico.');
-
             return;
         }
-
         if (!archivo) {
-            toast.error('Por favor cargue un archivo de notas.');
-
+            toast.error('Por favor cargue un archivo CSV de ZipGrade.');
             return;
         }
 
         setLoadingPreview(true);
-        setPreviewRows([]);
+        setExamenMeta(null);
+        setFilas([]);
+        setPreguntas([]);
+        setResumen(null);
 
         const formData = new FormData();
         formData.append('id_ciclo', idCiclo);
         formData.append('archivo', archivo);
 
         try {
-            // Fetch token from meta tag
             const csrfToken =
                 document
                     .querySelector('meta[name="csrf-token"]')
@@ -109,75 +148,74 @@ export default function NotasCargar({ ciclos }: Props) {
                 body: formData,
             });
 
-            if (!response.ok) {
-                const errData = await response.json();
+            const resData = await response.json();
 
-                throw new Error(
-                    errData.message || 'Error al procesar el archivo.',
-                );
+            if (!response.ok) {
+                throw new Error(resData.error || 'Error al procesar el archivo.');
             }
 
-            const resData = await response.json();
-            setPreviewRows(resData.rows || []);
-            toast.success('Archivo procesado para pre-visualización.');
+            setExamenMeta(resData.examen);
+            setPreguntas(resData.preguntas || []);
+            setFilas(resData.filas || []);
+            setResumen(resData.resumen);
+
+            // Precargar datos sugeridos desde el CSV
+            const fechaSuge = extraerFecha(resData.examen?.data_exported);
+            if (fechaSuge) setFecha(fechaSuge);
+            if (resData.examen?.quiz_name) {
+                setDescripcion((prev) => prev || resData.examen.quiz_name);
+            }
+
+            toast.success('Archivo de ZipGrade procesado para pre-visualización.');
         } catch (error: any) {
             console.error(error);
-            toast.error(
-                error.message || 'Ocurrió un error al cargar el archivo.',
-            );
+            toast.error(error.message || 'Ocurrió un error al cargar el archivo.');
         } finally {
             setLoadingPreview(false);
         }
     };
 
     const handleSave = () => {
-        const validRows = previewRows.filter((r) => r.id_matricula !== null);
+        const validRows = filas.filter((r) => r.id_matricula !== null);
 
         if (validRows.length === 0) {
-            toast.error(
-                'No hay estudiantes válidos para registrar en la base de datos.',
-            );
-
+            toast.error('No hay estudiantes válidos para registrar en la base de datos.');
             return;
         }
 
         setSaving(true);
 
-        router.post(
-            '/notas/guardar',
-            {
-                id_ciclo: parseInt(idCiclo),
-                tipo,
-                numero: numero ? parseInt(numero) : null,
-                fecha,
-                descripcion,
-                resultados: validRows.map((r) => ({
-                    id_matricula: r.id_matricula,
-                    puntaje_aptitud: r.puntaje_aptitud,
-                    puntaje_conocimiento: r.puntaje_conocimiento,
-                })),
+        const formData = new FormData();
+        formData.append('id_ciclo', idCiclo);
+        formData.append('tipo', tipo);
+        formData.append('numero', numero || '');
+        formData.append('fecha', fecha);
+        formData.append('descripcion', descripcion);
+        formData.append('id_area', idArea || '');
+        if (archivo) formData.append('archivo', archivo);
+
+        router.post('/notas/guardar', formData, {
+            onSuccess: () => {
+                toast.success('Resultados de ZipGrade guardados exitosamente.');
             },
-            {
-                onSuccess: () => {
-                    toast.success('Notas guardadas exitosamente.');
-                },
-                onError: (err) => {
-                    console.error(err);
-                    toast.error('Error al guardar las notas.');
-                    setSaving(false);
-                },
+            onError: (err: any) => {
+                console.error(err);
+                const msg =
+                    err?.archivo?.[0] ||
+                    err?.descripcion?.[0] ||
+                    'Error al guardar los resultados.';
+                toast.error(msg);
+                setSaving(false);
             },
-        );
+        });
     };
 
-    const warningCount = previewRows.filter(
-        (r) => r.status === 'WARNING',
-    ).length;
-    const successCount = previewRows.filter((r) => r.status === 'OK').length;
+    const warningCount = resumen?.warning ?? 0;
+    const successCount = resumen?.ok ?? 0;
 
     return (
         <>
-            <Head title="Cargar Notas" />
+            <Head title="Cargar Resultados ZipGrade" />
 
             <header className="border-b bg-white px-8 py-6">
                 <div className="flex items-center gap-4">
@@ -189,12 +227,11 @@ export default function NotasCargar({ ciclos }: Props) {
                     </Link>
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">
-                            Cargar Notas de Lector Óptico
+                            Cargar Resultados ZIP Grade
                         </h1>
                         <p className="text-sm text-slate-500">
-                            Sube el archivo de notas obtenido de la lectora
-                            óptica, pre-visualiza los emparejamientos y
-                            guárdalos.
+                            Importe calificaciones exportadas desde ZIP Grade
+                            (CSV con respuestas por pregunta).
                         </p>
                     </div>
                 </div>
@@ -202,18 +239,15 @@ export default function NotasCargar({ ciclos }: Props) {
 
             <div className="flex-1 space-y-6 px-8 py-6">
                 <div className="grid gap-6 lg:grid-cols-3">
-                    {/* Formulario de Metadatos y Archivo */}
+                    {/* Formulario de configuración */}
                     <div className="self-start rounded-xl border bg-white p-6 shadow-sm lg:col-span-1">
                         <h2 className="mb-4 text-lg font-semibold text-slate-900">
-                            Detalles del Examen
+                            Configuración del Examen
                         </h2>
                         <form onSubmit={handlePreview} className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="ciclo">Ciclo Académico</Label>
-                                <Select
-                                    value={idCiclo}
-                                    onValueChange={setIdCiclo}
-                                >
+                                <Select value={idCiclo} onValueChange={setIdCiclo}>
                                     <SelectTrigger id="ciclo">
                                         <SelectValue placeholder="Seleccione el ciclo" />
                                     </SelectTrigger>
@@ -233,10 +267,7 @@ export default function NotasCargar({ ciclos }: Props) {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="tipo">Tipo</Label>
-                                    <Select
-                                        value={tipo}
-                                        onValueChange={setTipo}
-                                    >
+                                    <Select value={tipo} onValueChange={setTipo}>
                                         <SelectTrigger id="tipo">
                                             <SelectValue />
                                         </SelectTrigger>
@@ -254,18 +285,14 @@ export default function NotasCargar({ ciclos }: Props) {
                                     </Select>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="numero">
-                                        Número (Opcional)
-                                    </Label>
+                                    <Label htmlFor="numero">Número (Opcional)</Label>
                                     <Input
                                         id="numero"
                                         type="number"
                                         min="1"
                                         placeholder="Ej: 1"
                                         value={numero}
-                                        onChange={(e) =>
-                                            setNumero(e.target.value)
-                                        }
+                                        onChange={(e) => setNumero(e.target.value)}
                                     />
                                 </div>
                             </div>
@@ -287,16 +314,31 @@ export default function NotasCargar({ ciclos }: Props) {
                                     id="descripcion"
                                     placeholder="Ej: Simulacro Admisión Especial"
                                     value={descripcion}
-                                    onChange={(e) =>
-                                        setDescripcion(e.target.value)
-                                    }
+                                    onChange={(e) => setDescripcion(e.target.value)}
                                 />
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="archivo">
-                                    Archivo CSV / Notas
-                                </Label>
+                                <Label htmlFor="area">Área (Opcional)</Label>
+                                <Select value={idArea} onValueChange={setIdArea}>
+                                    <SelectTrigger id="area">
+                                        <SelectValue placeholder="Sin área específica" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {areas.map((area) => (
+                                            <SelectItem
+                                                key={area.id_area}
+                                                value={area.id_area.toString()}
+                                            >
+                                                {area.nombre}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="archivo">Archivo CSV ZIP Grade</Label>
                                 <Input
                                     id="archivo"
                                     type="file"
@@ -305,9 +347,8 @@ export default function NotasCargar({ ciclos }: Props) {
                                     required
                                 />
                                 <p className="text-xs text-slate-400">
-                                    El CSV debe tener 3 columnas: Identificador
-                                    (Código o DNI), Puntaje Aptitud, Puntaje
-                                    Conocimiento.
+                                    Columnas esperadas: StudentID, Earned Points,
+                                    Possible Points, StuN, PriKeyN, PointsN, MarkN, etc.
                                 </p>
                             </div>
 
@@ -324,7 +365,7 @@ export default function NotasCargar({ ciclos }: Props) {
                                 ) : (
                                     <>
                                         <Upload className="mr-2 size-4" />
-                                        Pre-visualizar Notas
+                                        Pre-visualizar CSV
                                     </>
                                 )}
                             </Button>
@@ -336,15 +377,22 @@ export default function NotasCargar({ ciclos }: Props) {
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
                             <div>
                                 <h2 className="text-lg font-semibold text-slate-900">
-                                    Pre-visualización de Notas
+                                    Pre-visualización
                                 </h2>
                                 <p className="text-sm text-slate-500">
-                                    Verifica que las calificaciones y
-                                    estudiantes emparejados sean correctos.
+                                    Verifique la detección del examen y el
+                                    emparejamiento de estudiantes.
                                 </p>
                             </div>
-                            {previewRows.length > 0 && (
+                            {resumen && (
                                 <div className="flex items-center gap-3">
+                                    <Badge
+                                        className="border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-50"
+                                        variant="outline"
+                                    >
+                                        <FileSpreadsheet className="mr-1 size-3" />
+                                        {examenMeta?.num_preguntas ?? 0} preguntas
+                                    </Badge>
                                     <Badge
                                         className="border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-50"
                                         variant="outline"
@@ -365,79 +413,94 @@ export default function NotasCargar({ ciclos }: Props) {
                             )}
                         </div>
 
-                        {previewRows.length === 0 ? (
+                        {!examenMeta ? (
                             <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-24 text-center">
                                 <Upload className="mb-3 size-10 text-slate-300" />
                                 <p className="font-medium text-slate-600">
                                     No hay datos cargados
                                 </p>
                                 <p className="mt-1 max-w-sm text-xs text-slate-400">
-                                    Completa el formulario de la izquierda y haz
-                                    clic en "Pre-visualizar Notas" para ver el
-                                    resultado de la lectora.
+                                    Seleccione un ciclo y un archivo CSV de ZIP
+                                    Grade, luego haga clic en "Pre-visualizar CSV".
                                 </p>
                             </div>
                         ) : (
-                            <div className="space-y-4">
+                            <div className="space-y-5">
+                                {/* Metadata del examen */}
+                                <div className="grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-4 sm:grid-cols-4">
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase text-slate-500">Quiz</p>
+                                        <p className="text-sm font-semibold text-slate-800">
+                                            {examenMeta.quiz_name || '—'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase text-slate-500">Clase</p>
+                                        <p className="text-sm font-semibold text-slate-800">
+                                            {examenMeta.quiz_class || '—'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase text-slate-500">Pts. Posibles</p>
+                                        <p className="text-sm font-semibold text-slate-800">
+                                            {examenMeta.possible_points}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase text-slate-500">Versión Clave</p>
+                                        <p className="text-sm font-semibold text-slate-800">
+                                            {examenMeta.key_version || '—'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Estudiantes no encontrados */}
+                                {resumen && resumen.no_encontrados.length > 0 && (
+                                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                                        <p className="text-xs font-semibold text-amber-800">
+                                            Estudiantes no encontrados ({resumen.no_encontrados.length})
+                                        </p>
+                                        <p className="mt-1 text-xs text-amber-700">
+                                            {resumen.no_encontrados
+                                                .map((n) => n.student_id)
+                                                .join(', ')}
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Tabla de estudiantes */}
                                 <div className="max-h-[400px] overflow-y-auto rounded-lg border">
                                     <Table>
                                         <TableHeader className="sticky top-0 z-10 bg-slate-50 shadow-sm">
                                             <TableRow>
-                                                <TableHead>
-                                                    Identificador
-                                                </TableHead>
-                                                <TableHead>
-                                                    Estudiante
-                                                </TableHead>
-                                                <TableHead>
-                                                    Carrera (Área)
-                                                </TableHead>
-                                                <TableHead className="text-right">
-                                                    Aptitud
-                                                </TableHead>
-                                                <TableHead className="text-right">
-                                                    Conoc.
-                                                </TableHead>
-                                                <TableHead className="text-right">
-                                                    Total
-                                                </TableHead>
-                                                <TableHead className="w-[120px]">
-                                                    Estado
-                                                </TableHead>
+                                                <TableHead>StudentID</TableHead>
+                                                <TableHead>Estudiante</TableHead>
+                                                <TableHead>DNI</TableHead>
+                                                <TableHead className="text-right">Puntaje</TableHead>
+                                                <TableHead className="text-right">%</TableHead>
+                                                <TableHead className="w-[120px]">Estado</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {previewRows.map((row, index) => (
+                                            {filas.map((row, index) => (
                                                 <TableRow
                                                     key={index}
                                                     className="hover:bg-slate-50/50"
                                                 >
                                                     <TableCell className="font-mono text-xs">
-                                                        {row.identifier}
+                                                        {row.student_id}
                                                     </TableCell>
                                                     <TableCell className="font-medium text-slate-900">
-                                                        {row.nombres}
+                                                        {row.nombre}
                                                     </TableCell>
-                                                    <TableCell className="text-xs text-slate-500">
-                                                        {row.carrera}{' '}
-                                                        <span className="font-semibold">
-                                                            ({row.area})
-                                                        </span>
+                                                    <TableCell className="font-mono text-xs text-slate-500">
+                                                        {row.dni ?? '—'}
                                                     </TableCell>
                                                     <TableCell className="text-right font-medium text-slate-600">
-                                                        {row.puntaje_aptitud.toFixed(
-                                                            3,
-                                                        )}
+                                                        {Number(row.earned).toFixed(2)}
                                                     </TableCell>
                                                     <TableCell className="text-right font-medium text-slate-600">
-                                                        {row.puntaje_conocimiento.toFixed(
-                                                            3,
-                                                        )}
-                                                    </TableCell>
-                                                    <TableCell className="text-right font-bold text-slate-900">
-                                                        {row.puntaje_total.toFixed(
-                                                            3,
-                                                        )}
+                                                        {Number(row.percent).toFixed(1)}
                                                     </TableCell>
                                                     <TableCell>
                                                         {row.status === 'OK' ? (
@@ -451,12 +514,9 @@ export default function NotasCargar({ ciclos }: Props) {
                                                             <Badge
                                                                 className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-50"
                                                                 variant="outline"
-                                                                title={
-                                                                    row.mensaje
-                                                                }
+                                                                title={row.mensaje}
                                                             >
-                                                                Error /
-                                                                Advertencia
+                                                                No encontrado
                                                             </Badge>
                                                         )}
                                                     </TableCell>
@@ -470,7 +530,10 @@ export default function NotasCargar({ ciclos }: Props) {
                                     <Button
                                         variant="outline"
                                         onClick={() => {
-                                            setPreviewRows([]);
+                                            setExamenMeta(null);
+                                            setFilas([]);
+                                            setPreguntas([]);
+                                            setResumen(null);
                                         }}
                                         disabled={saving}
                                     >
@@ -489,8 +552,7 @@ export default function NotasCargar({ ciclos }: Props) {
                                         ) : (
                                             <>
                                                 <Save className="mr-2 size-4" />
-                                                Confirmar y Guardar (
-                                                {successCount})
+                                                Confirmar y Guardar ({successCount})
                                             </>
                                         )}
                                     </Button>
@@ -511,7 +573,7 @@ NotasCargar.layout = {
             href: '/notas',
         },
         {
-            title: 'Cargar Notas',
+            title: 'Cargar ZIP Grade',
             href: '/notas/cargar',
         },
     ],

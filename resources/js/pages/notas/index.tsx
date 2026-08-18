@@ -29,6 +29,12 @@ interface Examen {
         nombre: string;
     };
     metricas: ExamenMetrica[];
+    alumnos_count: number | null;
+    promedio: number | null;
+    puntaje_max: number | null;
+    puntaje_min: number | null;
+    porcentaje_promedio: number | null;
+    preguntas_count: number | null;
 }
 
 interface Props {
@@ -221,10 +227,37 @@ export default function NotasIndex({ examenes }: Props) {
                                 </p>
 
                                 <div className="mt-5 border-t pt-4">
-                                    <p className="text-xs font-semibold text-slate-400 mb-3 uppercase tracking-wider">
+                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                        <div className="rounded-lg bg-slate-50 p-2.5 border border-slate-100">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Alumnos</span>
+                                            <p className="text-sm font-bold text-slate-800">{examen.alumnos_count ?? 0}</p>
+                                        </div>
+                                        <div className="rounded-lg bg-slate-50 p-2.5 border border-slate-100">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Promedio</span>
+                                            <p className="text-sm font-bold text-slate-800">
+                                                {examen.promedio != null ? Number(examen.promedio).toFixed(2) : '—'}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg bg-slate-50 p-2.5 border border-slate-100">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Máx / Mín</span>
+                                            <p className="text-sm font-bold text-slate-800">
+                                                {examen.puntaje_max != null ? Number(examen.puntaje_max).toFixed(1) : '—'}
+                                                <span className="text-slate-400"> / </span>
+                                                {examen.puntaje_min != null ? Number(examen.puntaje_min).toFixed(1) : '—'}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-lg bg-slate-50 p-2.5 border border-slate-100">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">% Prom.</span>
+                                            <p className="text-sm font-bold text-slate-800">
+                                                {examen.porcentaje_promedio != null ? Number(examen.porcentaje_promedio).toFixed(1) + '%' : '—'}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <p className="mt-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                         Métricas por Área (Max | Min)
                                     </p>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="mt-2 grid grid-cols-2 gap-2">
                                         {examen.metricas && examen.metricas.length > 0 ? (
                                             examen.metricas.map((metrica) => (
                                                 <div
@@ -250,6 +283,15 @@ export default function NotasIndex({ examenes }: Props) {
                                             </div>
                                         )}
                                     </div>
+                                </div>
+
+                                <div className="mt-4 flex justify-end">
+                                    <Link
+                                        href={`/notas/${examen.id_examen}`}
+                                        className="inline-flex items-center gap-1.5 rounded-md bg-[#ff7043] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#f4511e]"
+                                    >
+                                        Ver resultados
+                                    </Link>
                                 </div>
                             </div>
                         ))}

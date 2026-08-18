@@ -22,7 +22,7 @@ Este documento define cómo se organizan los **módulos funcionales** del sistem
 | **RI003** | Cursos / docentes / horarios | `curso`, `docente` (`docentes`), `asignacion_docente`, `horario`, `aula`, `ciclo` | ✅ Implementado | `/cursos` (horario visual con cuadrícula semanal), `/docentes` | — |
 | **RI004** | Asistencia | `asistencia` | 🔶 Parcial (Lector implementado) | `/asistencias/lector` | — |
 | **RI005** | Pagos y cuotas | `comprobante_pago`, `cuota`, `pago`, `auditoria_pago` | 🔶 Parcial (Estado de cuenta, anulación y movimientos implementados) | `/tesoreria/estado-cuenta`, `/tesoreria/movimientos` | — |
-| **RI006** | Notas / rendimiento | `examen`, `resultado_examen` | 🔶 Parcial (Cargar/consultar notas implementado) | `/notas`, `/notas/cargar`, `/notas/consulta` | — |
+| **RI006** | Notas / rendimiento | `examen`, `resultado_examen`, `examen_pregunta`, `examen_respuesta` | ✅ Implementado (import ZipGrade + consolidado por examen) | `/notas`, `/notas/cargar`, `/notas/{examen}`, `/notas/{examen}/resultado/{resultado}` | — |
 | **RI007** | Usuarios y roles | `usuario`, `rol` | 🔶 Parcial (Laravel `users` + Fortify; tabla `usuario`/`rol` del dominio integrada parcialmente) | `/usuarios`, `/roles`, Auth + Settings | — |
 | **RI008** | Dashboard / BI | Vistas `vw_bi_*` | 🔶 Parcial (Dashboard + Reportes + BI) | `/dashboard`, `/reportes`, `/bi` | — |
 | **RI010+** | Egresos, auditoría, etc. | `egreso`, … | ⏳ Pendiente | — | — |
@@ -51,7 +51,7 @@ app/Http/Controllers/
 │   ├── MatriculaController.php              # API: matrículas
 │   └── AlumnoController.php                 # API: alumnos
 ├── Academico/
-│   └── ExamenController.php                 # Exámenes (backend notas)
+│   └── ExamenController.php                 # Exámenes: import ZipGrade + consolidado (`app/Services/ZipGradeParser.php`)
 ├── Cursos/
 │   └── CursoController.php                  # CRUD cursos + asignación docente + horarios + ciclos + aulas
 ├── Asistencias/
@@ -135,8 +135,10 @@ resources/js/pages/
 │   ├── movimientos.tsx                      # Reporte de movimientos (libro diario)
 │   └── pago-extraordinario.tsx              # Registro de pago extraordinario
 ├── notas/
-│   ├── index.tsx                            # Home notas
-│   ├── cargar.tsx                           # Cargar notas
+│   ├── index.tsx                            # Home notas (resumen por examen)
+│   ├── cargar.tsx                           # Import ZipGrade (preview + guardar)
+│   ├── show.tsx                             # Detalle del examen (análisis por pregunta)
+│   ├── resultado.tsx                        # Detalle del resultado por alumno
 │   └── consulta.tsx                         # Consultar notas
 ├── ia/
 │   └── desercion.tsx                        # IA deserción

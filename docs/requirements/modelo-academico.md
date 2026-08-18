@@ -230,8 +230,13 @@ matricula ──→ alumno
 
 ```
 area 1 ── * examen 1 ── * resultado_examen
+                1 ── * examen_pregunta 1 ── * examen_respuesta
                 1 ── * examen_metrica (por área)
 ```
+
+Las preguntas (`examen_pregunta`) y respuestas (`examen_respuesta`) se crean al
+importar un CSV de ZipGrade desde `/notas/cargar` (ver
+`docs/flow/notas-zipgrade-flow.md`).
 
 ### Examen (`examen`)
 
@@ -265,8 +270,35 @@ Puntaje máximo y mínimo por área en un examen.
 | `id_matricula` | FK → `matricula` | |
 | `puntaje_aptitud` | decimal(7,3) | |
 | `puntaje_conocimiento` | decimal(7,3) | |
-| `puntaje_total` | decimal(7,3) | aptitud + conocimiento |
+| `puntaje_total` | decimal(7,3) | aptitud + conocimiento (con ZipGrade: `Earned Points`) |
+| `puntaje_posible` | decimal(7,3) | `Possible Points` del CSV (nullable; agregado por ZipGrade) |
+| `porcentaje` | decimal(5,2) | `Percent Correct` del CSV (nullable; agregado por ZipGrade) |
 | `puesto` | smallint | Ranking dentro del área |
+| — | unique `uq_resultado` | `(id_examen, id_matricula)` — un resultado por alumno/examen |
+
+### ExamenPregunta (`examen_pregunta`) — creada por import ZipGrade
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id_pregunta` | PK | |
+| `id_examen` | FK → `examen` | |
+| `numero` | smallint | Número de pregunta |
+| `clave_correcta` | varchar | `PriKeyN` (A–E) |
+| `puntos` | decimal(7,3) | Máximo `PointsN` de las respuestas correctas |
+| — | unique | `(id_examen, numero)` |
+
+### ExamenRespuesta (`examen_respuesta`) — creada por import ZipGrade
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id_respuesta` | PK | |
+| `id_resultado` | FK → `resultado_examen` | |
+| `id_pregunta` | FK → `examen_pregunta` | |
+| `numero` | smallint | |
+| `respuesta` | varchar(10) | `StuN` (A–E o en blanco) |
+| `puntos_obtenidos` | decimal(7,3) | `PointsN` |
+| `marca` | varchar(5) | `C` = correcto; `I`/`B`/`M`/`X` = incorrecto |
+| — | unique | `(id_resultado, id_pregunta)` |
 
 ---
 
@@ -427,6 +459,7 @@ Pares clave-valor para settings del sistema.
 Contexto Carreras:  área → carrera → alumno → matrícula
 Contexto Exámenes:  área → examen
                     área → examen_metrica (métricas por área)
+                    examen → examen_pregunta → examen_respuesta
 ```
 
 En exámenes, el área del alumno se determina vía: `alumno → carrera → area`.
@@ -462,7 +495,7 @@ ciclo → asignacion_docente → curso
 | Cursos + horarios | Gestión de Cursos (`/cursos`) | `CursoController` |
 | Ciclos | Gestión de Cursos | `CursoController::storeCiclo` |
 | Aulas | Gestión de Cursos / Ajustes | `CursoController` / `ConfiguracionController` |
-| Exámenes | Notas (`/notas`, `/notas/cargar`) | `ExamenController` |
+| Exámenes | Notas (`/notas`, `/notas/cargar`) | `ExamenController` (import ZipGrade vía `ZipGradeParser`) |
 | Alumnos | Matrículas → Estudiantes (`/matriculas/estudiantes`) | `EstudianteWebController` |
 | Matrículas | Matrículas → Nueva (`/matriculas/nueva`) | `MatriculaWebController` |
 | Asistencias | Asistencias (`/asistencias`) | `AsistenciaController` / `LectorAsistenciaController` |

@@ -35,6 +35,7 @@ producto y requieren revision humana cuando cambian reglas de negocio.
 | `flow/dashboard-bi-flow.md` | Flujo del dashboard BI (KPIs, recaudación por concepto, ficha 360°) |
 | `flow/caja-flow.md` | Flujo de Caja General: arqueo, resumen por concepto, egresos, ingresos y tarjeta de filtros avanzados (fecha, búsqueda, método de pago, categoría, concepto) |
 | `flow/movimientos-flow.md` | Flujo de Movimientos de Tesorería: libro diario unificado y contrato de filtros avanzados compartido con Caja General |
+| `flow/notas-zipgrade-flow.md` | Flujo de Notas: importación de CSV ZipGrade (parser, preview, guardar), detalle de examen y resultado por alumno |
 
 Usa `sequenceDiagram` solo cuando haya actores asincronos o paralelos. Para
 un recorrido lineal archivo -> funcion, basta con la descripcion del flujo.

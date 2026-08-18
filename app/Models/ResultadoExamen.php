@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 
 class ResultadoExamen extends Model
 {
@@ -24,6 +26,8 @@ class ResultadoExamen extends Model
             'puntaje_aptitud' => 'float',
             'puntaje_conocimiento' => 'float',
             'puntaje_total' => 'float',
+            'puntaje_posible' => 'float',
+            'porcentaje' => 'float',
         ];
     }
 
@@ -35,5 +39,22 @@ class ResultadoExamen extends Model
     public function matricula(): BelongsTo
     {
         return $this->belongsTo(Matricula::class, 'id_matricula', 'id_matricula');
+    }
+
+    public function alumno(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            Alumno::class,
+            Matricula::class,
+            'id_matricula',
+            'id_alumno',
+            'id_matricula',
+            'id_alumno'
+        );
+    }
+
+    public function respuestas(): HasMany
+    {
+        return $this->hasMany(ExamenRespuesta::class, 'id_resultado', 'id_resultado');
     }
 }
