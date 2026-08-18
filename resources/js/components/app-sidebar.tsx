@@ -32,6 +32,7 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarGroup,
+    SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
@@ -51,48 +52,64 @@ import { index as catalogoAcademicoIndex } from '@/routes/matriculas/catalogo';
 import { index as estudiantesIndex } from '@/routes/matriculas/estudiantes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: (NavItem & { modulo: string })[] = [
+const navGroups: {
+    label: string;
+    items: (NavItem & { modulo: string })[];
+}[] = [
     {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-        modulo: 'dashboard',
-    },
-    { title: 'Docentes', href: '/docentes', icon: Users, modulo: 'docentes' },
-    {
-        title: 'Estudiantes',
-        href: estudiantesIndex(),
-        icon: GraduationCap,
-        modulo: 'estudiantes',
-    },
-    {
-        title: 'Catálogo académico',
-        href: catalogoAcademicoIndex(),
-        icon: BookOpen,
-        modulo: 'estudiantes',
-    },
-    { title: 'Horario', href: '/cursos', icon: BookOpen, modulo: 'cursos' },
-    {
-        title: 'Asistencias',
-        href: lectorAsistenciaIndex(),
-        icon: ScanBarcode,
-        modulo: 'asistencias',
-    },
-    { title: 'Usuarios', href: '/usuarios', icon: Users, modulo: 'usuarios' },
-    { title: 'Roles', href: '/roles', icon: ShieldCheck, modulo: 'roles' },
-    { title: 'Notas', href: '/notas', icon: BookOpen, modulo: 'academico' },
-
-    {
-        title: 'Reportes',
-        href: '/reportes',
-        icon: BarChart3,
-        modulo: 'reportes',
+        label: 'Académico',
+        items: [
+            {
+                title: 'Docentes',
+                href: '/docentes',
+                icon: Users,
+                modulo: 'docentes',
+            },
+            {
+                title: 'Estudiantes',
+                href: estudiantesIndex(),
+                icon: GraduationCap,
+                modulo: 'estudiantes',
+            },
+            {
+                title: 'Catálogo académico',
+                href: catalogoAcademicoIndex(),
+                icon: BookOpen,
+                modulo: 'estudiantes',
+            },
+            { title: 'Horario', href: '/cursos', icon: BookOpen, modulo: 'cursos' },
+            {
+                title: 'Asistencias',
+                href: lectorAsistenciaIndex(),
+                icon: ScanBarcode,
+                modulo: 'asistencias',
+            },
+            { title: 'Notas', href: '/notas', icon: BookOpen, modulo: 'academico' },
+        ],
     },
     {
-        title: 'Ajustes',
-        href: ajustesIndex(),
-        icon: Settings,
-        modulo: 'ajustes',
+        label: 'Administración',
+        items: [
+            {
+                title: 'Usuarios',
+                href: '/usuarios',
+                icon: Users,
+                modulo: 'usuarios',
+            },
+            { title: 'Roles', href: '/roles', icon: ShieldCheck, modulo: 'roles' },
+            {
+                title: 'Reportes',
+                href: '/reportes',
+                icon: BarChart3,
+                modulo: 'reportes',
+            },
+            {
+                title: 'Ajustes',
+                href: ajustesIndex(),
+                icon: Settings,
+                modulo: 'ajustes',
+            },
+        ],
     },
 ];
 
@@ -101,9 +118,6 @@ export function AppSidebar() {
     const { isCurrentUrl } = useCurrentUrl();
     const { isMobile, setOpenMobile } = useSidebar();
 
-    const visibleNavItems = mainNavItems.filter((item) =>
-        puede(item.modulo, 'ver'),
-    );
     const puedeMatricular = puede('estudiantes', 'editar');
     const puedeTesoreria = puede('pagos', 'ver');
 
@@ -171,10 +185,39 @@ export function AppSidebar() {
                     </>
                 )}
 
-                <NavMain items={visibleNavItems} />
+                {puede('dashboard', 'ver') && (
+                    <NavMain
+                        items={[
+                            {
+                                title: 'Dashboard',
+                                href: dashboard(),
+                                icon: LayoutGrid,
+                            },
+                        ]}
+                    />
+                )}
+
+                {navGroups.map((group) => {
+                    const visibles = group.items.filter((item) =>
+                        puede(item.modulo, 'ver'),
+                    );
+
+                    if (visibles.length === 0) {
+                        return null;
+                    }
+
+                    return (
+                        <NavMain
+                            key={group.label}
+                            label={group.label}
+                            items={visibles}
+                        />
+                    );
+                })}
 
                 {puedeTesoreria && (
                     <SidebarGroup className="px-2 py-0">
+                        <SidebarGroupLabel>Finanzas</SidebarGroupLabel>
                         <SidebarMenu>
                             <Collapsible
                                 open={tesoreriaAbierto}
