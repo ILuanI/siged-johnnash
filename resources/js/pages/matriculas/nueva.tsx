@@ -624,7 +624,7 @@ export default function NuevaMatricula({
                             {/* Datos de contacto / empresa */}
                             <div className="mb-4 flex justify-between text-xs text-gray-700 italic">
                                 <div>
-                                    <p>Prolongación Unión #2285</p>
+                                    <p>Prolongación Unión #2394</p>
                                     <p>Trujillo, La Libertad</p>
                                     <p>13006</p>
                                 </div>
