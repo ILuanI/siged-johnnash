@@ -22,22 +22,15 @@ import {
     updateCarrera as updateAlumnoCarrera,
 } from '@/actions/App/Http/Controllers/Matriculas/EstudianteWebController';
 import { exonerar as exonerarCuota } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
-import SemaforoPagos from '@/components/SemaforoPagos';
 import {
-    AuditoriaExoneracionTooltip,
-    type AuditoriaCuotaItem,
+    AuditoriaExoneracionTooltip
+    
 } from '@/components/pagos/AuditoriaExoneracionTooltip';
+import type {AuditoriaCuotaItem} from '@/components/pagos/AuditoriaExoneracionTooltip';
+import SemaforoPagos from '@/components/SemaforoPagos';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import {
     Dialog,
     DialogContent,
@@ -55,6 +48,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { useInitials } from '@/hooks/use-initials';
 import { usePermisos } from '@/hooks/use-permisos';

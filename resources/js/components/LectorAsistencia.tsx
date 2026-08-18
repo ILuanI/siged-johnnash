@@ -136,9 +136,11 @@ export default function LectorAsistencia({
                                 window.setTimeout(
                                     () => {
                                         const activeEl = document.activeElement;
+
                                         if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT' || activeEl.tagName === 'TEXTAREA')) {
                                             return;
                                         }
+
                                         inputRef.current?.focus();
                                     },
                                     100,

@@ -31,13 +31,13 @@ import {
     updatePeriodo,
     updateTurno,
 } from '@/actions/App/Http/Controllers/Ajustes/ConfiguracionController';
+import { index as catalogoIndex } from '@/actions/App/Http/Controllers/Matriculas/CatalogoAcademicoController';
 import {
     destroy as destroyCategoria,
     setDefault as setDefaultCategoria,
     store as storeCategoria,
     update as updateCategoria,
 } from '@/actions/App/Http/Controllers/Tesoreria/CategoriaFinancieraController';
-import { index as catalogoIndex } from '@/actions/App/Http/Controllers/Matriculas/CatalogoAcademicoController';
 import InputError from '@/components/input-error';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';

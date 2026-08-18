@@ -10,8 +10,10 @@ export function useFlashToast(): void {
 
     useEffect(() => {
         const currentToast = flash?.toast;
+
         if (!currentToast) {
             lastToastRef.current = null;
+
             return;
         }
 
@@ -19,11 +21,13 @@ export function useFlashToast(): void {
 
         if (lastToastRef.current !== toastKey) {
             const { type, message } = currentToast;
+
             if (typeof (toast as any)[type] === 'function') {
                 (toast as any)[type](message);
             } else {
                 toast(message);
             }
+
             lastToastRef.current = toastKey;
         }
     }, [flash]);

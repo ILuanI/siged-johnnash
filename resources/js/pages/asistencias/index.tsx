@@ -150,6 +150,7 @@ export default function AsistenciasIndex({
     const startDate = new Date(filtros.fecha_inicio + 'T00:00:00');
     const endDate = new Date(filtros.fecha_fin + 'T00:00:00');
     const dates: Date[] = [];
+
     for (
         let d = new Date(startDate);
         d <= endDate;

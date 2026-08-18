@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { anularPago } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
 import {
-    AuditoriaAnulacionTooltip,
-    type AuditoriaPagoItem,
+    AuditoriaAnulacionTooltip
+    
 } from '@/components/pagos/AuditoriaAnulacionTooltip';
+import type {AuditoriaPagoItem} from '@/components/pagos/AuditoriaAnulacionTooltip';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -31,7 +32,9 @@ function parseDate(dateStr: string) {
 }
 
 function formatDate(date: Date) {
-    if (isNaN(date.getTime())) return '—';
+    if (isNaN(date.getTime())) {
+return '—';
+}
 
     return new Intl.DateTimeFormat('es-PE', {
         day: 'numeric',

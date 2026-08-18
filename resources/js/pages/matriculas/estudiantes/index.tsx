@@ -200,9 +200,11 @@ export default function EstudiantesIndex({
         return [...estudiantes].sort((a, b) => {
             const nameA = `${a.apellidos} ${a.nombres}`.toLowerCase();
             const nameB = `${b.apellidos} ${b.nombres}`.toLowerCase();
+
             if (sortOrder === 'asc') {
                 return nameA.localeCompare(nameB);
             }
+
             return nameB.localeCompare(nameA);
         });
     }, [estudiantes, sortOrder]);

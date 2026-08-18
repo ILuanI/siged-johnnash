@@ -1,9 +1,7 @@
 import { Head, useForm, router } from '@inertiajs/react';
 import { BookOpen, Layers3, Plus, Save, Book, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { useState } from 'react';
-import { cn } from '@/lib/utils';
-import { confirmAction } from '@/lib/confirm';
+import { toast } from 'sonner';
 import {
     storeArea,
     storeCarrera,
@@ -35,6 +33,8 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { confirmAction } from '@/lib/confirm';
+import { cn } from '@/lib/utils';
 import type {
     AreaCatalogo,
     CarreraOption,

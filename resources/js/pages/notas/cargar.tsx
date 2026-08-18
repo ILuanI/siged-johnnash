@@ -81,8 +81,12 @@ interface Props {
 }
 
 function extraerFecha(valor: string): string {
-    if (!valor) return '';
+    if (!valor) {
+return '';
+}
+
     const match = valor.match(/^\d{4}-\d{2}-\d{2}/);
+
     return match ? match[0] : '';
 }
 
@@ -116,10 +120,13 @@ export default function NotasCargar({ ciclos, areas }: Props) {
 
         if (!idCiclo) {
             toast.error('Por favor seleccione un ciclo académico.');
+
             return;
         }
+
         if (!archivo) {
             toast.error('Por favor cargue un archivo CSV de ZipGrade.');
+
             return;
         }
 
@@ -161,7 +168,11 @@ export default function NotasCargar({ ciclos, areas }: Props) {
 
             // Precargar datos sugeridos desde el CSV
             const fechaSuge = extraerFecha(resData.examen?.data_exported);
-            if (fechaSuge) setFecha(fechaSuge);
+
+            if (fechaSuge) {
+setFecha(fechaSuge);
+}
+
             if (resData.examen?.quiz_name) {
                 setDescripcion((prev) => prev || resData.examen.quiz_name);
             }
@@ -180,6 +191,7 @@ export default function NotasCargar({ ciclos, areas }: Props) {
 
         if (validRows.length === 0) {
             toast.error('No hay estudiantes válidos para registrar en la base de datos.');
+
             return;
         }
 
@@ -192,7 +204,10 @@ export default function NotasCargar({ ciclos, areas }: Props) {
         formData.append('fecha', fecha);
         formData.append('descripcion', descripcion);
         formData.append('id_area', idArea || '');
-        if (archivo) formData.append('archivo', archivo);
+
+        if (archivo) {
+formData.append('archivo', archivo);
+}
 
         router.post('/notas/guardar', formData, {
             onSuccess: () => {

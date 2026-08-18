@@ -7,12 +7,13 @@ import {
     index as tesoreriaIndex,
     prorrogar as tesoreriaProrrogar,
 } from '@/actions/App/Http/Controllers/Tesoreria/EstadoCuentaController';
+import {
+    AuditoriaExoneracionTooltip
+    
+} from '@/components/pagos/AuditoriaExoneracionTooltip';
+import type {AuditoriaCuotaItem} from '@/components/pagos/AuditoriaExoneracionTooltip';
 import { ComprobantePago } from '@/components/pagos/ComprobantePago';
 import type { ComprobanteCuotaItem } from '@/components/pagos/ComprobantePago';
-import {
-    AuditoriaExoneracionTooltip,
-    type AuditoriaCuotaItem,
-} from '@/components/pagos/AuditoriaExoneracionTooltip';
 import { PagoRow } from '@/components/pagos/PagoRow';
 import { SemaforoPagos } from '@/components/pagos/SemaforoPagos';
 import { Badge } from '@/components/ui/badge';

@@ -3,8 +3,8 @@ import { Upload, Calendar, Search, Award, BookOpen, FileText, CheckCircle } from
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 interface ExamenMetrica {
@@ -57,6 +57,7 @@ export default function NotasIndex({ examenes }: Props) {
             (examen.descripcion?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
             (examen.ciclo?.nombre?.toLowerCase() || '').includes(searchQuery.toLowerCase());
         const matchesTipo = activeTipo === 'TODOS' || examen.tipo === activeTipo;
+
         return matchesSearch && matchesTipo;
     });
 

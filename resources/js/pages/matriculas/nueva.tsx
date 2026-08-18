@@ -84,9 +84,11 @@ export default function NuevaMatricula({
               const hoy = new Date();
               let edad = hoy.getFullYear() - nac.getFullYear();
               const mes = hoy.getMonth() - nac.getMonth();
+
               if (mes < 0 || (mes === 0 && hoy.getDate() < nac.getDate())) {
                   edad--;
               }
+
               return edad < 18;
           })()
         : false;
@@ -167,6 +169,7 @@ export default function NuevaMatricula({
                                     const alumno = alumnosList.find(
                                         (a) => a.id_alumno.toString() === val,
                                     );
+
                                     if (alumno?.fecha_nac) {
                                         const nac = new Date(alumno.fecha_nac);
                                         const hoy = new Date();
@@ -175,6 +178,7 @@ export default function NuevaMatricula({
                                             nac.getFullYear();
                                         const mes =
                                             hoy.getMonth() - nac.getMonth();
+
                                         if (
                                             mes < 0 ||
                                             (mes === 0 &&
@@ -182,6 +186,7 @@ export default function NuevaMatricula({
                                         ) {
                                             edad--;
                                         }
+
                                         setData(
                                             'id_cliente',
                                             edad < 18 && alumno.apoderado

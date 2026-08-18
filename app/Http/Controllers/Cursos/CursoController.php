@@ -6,12 +6,15 @@ use App\Enums\EstadoCiclo;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cursos\StoreCursoRequest;
 use App\Http\Requests\Cursos\UpdateCursoRequest;
+use App\Models\Area;
 use App\Models\AsignacionDocente;
 use App\Models\Aula;
 use App\Models\Ciclo;
+use App\Models\Configuracion;
 use App\Models\Curso;
 use App\Models\Docente;
 use App\Models\PeriodoAcademico;
+use App\Models\Turno;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,14 +26,19 @@ class CursoController extends Controller
     public function index(Request $request): Response
     {
         $cicloSeleccionadoId = $request->integer('ciclo') ?: $this->cicloPorDefectoId();
+        $turnoSeleccionado = $request->integer('turno') ?: null;
+        $areaSeleccionada = $request->integer('area') ?: null;
 
         $cursos = Curso::query()
-            ->with(['asignaciones' => function ($query) use ($cicloSeleccionadoId): void {
+            ->when($areaSeleccionada, fn ($q): mixed => $q->where('id_area', $areaSeleccionada))
+            ->with(['asignaciones' => function ($query) use ($cicloSeleccionadoId, $turnoSeleccionado): void {
                 $query->when($cicloSeleccionadoId, fn ($q): mixed => $q->where('id_ciclo', $cicloSeleccionadoId))
+                    ->when($turnoSeleccionado, fn ($q): mixed => $q->where('id_turno', $turnoSeleccionado))
                     ->with([
                         'docente:id,nombres,apellidos',
                         'aula:id_aula,nombre,capacidad',
                         'ciclo:id_ciclo,nombre',
+                        'turno:id_turno,nombre',
                         'horarios' => fn ($q): mixed => $q->orderBy('dia_semana')->orderBy('hora_inicio'),
                     ]);
             }])
@@ -47,6 +55,9 @@ class CursoController extends Controller
             'cursos' => $cursos,
             'eventos' => $eventos,
             'cicloSeleccionadoId' => $cicloSeleccionadoId,
+            'turnoSeleccionadoId' => $turnoSeleccionado,
+            'areaSeleccionadaId' => $areaSeleccionada,
+            'configHorario' => $this->configuracionHorario(),
             'ciclos' => Ciclo::query()
                 ->with('periodo')
                 ->orderByDesc('fecha_inicio')
@@ -61,6 +72,12 @@ class CursoController extends Controller
             'aulas' => Aula::query()
                 ->orderBy('nombre')
                 ->get(['id_aula', 'nombre', 'capacidad']),
+            'turnos' => Turno::query()
+                ->orderBy('nombre')
+                ->get(['id_turno', 'nombre']),
+            'areas' => Area::query()
+                ->orderBy('nombre')
+                ->get(['id_area', 'nombre']),
             'dias' => $this->diasSemana(),
         ]);
     }
@@ -106,13 +123,14 @@ class CursoController extends Controller
 
     /**
      * @param  array<string, mixed>  $data
-     * @return array{nombre: string, area_conoc: ?string, color: string}
+     * @return array{nombre: string, area_conoc: ?string, id_area: ?int, color: string}
      */
     private function datosCurso(array $data): array
     {
         return [
             'nombre' => $data['nombre'],
             'area_conoc' => $data['area_conoc'] ?? null,
+            'id_area' => ! empty($data['id_area']) ? (int) $data['id_area'] : null,
             'color' => $data['color'],
         ];
     }
@@ -145,7 +163,7 @@ class CursoController extends Controller
 
     /**
      * @param  array<string, mixed>  $data
-     * @return array{id_docente: int, id_ciclo: int, id_aula: int}
+     * @return array{id_docente: int, id_ciclo: int, id_aula: int, id_turno: ?int}
      */
     private function datosAsignacion(array $data): array
     {
@@ -153,6 +171,7 @@ class CursoController extends Controller
             'id_docente' => (int) $data['id_docente'],
             'id_ciclo' => (int) $data['id_ciclo'],
             'id_aula' => (int) $data['id_aula'],
+            'id_turno' => ! empty($data['id_turno']) ? (int) $data['id_turno'] : null,
         ];
     }
 
@@ -192,12 +211,16 @@ class CursoController extends Controller
             'id_curso' => $curso->id_curso,
             'nombre' => $curso->nombre,
             'area_conoc' => $curso->area_conoc,
+            'id_area' => $curso->id_area,
+            'area_nombre' => $curso->area?->nombre,
             'color' => $curso->color,
             'asignacion' => $asignacion ? [
                 'id_asignacion' => $asignacion->id_asignacion,
                 'id_docente' => $asignacion->id_docente,
                 'id_ciclo' => $asignacion->id_ciclo,
                 'id_aula' => $asignacion->id_aula,
+                'id_turno' => $asignacion->id_turno,
+                'turno_nombre' => $asignacion->turno?->nombre,
                 'docente_nombre' => trim("{$asignacion->docente?->nombres} {$asignacion->docente?->apellidos}"),
                 'aula_nombre' => $asignacion->aula?->nombre,
                 'ciclo_nombre' => $asignacion->ciclo?->nombre,
@@ -242,6 +265,74 @@ class CursoController extends Controller
     private function hora(string $hora): string
     {
         return mb_substr($hora, 0, 5);
+    }
+
+    /**
+     * @return array{inicio: string, fin: string, recesos: array<int, array{inicio: string, fin: string, etiqueta: string}>}
+     */
+    private function configuracionHorario(): array
+    {
+        $inicio = Configuracion::where('clave', 'horario_ventana_inicio')->value('valor') ?? '07:00';
+        $fin = Configuracion::where('clave', 'horario_ventana_fin')->value('valor') ?? '20:30';
+
+        $recesosCrudo = Configuracion::where('clave', 'horario_recesos')->value('valor');
+        $recesos = $recesosCrudo ? json_decode($recesosCrudo, true) : null;
+
+        if (! is_array($recesos) || $recesos === []) {
+            $recesos = [['inicio' => '10:15', 'fin' => '10:30', 'etiqueta' => 'Receso']];
+        }
+
+        return [
+            'inicio' => $inicio,
+            'fin' => $fin,
+            'recesos' => $recesos,
+        ];
+    }
+
+    public function configurarHorario(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'inicio' => ['required', 'date_format:H:i'],
+            'fin' => ['required', 'date_format:H:i', 'after:inicio'],
+            'recesos' => ['nullable', 'array'],
+            'recesos.*.inicio' => ['required', 'date_format:H:i'],
+            'recesos.*.fin' => ['required', 'date_format:H:i', 'after:recesos.*.inicio'],
+            'recesos.*.etiqueta' => ['nullable', 'string', 'max:60'],
+        ], [
+            'inicio.required' => 'La hora de inicio de la ventana es obligatoria.',
+            'fin.required' => 'La hora de termino de la ventana es obligatoria.',
+            'fin.after' => 'La hora de termino debe ser posterior a la de inicio.',
+            'recesos.*.inicio.date_format' => 'El inicio del receso debe tener formato HH:MM.',
+            'recesos.*.fin.date_format' => 'El termino del receso debe tener formato HH:MM.',
+            'recesos.*.fin.after' => 'El termino del receso debe ser posterior a su inicio.',
+        ]);
+
+        Configuracion::updateOrCreate(
+            ['clave' => 'horario_ventana_inicio'],
+            ['valor' => $validated['inicio']],
+        );
+        Configuracion::updateOrCreate(
+            ['clave' => 'horario_ventana_fin'],
+            ['valor' => $validated['fin']],
+        );
+
+        $recesos = collect($validated['recesos'] ?? [])
+            ->map(fn (array $receso): array => [
+                'inicio' => $receso['inicio'],
+                'fin' => $receso['fin'],
+                'etiqueta' => $receso['etiqueta'] ?: 'Receso',
+            ])
+            ->values()
+            ->all();
+
+        Configuracion::updateOrCreate(
+            ['clave' => 'horario_recesos'],
+            ['valor' => json_encode($recesos)],
+        );
+
+        return redirect()
+            ->back()
+            ->with('success', 'Configuracion del horario actualizada correctamente.');
     }
 
     public function storeCiclo(Request $request): RedirectResponse

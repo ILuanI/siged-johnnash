@@ -22,6 +22,7 @@ class AsignacionDocente extends Model
         'id_curso',
         'id_ciclo',
         'id_aula',
+        'id_turno',
     ];
 
     public function docente(): BelongsTo
@@ -42,6 +43,11 @@ class AsignacionDocente extends Model
     public function aula(): BelongsTo
     {
         return $this->belongsTo(Aula::class, 'id_aula', 'id_aula');
+    }
+
+    public function turno(): BelongsTo
+    {
+        return $this->belongsTo(Turno::class, 'id_turno', 'id_turno');
     }
 
     public function horarios(): HasMany

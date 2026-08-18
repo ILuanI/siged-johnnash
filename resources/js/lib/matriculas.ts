@@ -42,6 +42,7 @@ export function estadoBadgeClass(estado: string | null): string {
 
 function parseDate(dateStr: string): Date {
     const [y, m, d] = dateStr.split('T')[0].split('-');
+
     return new Date(Number(y), Number(m) - 1, Number(d));
 }
 
@@ -65,7 +66,9 @@ export function getPaymentStatus(cuotas: { estado: string; fecha_vencimiento: st
         if (c.estado === 'VENCIDA') {
             return true;
         }
+
         const vDate = parseDate(c.fecha_vencimiento);
+
         return vDate < now;
     });
 
@@ -77,6 +80,7 @@ export function getPaymentStatus(cuotas: { estado: string; fecha_vencimiento: st
         const vDate = parseDate(c.fecha_vencimiento);
         const diffTime = vDate.getTime() - now.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
         return diffDays >= 0 && diffDays <= 3;
     });
 
@@ -91,20 +95,26 @@ export function normalizePhone(phone: string | null | undefined): string {
     if (!phone) {
         return '';
     }
+
     const digits = phone.replace(/\D/g, '');
+
     if (digits.startsWith('51') && digits.length >= 11) {
         return digits;
     }
+
     if (digits.length === 9) {
         return `51${digits}`;
     }
+
     return digits;
 }
 
 export function getWhatsAppUrl(phone: string, message: string): string {
     const normalized = normalizePhone(phone);
+
     if (!normalized) {
         return '';
     }
+
     return `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
 }

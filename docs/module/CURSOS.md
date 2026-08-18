@@ -8,6 +8,8 @@
 3. Asignar docente + aula a un curso en un ciclo académico (evita duplicados por ciclo).
 4. Definir horario semanal (día, hora inicio, hora fin) con validación de cruces (docente y aula).
 5. Visualizar parrilla horaria con cuadrícula semanal y eventos solapables.
+6. Configurar la ventana del día (inicio/término) y los recesos visibles.
+7. Filtrar la parrilla por turno (Mañana/Tarde) y por área del catálogo.
 
 ### Backend — ubicación de archivos
 
@@ -51,6 +53,7 @@ tests/Feature/
 | DELETE | `/cursos/{curso}` | `cursos.destroy` | Eliminar (cascade a asignación/horarios) |
 | POST | `/cursos/ciclos` | `cursos.ciclos.store` | Crear ciclo académico |
 | POST | `/cursos/aulas` | `cursos.aulas.store` | Crear aula |
+| POST | `/cursos/configuracion` | `cursos.configuracion.update` | Guardar ventana del día y recesos |
 | GET | `/docentes` | `docentes.index` | Listado docentes |
 | POST | `/docentes` | `docentes.store` | Crear docente |
 | PUT/PATCH | `/docentes/{docente}` | `docentes.update` | Actualizar docente |
@@ -75,12 +78,26 @@ asignacion_docente (central)
   ├── id_docente → docentes
   ├── id_ciclo   → ciclo
   ├── id_aula    → aula
+  ├── id_turno   → turno (nullable; habilita filtro por turno)
   └── horarios[] → horario (dia_semana, hora_inicio, hora_fin)
+
+curso
+  ├── area_conoc → texto libre (histórico)
+  └── id_area    → area (catálogo, nullable; habilita filtro por área)
 
 Reglas de negocio:
   - Unique (id_curso, id_ciclo): un curso una vez por ciclo
   - Sin cruces de horario para un docente en un mismo ciclo
   - Sin cruces de horario para un aula en un mismo ciclo
+
+Configuración de la parrilla (tabla `configuracion`, clave/valor):
+  - `horario_ventana_inicio` (def. "07:00"): inicio del eje horario.
+  - `horario_ventana_fin`    (def. "20:30"): término del eje horario.
+  - `horario_recesos`        (JSON def. [{"inicio":"10:15","fin":"10:30","etiqueta":"Receso"}]):
+    bloques dibujados como recesos rayados; NO bloquean la programación de clases.
+  Se editan desde el diálogo "Configurar horario" en `/cursos` (acción
+  `cursos.configuracion.update`). El filtro por turno/área se aplica en
+  `CursoController::index` vía los parámetros `turno` y `area`.
 ```
 
 ---

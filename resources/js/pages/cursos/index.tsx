@@ -6,6 +6,7 @@ import {
     Clock,
     Pencil,
     Plus,
+    Printer,
     Trash2,
     UserRound,
 } from 'lucide-react';
@@ -13,6 +14,7 @@ import { useMemo, useState } from 'react';
 import type { CSSProperties, FormEvent } from 'react';
 import { toast } from 'sonner';
 import {
+    configurarHorario,
     destroy,
     index,
     store,
@@ -45,12 +47,16 @@ type CursoItem = {
     id_curso: number;
     nombre: string;
     area_conoc: string | null;
+    id_area: number | null;
+    area_nombre: string | null;
     color: string;
     asignacion: {
         id_asignacion: number;
         id_docente: number;
         id_ciclo: number;
         id_aula: number | null;
+        id_turno: number | null;
+        turno_nombre: string | null;
         docente_nombre: string;
         aula_nombre: string | null;
         ciclo_nombre: string | null;
@@ -69,6 +75,18 @@ type EventoHorario = {
     dia_semana: string;
     hora_inicio: string;
     hora_fin: string;
+};
+
+type RecesoConfig = {
+    inicio: string;
+    fin: string;
+    etiqueta: string;
+};
+
+type ConfigHorario = {
+    inicio: string;
+    fin: string;
+    recesos: RecesoConfig[];
 };
 
 type CicloOption = {
@@ -101,13 +119,25 @@ type AulaOption = {
     capacidad: number | null;
 };
 
+type TurnoOption = {
+    id_turno: number;
+    nombre: string;
+};
+
+type AreaOption = {
+    id_area: number;
+    nombre: string;
+};
+
 type CursoForm = {
     nombre: string;
     area_conoc: string;
+    id_area: string;
     color: string;
     id_docente: string;
     id_ciclo: string;
     id_aula: string;
+    id_turno: string;
     dias: string[];
     hora_inicio: string;
     hora_fin: string;
@@ -117,17 +147,19 @@ type PageProps = {
     cursos: CursoItem[];
     eventos: EventoHorario[];
     cicloSeleccionadoId: number | null;
+    turnoSeleccionadoId: number | null;
+    areaSeleccionadaId: number | null;
+    configHorario: ConfigHorario;
     ciclos: CicloOption[];
     periodos: PeriodoOption[];
     docentes: DocenteOption[];
     aulas: AulaOption[];
+    turnos: TurnoOption[];
+    areas: AreaOption[];
     dias: Record<string, string>;
 };
 
 const calendarioDias = ['LUN', 'MAR', 'MIE', 'JUE', 'VIE', 'SAB'];
-const horas = ['07:00', '08:00', '09:00', '10:00', '10:30', '11:00', '12:00'];
-const inicioDia = toMinutes('07:00');
-const finDia = toMinutes('12:00');
 const colores = [
     '#1a237e',
     '#ff7043',
@@ -142,6 +174,31 @@ function toMinutes(value: string): number {
     const [hours, minutes] = value.split(':').map(Number);
 
     return hours * 60 + minutes;
+}
+
+function minutesToHHMM(minutes: number): string {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function buildHoras(inicio: string, fin: string): string[] {
+    const start = toMinutes(inicio);
+    const end = toMinutes(fin);
+    const labels = [inicio];
+    let t = Math.ceil(start / 60) * 60;
+
+    while (t <= end) {
+        labels.push(minutesToHHMM(t));
+        t += 60;
+    }
+
+    if (labels[labels.length - 1] !== fin) {
+        labels.push(fin);
+    }
+
+    return labels;
 }
 
 function computeEventLayout(dayEvents: EventoHorario[]) {
@@ -245,6 +302,8 @@ function computeEventLayout(dayEvents: EventoHorario[]) {
 
 function eventStyle(
     evento: EventoHorario & { colIndex?: number; colCount?: number },
+    inicioDia: number,
+    finDia: number,
 ): CSSProperties {
     const top =
         ((toMinutes(evento.hora_inicio) - inicioDia) / (finDia - inicioDia)) *
@@ -269,14 +328,34 @@ function eventStyle(
     };
 }
 
+function recesoStyle(
+    receso: RecesoConfig,
+    inicioDia: number,
+    finDia: number,
+): CSSProperties {
+    const top =
+        ((toMinutes(receso.inicio) - inicioDia) / (finDia - inicioDia)) * 100;
+    const height =
+        ((toMinutes(receso.fin) - toMinutes(receso.inicio)) /
+            (finDia - inicioDia)) *
+        100;
+
+    return {
+        top: `${top}%`,
+        height: `${height}%`,
+    };
+}
+
 function emptyForm(cicloSeleccionadoId: number | null): CursoForm {
     return {
         nombre: '',
         area_conoc: '',
+        id_area: '',
         color: '#1a237e',
         id_docente: '',
         id_ciclo: cicloSeleccionadoId ? String(cicloSeleccionadoId) : '',
         id_aula: '',
+        id_turno: '',
         dias: ['LUN'],
         hora_inicio: '08:00',
         hora_fin: '10:00',
@@ -287,14 +366,27 @@ export default function CursosIndex({
     cursos,
     eventos,
     cicloSeleccionadoId,
+    turnoSeleccionadoId,
+    areaSeleccionadaId,
+    configHorario,
     ciclos,
     periodos = [],
     docentes,
     aulas,
+    turnos = [],
+    areas = [],
     dias,
 }: PageProps) {
     const [modalOpen, setModalOpen] = useState(false);
     const [editingCurso, setEditingCurso] = useState<CursoItem | null>(null);
+
+    const horas = useMemo(
+        () => buildHoras(configHorario.inicio, configHorario.fin),
+        [configHorario.inicio, configHorario.fin],
+    );
+    const inicioDia = toMinutes(configHorario.inicio);
+    const finDia = toMinutes(configHorario.fin);
+    const altoPx = Math.max(560, Math.round(((finDia - inicioDia) / 60) * 64));
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } =
         useForm<CursoForm>(emptyForm(cicloSeleccionadoId));
@@ -491,6 +583,7 @@ export default function CursosIndex({
             nombre: curso.nombre,
             area_conoc: curso.area_conoc ?? '',
             color: curso.color,
+            id_area: curso.id_area ? String(curso.id_area) : '',
             id_docente: asignacion ? String(asignacion.id_docente) : '',
             id_ciclo: asignacion
                 ? String(asignacion.id_ciclo)
@@ -498,6 +591,7 @@ export default function CursosIndex({
                   ? String(cicloSeleccionadoId)
                   : '',
             id_aula: asignacion?.id_aula ? String(asignacion.id_aula) : '',
+            id_turno: asignacion?.id_turno ? String(asignacion.id_turno) : '',
             dias: asignacion?.horarios.map((horario) => horario.dia_semana) ?? [
                 'LUN',
             ],
@@ -533,9 +627,11 @@ export default function CursosIndex({
                 const fieldsOrder = [
                     'nombre',
                     'area_conoc',
+                    'id_area',
                     'id_ciclo',
                     'id_docente',
                     'id_aula',
+                    'id_turno',
                     'color',
                     'dias',
                     'hora_inicio',
@@ -577,14 +673,120 @@ export default function CursosIndex({
     const handleCicloChange = (idCiclo: string) => {
         router.get(
             index.url(),
-            { ciclo: idCiclo },
+            { ciclo: idCiclo, turno: turnoSeleccionadoId, area: areaSeleccionadaId },
             { preserveState: true, preserveScroll: true },
         );
+    };
+
+    const handleTurnoChange = (idTurno: string) => {
+        router.get(
+            index.url(),
+            {
+                ciclo: cicloSeleccionadoId,
+                turno: idTurno || null,
+                area: areaSeleccionadaId,
+            },
+            { preserveState: true, preserveScroll: true },
+        );
+    };
+
+    const handleAreaChange = (idArea: string) => {
+        router.get(
+            index.url(),
+            {
+                ciclo: cicloSeleccionadoId,
+                turno: turnoSeleccionadoId,
+                area: idArea || null,
+            },
+            { preserveState: true, preserveScroll: true },
+        );
+    };
+
+    const handleImprimir = () => {
+        window.print();
+    };
+
+    // Configuración de horario (ventana + recesos)
+    const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+    const {
+        data: configData,
+        setData: setConfigData,
+        post: postConfig,
+        processing: configProcessing,
+        errors: configErrors,
+    } = useForm<{
+        inicio: string;
+        fin: string;
+        recesos: RecesoConfig[];
+    }>({
+        inicio: configHorario.inicio,
+        fin: configHorario.fin,
+        recesos: configHorario.recesos.map((r) => ({ ...r })),
+    });
+
+    const openConfigDialog = () => {
+        setConfigData('inicio', configHorario.inicio);
+        setConfigData('fin', configHorario.fin);
+        setConfigData(
+            'recesos',
+            configHorario.recesos.map((r) => ({ ...r })),
+        );
+        setIsConfigDialogOpen(true);
+    };
+
+    const addReceso = () => {
+        setConfigData('recesos', [
+            ...configData.recesos,
+            { inicio: '10:15', fin: '10:30', etiqueta: 'Receso' },
+        ]);
+    };
+
+    const removeReceso = (index: number) => {
+        setConfigData(
+            'recesos',
+            configData.recesos.filter((_, i) => i !== index),
+        );
+    };
+
+    const updateReceso = (
+        index: number,
+        campo: keyof RecesoConfig,
+        valor: string,
+    ) => {
+        setConfigData(
+            'recesos',
+            configData.recesos.map((r, i) =>
+                i === index ? { ...r, [campo]: valor } : r,
+            ),
+        );
+    };
+
+    const handleSaveConfig = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        postConfig(configurarHorario.url(), {
+            preserveScroll: true,
+            onSuccess: () => setIsConfigDialogOpen(false),
+            onError: (errs: any) => {
+                Object.values(errs).forEach((err: any) => toast.error(err));
+            },
+        });
     };
 
     return (
         <>
             <Head title="Gestion de cursos" />
+
+            <style>{`
+                @media print {
+                    .no-print { display: none !important; }
+                    body { background: #fff; }
+                    main { display: block !important; }
+                    section { box-shadow: none !important; border: none !important; overflow: visible !important; }
+                    .print-header { display: block !important; }
+                }
+                .print-header { display: none; }
+            `}</style>
 
             <header className="border-b bg-white px-5 py-5 md:px-8">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -602,7 +804,7 @@ export default function CursosIndex({
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="no-print flex flex-wrap items-center gap-2">
                         <div className="flex items-center gap-1">
                             <select
                                 value={cicloSeleccionadoId ?? ''}
@@ -655,6 +857,35 @@ export default function CursosIndex({
                                 </Button>
                             )}
                         </div>
+
+                        <select
+                            value={turnoSeleccionadoId ?? ''}
+                            onChange={(event) => handleTurnoChange(event.target.value)}
+                            className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm"
+                            title="Filtrar por turno"
+                        >
+                            <option value="">Todos los turnos</option>
+                            {turnos.map((turno) => (
+                                <option key={turno.id_turno} value={turno.id_turno}>
+                                    {turno.nombre}
+                                </option>
+                            ))}
+                        </select>
+
+                        <select
+                            value={areaSeleccionadaId ?? ''}
+                            onChange={(event) => handleAreaChange(event.target.value)}
+                            className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm"
+                            title="Filtrar por área"
+                        >
+                            <option value="">Todas las áreas</option>
+                            {areas.map((area) => (
+                                <option key={area.id_area} value={area.id_area}>
+                                    {area.nombre}
+                                </option>
+                            ))}
+                        </select>
+
                         <Button
                             type="button"
                             variant="outline"
@@ -673,6 +904,27 @@ export default function CursosIndex({
                         </Button>
                         <Button
                             type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={openConfigDialog}
+                            title="Configurar horario"
+                            className="h-9 px-2 text-slate-600 hover:text-[#1a237e]"
+                        >
+                            <Clock className="size-4" />
+                            Configurar
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleImprimir}
+                            title="Imprimir / Capturar"
+                            className="h-9 px-2 text-slate-600 hover:text-[#1a237e]"
+                        >
+                            <Printer className="size-4" />
+                        </Button>
+                        <Button
+                            type="button"
                             onClick={openCreateModal}
                             className="bg-[#ff7043] text-white hover:bg-[#f4511e]"
                         >
@@ -684,6 +936,22 @@ export default function CursosIndex({
             </header>
 
             <main className="grid gap-5 px-5 py-5 md:px-8 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="print-header mb-4">
+                    <h1 className="text-xl font-bold text-[#0b145f]">
+                        Horario de Clases
+                    </h1>
+                    <p className="text-sm text-slate-600">
+                        {cicloSeleccionado
+                            ? `${cicloSeleccionado.nombre}${cicloSeleccionado.tipo_ciclo ? ` - ${cicloSeleccionado.tipo_ciclo}` : ''}`
+                            : 'Sin ciclo académico'}
+                        {turnoSeleccionadoId
+                            ? ` · Turno: ${turnos.find((t) => t.id_turno === turnoSeleccionadoId)?.nombre ?? ''}`
+                            : ''}
+                        {areaSeleccionadaId
+                            ? ` · Área: ${areas.find((a) => a.id_area === areaSeleccionadaId)?.nombre ?? ''}`
+                            : ''}
+                    </p>
+                </div>
                 <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
                     <div className="min-w-[840px]">
                         <div
@@ -716,7 +984,10 @@ export default function CursosIndex({
                                     '72px repeat(6, minmax(120px, 1fr))',
                             }}
                         >
-                            <div className="relative min-h-[560px] border-r border-slate-100 bg-white">
+                            <div
+                                className="relative min-h-[560px] border-r border-slate-100 bg-white"
+                                style={{ minHeight: altoPx }}
+                            >
                                 {horas.map((hora) => (
                                     <div
                                         key={hora}
@@ -734,6 +1005,7 @@ export default function CursosIndex({
                                 <div
                                     key={dia}
                                     className="relative min-h-[560px] border-r border-slate-100 bg-[#fbf9ff] last:border-r-0"
+                                    style={{ minHeight: altoPx }}
                                 >
                                     {horas.map((hora) => (
                                         <div
@@ -744,14 +1016,19 @@ export default function CursosIndex({
                                             }}
                                         />
                                     ))}
-                                    <div
-                                        className="absolute right-0 left-0 z-10 flex h-7 items-center justify-center bg-slate-200/70 text-[10px] font-semibold tracking-wide text-slate-500 uppercase"
-                                        style={{
-                                            top: `${((toMinutes('10:00') - inicioDia) / (finDia - inicioDia)) * 100}%`,
-                                        }}
-                                    >
-                                        Receso
-                                    </div>
+                                    {configHorario.recesos.map((receso, idx) => (
+                                        <div
+                                            key={`receso-${idx}`}
+                                            className="pointer-events-none absolute right-0 left-0 z-10 flex items-center justify-center bg-slate-200/70 text-[10px] font-semibold tracking-wide text-slate-500 uppercase [background-image:repeating-linear-gradient(45deg,transparent,transparent_6px,rgba(100,116,139,0.25)_6px,rgba(100,116,139,0.25)_12px)]"
+                                            style={recesoStyle(
+                                                receso,
+                                                inicioDia,
+                                                finDia,
+                                            )}
+                                        >
+                                            {receso.etiqueta || 'Receso'}
+                                        </div>
+                                    ))}
                                     {eventosPorDia[dia]?.map((evento) => (
                                         <button
                                             key={evento.id}
@@ -768,7 +1045,11 @@ export default function CursosIndex({
                                                 }
                                             }}
                                             className="absolute right-2 left-2 z-20 rounded-md px-3 py-2 text-left text-white shadow-md transition hover:scale-[1.01] focus:ring-2 focus:ring-[#ff7043] focus:outline-none"
-                                            style={eventStyle(evento)}
+                                            style={eventStyle(
+                                                evento,
+                                                inicioDia,
+                                                finDia,
+                                            )}
                                             title={`${evento.nombre} - ${evento.hora_inicio} a ${evento.hora_fin}`}
                                         >
                                             <span className="block truncate text-[11px] leading-tight font-bold text-[#ffb199] uppercase">
@@ -923,6 +1204,29 @@ export default function CursosIndex({
                             </div>
 
                             <div>
+                                <Label htmlFor="id_area">Área (catálogo)</Label>
+                                <select
+                                    id="id_area"
+                                    value={data.id_area}
+                                    onChange={(event) =>
+                                        setData('id_area', event.target.value)
+                                    }
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
+                                >
+                                    <option value="">Sin área</option>
+                                    {areas.map((area) => (
+                                        <option
+                                            key={area.id_area}
+                                            value={area.id_area}
+                                        >
+                                            {area.nombre}
+                                        </option>
+                                    ))}
+                                </select>
+                                <InputError message={errors.id_area} />
+                            </div>
+
+                            <div>
                                 <div className="mb-1 flex items-center justify-between">
                                     <Label htmlFor="id_ciclo" className="mb-0">
                                         Ciclo
@@ -959,6 +1263,29 @@ export default function CursosIndex({
                                     ))}
                                 </select>
                                 <InputError message={errors.id_ciclo} />
+                            </div>
+
+                            <div>
+                                <Label htmlFor="id_turno">Turno</Label>
+                                <select
+                                    id="id_turno"
+                                    value={data.id_turno}
+                                    onChange={(event) =>
+                                        setData('id_turno', event.target.value)
+                                    }
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs"
+                                >
+                                    <option value="">Sin turno</option>
+                                    {turnos.map((turno) => (
+                                        <option
+                                            key={turno.id_turno}
+                                            value={turno.id_turno}
+                                        >
+                                            {turno.nombre}
+                                        </option>
+                                    ))}
+                                </select>
+                                <InputError message={errors.id_turno} />
                             </div>
 
                             <div className="sm:col-span-2">
@@ -1383,6 +1710,172 @@ export default function CursosIndex({
                                 className="bg-[#ff7043] text-white hover:bg-[#f4511e]"
                             >
                                 {aulaLoading ? 'Creando...' : 'Crear Aula'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Dialog para Configurar Horario (ventana + recesos) */}
+            <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="text-[#0b145f]">
+                            Configurar Horario
+                        </DialogTitle>
+                        <DialogDescription>
+                            Define la ventana del día (inicio y término) y los
+                            recesos que se muestran en la parrilla.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSaveConfig} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="cfg_inicio">Inicio del día</Label>
+                                <Input
+                                    id="cfg_inicio"
+                                    type="time"
+                                    value={configData.inicio}
+                                    onChange={(e) =>
+                                        setConfigData('inicio', e.target.value)
+                                    }
+                                />
+                                <InputError message={configErrors.inicio} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="cfg_fin">Término del día</Label>
+                                <Input
+                                    id="cfg_fin"
+                                    type="time"
+                                    value={configData.fin}
+                                    onChange={(e) =>
+                                        setConfigData('fin', e.target.value)
+                                    }
+                                />
+                                <InputError message={configErrors.fin} />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label>Recesos</Label>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={addReceso}
+                                >
+                                    <Plus className="mr-1 size-3" />
+                                    Agregar
+                                </Button>
+                            </div>
+                            {configData.recesos.length === 0 && (
+                                <p className="text-xs text-slate-500">
+                                    No hay recesos configurados.
+                                </p>
+                            )}
+                            {configData.recesos.map((receso, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-end gap-2 rounded-md border border-slate-200 p-2"
+                                >
+                                    <div className="grid gap-1">
+                                        <Label className="text-[11px]">
+                                            Inicio
+                                        </Label>
+                                        <Input
+                                            type="time"
+                                            value={receso.inicio}
+                                            onChange={(e) =>
+                                                updateReceso(
+                                                    idx,
+                                                    'inicio',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="h-8"
+                                        />
+                                    </div>
+                                    <div className="grid gap-1">
+                                        <Label className="text-[11px]">
+                                            Fin
+                                        </Label>
+                                        <Input
+                                            type="time"
+                                            value={receso.fin}
+                                            onChange={(e) =>
+                                                updateReceso(
+                                                    idx,
+                                                    'fin',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            className="h-8"
+                                        />
+                                    </div>
+                                    <div className="grid flex-1 gap-1">
+                                        <Label className="text-[11px]">
+                                            Etiqueta
+                                        </Label>
+                                        <Input
+                                            value={receso.etiqueta}
+                                            onChange={(e) =>
+                                                updateReceso(
+                                                    idx,
+                                                    'etiqueta',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            placeholder="Receso"
+                                            className="h-8"
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removeReceso(idx)}
+                                        className="text-rose-600 hover:text-rose-700"
+                                        title="Quitar receso"
+                                    >
+                                        <Trash2 className="size-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                            {configData.recesos.map((_, idx) => {
+                                const errs = configErrors as Record<
+                                    string,
+                                    string
+                                >;
+
+                                return (
+                                    <InputError
+                                        key={`err-${idx}`}
+                                        message={
+                                            errs[`recesos.${idx}.inicio`] ??
+                                            errs[`recesos.${idx}.fin`]
+                                        }
+                                    />
+                                );
+                            })}
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsConfigDialogOpen(false)}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={configProcessing}
+                                className="bg-[#1a237e] text-white hover:bg-[#0b145f]"
+                            >
+                                {configProcessing
+                                    ? 'Guardando...'
+                                    : 'Guardar configuración'}
                             </Button>
                         </DialogFooter>
                     </form>

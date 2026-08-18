@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -21,7 +22,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 interface PaginatedData<T> {
     data: T[];
@@ -76,16 +76,45 @@ export default function ReportesIndex({
         setLoading(true);
         const params: any = { page, tipo_reporte: tipoReporte };
 
-        if (q.trim()) params.q = q;
-        if (idTurno !== 'all' && idTurno !== '') params.id_turno = idTurno;
-        if (idArea !== 'all' && idArea !== '') params.id_area = idArea;
-        if (idCurso !== 'all' && idCurso !== '') params.id_curso = idCurso;
-        if (notaMin) params.nota_min = notaMin;
-        if (notaMax) params.nota_max = notaMax;
-        if (fechaInicio) params.fecha_inicio = fechaInicio;
-        if (fechaFin) params.fecha_fin = fechaFin;
-        if (tardanzasCount) params.tardanzas_count = tardanzasCount;
-        if (faltasCount) params.faltas_count = faltasCount;
+        if (q.trim()) {
+params.q = q;
+}
+
+        if (idTurno !== 'all' && idTurno !== '') {
+params.id_turno = idTurno;
+}
+
+        if (idArea !== 'all' && idArea !== '') {
+params.id_area = idArea;
+}
+
+        if (idCurso !== 'all' && idCurso !== '') {
+params.id_curso = idCurso;
+}
+
+        if (notaMin) {
+params.nota_min = notaMin;
+}
+
+        if (notaMax) {
+params.nota_max = notaMax;
+}
+
+        if (fechaInicio) {
+params.fecha_inicio = fechaInicio;
+}
+
+        if (fechaFin) {
+params.fecha_fin = fechaFin;
+}
+
+        if (tardanzasCount) {
+params.tardanzas_count = tardanzasCount;
+}
+
+        if (faltasCount) {
+params.faltas_count = faltasCount;
+}
 
         router.get('/reportes', params, {
             onFinish: () => setLoading(false),
@@ -134,16 +163,46 @@ export default function ReportesIndex({
     const getExportUrl = (format: 'exportar' | 'pdf') => {
         const queryParams = new URLSearchParams();
         queryParams.append('tipo_reporte', tipoReporte);
-        if (q.trim()) queryParams.append('q', q);
-        if (idTurno !== 'all' && idTurno !== '') queryParams.append('id_turno', idTurno);
-        if (idArea !== 'all' && idArea !== '') queryParams.append('id_area', idArea);
-        if (idCurso !== 'all' && idCurso !== '') queryParams.append('id_curso', idCurso);
-        if (notaMin) queryParams.append('nota_min', notaMin);
-        if (notaMax) queryParams.append('nota_max', notaMax);
-        if (fechaInicio) queryParams.append('fecha_inicio', fechaInicio);
-        if (fechaFin) queryParams.append('fecha_fin', fechaFin);
-        if (tardanzasCount) queryParams.append('tardanzas_count', tardanzasCount);
-        if (faltasCount) queryParams.append('faltas_count', faltasCount);
+
+        if (q.trim()) {
+queryParams.append('q', q);
+}
+
+        if (idTurno !== 'all' && idTurno !== '') {
+queryParams.append('id_turno', idTurno);
+}
+
+        if (idArea !== 'all' && idArea !== '') {
+queryParams.append('id_area', idArea);
+}
+
+        if (idCurso !== 'all' && idCurso !== '') {
+queryParams.append('id_curso', idCurso);
+}
+
+        if (notaMin) {
+queryParams.append('nota_min', notaMin);
+}
+
+        if (notaMax) {
+queryParams.append('nota_max', notaMax);
+}
+
+        if (fechaInicio) {
+queryParams.append('fecha_inicio', fechaInicio);
+}
+
+        if (fechaFin) {
+queryParams.append('fecha_fin', fechaFin);
+}
+
+        if (tardanzasCount) {
+queryParams.append('tardanzas_count', tardanzasCount);
+}
+
+        if (faltasCount) {
+queryParams.append('faltas_count', faltasCount);
+}
 
         return `/reportes/${format}?${queryParams.toString()}`;
     };
